@@ -40,20 +40,13 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=android/app/keystore.jks" >> android/key.properties
 
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v4.2.0
-        with:
-          path: |
-            ~/.pub-cache
-            android/.gradle
-            android/build
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml') }}
+      - name: Build APK (split per ABI and general)
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
 
-      - name: Build APK
-        run: flutter build apk --release --no-shrink --no-tree-shake-icons --split-per-abi
-
-      - name: Upload APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: app-release-apks
+          path: build/app/outputs/flutter-apk/*
