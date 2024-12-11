@@ -1,0 +1,15 @@
+name: Flutter APK Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  android-release-build:
+    name: Android Release Build
+    runs-on: ubuntu-latest
+    container: ghcr.io/niklaslehnfeld/flutter-essentials-docker:master
+    steps:
+              - name: Builds - build Flutter APK and create github release
+                uses: Dank-del/flutter-build-and-publish-action@v1
