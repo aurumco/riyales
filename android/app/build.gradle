@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace "ir.sekkeh"
-    compileSdkVersion 33  // کاهش نسخه برای پشتیبانی بیشتر
+    compileSdkVersion 34
 
     defaultConfig {
         applicationId "ir.sekkeh"
         minSdkVersion 21
-        targetSdkVersion 33  // کاهش نسخه برای پشتیبانی بیشتر
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0.0"
     }
