@@ -45,37 +45,58 @@ jobs:
           flutter build apk --release --split-per-abi
           flutter build apk --release
 
-      - name: Create Release Tag
-        run: |
-          TAG_NAME="v1.0.0-${GITHUB_SHA}"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-
-      - name: Upload APKs as GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-x86_64-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ steps.create_tag.outputs.tag_name }}
-
-      - name: Install FPM for .deb packaging
+      - name: Build .deb for amd64
         run: |
           sudo apt-get update
           sudo apt-get install -y ruby ruby-dev gcc make
           sudo gem install --no-document fpm
-
-      - name: Build .deb for amd64
-        run: |
           fpm -s dir -t deb -a amd64 -n sekkeh -v 1.0.0 --prefix /usr/local/bin build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Upload .deb as GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Create Release Tag
+        run: |
+          TAG_NAME="v1.0.0-${GITHUB_SHA}"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
+      - name: Upload APKs and .deb as GitHub Release
+        uses: actions/github-script@v4
         with:
-          files: sekkeh_1.0.0_amd64.deb
+          script: |
+            const fs = require('fs');
+            const tag = context.ref.replace("refs/tags/", ""); // Get release for this tag
+            const release = await github.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag
+            });
+            
+            // Upload APK files
+            const apkFiles = [
+              "build/app/outputs/flutter-apk/app-release.apk",
+              "build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk",
+              "build/app/outputs/flutter-apk/app-arm64-v8a-release.apk",
+              "build/app/outputs/flutter-apk/app-x86_64-release.apk"
+            ];
+
+            for (const file of apkFiles) {
+              await github.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.data.id,
+                name: file.split("/").pop(),
+                data: await fs.readFileSync(file)
+              });
+            }
+
+            // Upload .deb file
+            await github.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: "sekkeh_1.0.0_amd64.deb",
+              data: await fs.readFileSync("sekkeh_1.0.0_amd64.deb")
+            });
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
