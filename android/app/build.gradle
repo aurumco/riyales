@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "ir.sekkeh"
-    compileSdk = 34
+    namespace "ir.sekkeh"
+    compileSdkVersion 33  // کاهش نسخه برای پشتیبانی بیشتر
 
     defaultConfig {
-        applicationId = "ir.sekkeh"
-        minSdk = 19  // کاهش برای پشتیبانی اندروید قدیمی‌تر
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId "ir.sekkeh"
+        minSdkVersion 21
+        targetSdkVersion 33  // کاهش نسخه برای پشتیبانی بیشتر
+        versionCode 1
+        versionName "1.0.0"
     }
 
     signingConfigs {
@@ -26,10 +26,10 @@ android {
                 keyAlias props["keyAlias"]
                 keyPassword props["keyPassword"]
             } else {
-                storeFile file("keystore.jks")
-                storePassword System.getenv("KEYSTORE_PASSWORD")
-                keyAlias System.getenv("KEY_ALIAS")
-                keyPassword System.getenv("KEY_PASSWORD")
+                storeFile file("android/app/keystore.jks")
+                storePassword System.getenv("KEYSTORE_PWD") ?: ""
+                keyAlias System.getenv("KEY_ALIAS") ?: ""
+                keyPassword System.getenv("KEY_PWD") ?: ""
             }
         }
     }
@@ -44,15 +44,15 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 }
 
 flutter {
-    source = "../.."
+    source '../..'
 }
