@@ -22,13 +22,13 @@ android {
             if (file("../key.properties").exists()) {
                 def props = new Properties()
                 props.load(new FileInputStream(file("../key.properties")))
-                storeFile file(props["storeFile"])
+                storeFile file("app/" + props["storeFile"])
                 storePassword props["storePassword"]
                 keyAlias props["keyAlias"]
                 keyPassword props["keyPassword"]
             } else {
                 // اگر فایل key.properties نبود، از Environment Variable می‌خواند
-                storeFile file("keystore.jks")
+                 storeFile file("app/keystore.jks") 
                 storePassword System.getenv("KEYSTORE_PASSWORD")
                 keyAlias System.getenv("KEY_ALIAS")
                 keyPassword System.getenv("KEY_PASSWORD")
