@@ -2,37 +2,40 @@ name: Build and Release
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - 'v*' # اجرا فقط برای پوش تگ‌ها
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2. Set up Java
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
+      # 3. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.4'
 
+      # 4. Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
+      # 5. Decode keystore
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
 
+      # 6. Create key.properties
       - name: Create key.properties
         run: |
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
@@ -40,41 +43,32 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=android/app/keystore.jks" >> android/key.properties
 
-      - name: Build APKs
+      # 7. Build APK and .deb files
+      - name: Build APKs and .deb
         run: |
           flutter build apk --release --split-per-abi
           flutter build apk --release
-
-      - name: Build .deb for amd64
-        run: |
           sudo apt-get update
           sudo apt-get install -y ruby ruby-dev gcc make
           sudo gem install --no-document fpm
-          fpm -s dir -t deb -a amd64 -n sekkeh -v 1.0.0 --prefix /usr/local/bin build/app/outputs/flutter-apk/app-release.apk
+          fpm -s dir -t deb -a amd64 -n sekkeh -v $(git describe --tags --abbrev=0) --prefix /usr/local/bin build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Extract version from pubspec.yaml
-        id: extract_version
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d"+" -f1)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      # 8. Upload Artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          tag_name: v${{ env.VERSION }}
-          release_name: Release v${{ env.VERSION }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: Build Outputs
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            sekkeh_*.deb
 
-      - name: Upload Files to Release
+      # 9. Upload to GitHub Release
+      - name: Upload to GitHub Release
         uses: xresloader/upload-to-github-release@v1
         with:
           file: |
             build/app/outputs/flutter-apk/*.apk
-            sekkeh_1.0.0_amd64.deb
+            sekkeh_*.deb
           overwrite: true
           tags: true
         env:
