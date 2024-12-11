@@ -40,7 +40,7 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=android/app/keystore.jks" >> android/key.properties
 
-      - name: Build APK (split per ABI and general)
+      - name: Build APKs
         run: |
           flutter build apk --release --split-per-abi
           flutter build apk --release
@@ -52,22 +52,25 @@ jobs:
           sudo gem install --no-document fpm
           fpm -s dir -t deb -a amd64 -n sekkeh -v 1.0.0 --prefix /usr/local/bin build/app/outputs/flutter-apk/app-release.apk
 
+      - name: Extract version from pubspec.yaml
+        id: extract_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d"+" -f1)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Create Release Tag
         run: |
-          TAG_NAME="v1.0.0-${GITHUB_SHA}"
+          TAG_NAME="v${{ env.VERSION }}-${GITHUB_SHA}"
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
-      - name: Upload APKs and .deb as GitHub Release
+      - name: Upload Files to Release
         uses: svenstaro/upload-release-action@v2
         with:
-          file: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-x86_64-release.apk
-            sekkeh_1.0.0_amd64.deb
-          tag: ${{ github.ref }}
+          tag: ${{ env.VERSION }}-${GITHUB_SHA}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: |
+            $(find build/app/outputs/flutter-apk/ -type f -name "*.apk")
+            $(find . -type f -name "*.deb")
