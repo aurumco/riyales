@@ -1,78 +1,46 @@
-name: Build and Release
+name: Flutter Android Build and Release
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build:
+  android-release-build:
+    name: Build and Release APK
     runs-on: ubuntu-latest
+    container: ghcr.io/niklaslehnfeld/flutter-essentials-docker:master
 
     steps:
-      # 1. Checkout code
+      # Checkout repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Set up Java
-      - name: Set up Java
-        uses: actions/setup-java@v3
+      # Build APK using flutter-android-build-action
+      - name: Build APK
+        uses: NiklasLehnfeld/flutter-android-build-action@v2
+        id: android-build
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          release: true
+          build-type: apk
+          keystore: ${{ secrets.KEYSTORE }}
+          keystore-pwd: "${{ secrets.KEYSTORE_PASSWORD }}"
+          key-pwd: "${{ secrets.KEY_PASSWORD }}"
 
-      # 3. Set up Flutter
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      # Upload APK as artifact
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          flutter-version: '3.24.4'
+          name: release-apk
+          path: ${{ steps.android-build.outputs.apk-path }}
 
-      # 4. Install dependencies
-      - name: Install dependencies
-        run: flutter pub get
-
-      # 5. Decode keystore
-      - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
-
-      # 6. Create key.properties
-      - name: Create key.properties
-        run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=android/app/keystore.jks" >> android/key.properties
-
-      # 7. Build APK and .deb files
-      - name: Build APKs and .deb
-        run: |
-          flutter build apk --release --split-per-abi
-          flutter build apk --release
-          sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev gcc make
-          sudo gem install --no-document fpm
-          fpm -s dir -t deb -a amd64 -n sekkeh -v $(git describe --tags --abbrev=0) --prefix /usr/local/bin build/app/outputs/flutter-apk/app-release.apk
-
-      # 8. Upload Artifacts
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      # Create GitHub Release and attach APK
+      - name: Create GitHub Release
+        uses: marvinpinto/action-automatic-releases@latest
         with:
-          name: Build Outputs
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            sekkeh_*.deb
-
-      # 9. Upload to GitHub Release
-      - name: Upload to GitHub Release
-        uses: xresloader/upload-to-github-release@v1
-        with:
-          file: |
-            build/app/outputs/flutter-apk/*.apk
-            sekkeh_*.deb
-          overwrite: true
-          tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          automatic_release_tag: ${{ steps.android-build.outputs.version }}
+          title: "Release ${{ steps.android-build.outputs.version }}"
+          files: |
+            ${{ steps.android-build.outputs.apk-path }}
