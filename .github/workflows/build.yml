@@ -1,4 +1,4 @@
-name: Flutter Android Build and Release
+name: Flutter Android Build and Release (APK)
 
 on:
   push:
