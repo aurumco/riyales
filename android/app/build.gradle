@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "ir.sekkeh"
-    compileSdk = 34
+    compileSdk = 31
 
     defaultConfig {
         applicationId = "ir.sekkeh"
-        minSdk = 21
-        targetSdk = 34
+        minSdk = 16
+        targetSdk = 31
         versionCode = 1
         versionName = "1.0.0"
     }
@@ -37,8 +37,8 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false // غیرفعال کردن minify
-            shrinkResources false // غیرفعال کردن shrinkResources
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
