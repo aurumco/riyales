@@ -1,4 +1,4 @@
-name: Flutter Android Build and Release
+name: Build APKs
 
 on:
   push:
@@ -6,68 +6,32 @@ on:
       - main
 
 jobs:
-  build:
+  android-release-build:
+    name: Build Android APKs
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.4'
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Decode keystore
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
-
-      # 5. Create key.properties
-      - name: Create key.properties
-        run: |
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=android/app/keystore.jks" >> android/key.properties
-
-      # 6. Build APK and AAB using the new action
-      - name: Build APK and AAB
+      - name: Build APKs using Flutter Android Build Action
         uses: NiklasLehnfeld/flutter-android-build-action@v2
+        id: android-build
         with:
           release: true
           build-type: both
-          keystore: ${{ secrets.KEYSTORE_BASE64 }}
-          keystore-pwd: "${{ secrets.KEYSTORE_PASSWORD }}"
-          key-pwd: "${{ secrets.KEY_PASSWORD }}"
-          key-alias: "${{ secrets.KEY_ALIAS }}"
 
-      # 7. Upload APK
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
+      - name: Upload APKs as Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: release-apk
-          path: ${{ steps.android-build.outputs.apk-path }}
-
-      # 8. Upload AAB
-      - name: Upload AAB
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-aab
-          path: ${{ steps.android-build.outputs.aab-path }}
-
-      # 9. Create GitHub Release
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
+          name: APKs
+          path: |
             ${{ steps.android-build.outputs.apk-path }}
             ${{ steps.android-build.outputs.aab-path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
