@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "ir.sekkeh"
-    compileSdk = 31
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "ir.sekkeh"
-        minSdk = 16
-        targetSdk = 31
+        minSdk = 19  // کاهش برای پشتیبانی اندروید قدیمی‌تر
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
     }
@@ -56,4 +56,3 @@ android {
 flutter {
     source = "../.."
 }
-
