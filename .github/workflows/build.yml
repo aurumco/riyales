@@ -1,4 +1,4 @@
-name: Build APK and Linux .deb
+name: Build and Release
 
 on:
   push:
@@ -58,19 +58,24 @@ jobs:
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d"+" -f1)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Create Release Tag
-        run: |
-          TAG_NAME="v${{ env.VERSION }}-${GITHUB_SHA}"
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          release_name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Files to Release
-        uses: svenstaro/upload-release-action@v2
+        uses: xresloader/upload-to-github-release@v1
         with:
-          tag: ${{ env.VERSION }}-${GITHUB_SHA}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: |
-            $(find build/app/outputs/flutter-apk/ -type f -name "*.apk")
-            $(find . -type f -name "*.deb")
+            build/app/outputs/flutter-apk/*.apk
+            sekkeh_1.0.0_amd64.deb
+          overwrite: true
+          tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
