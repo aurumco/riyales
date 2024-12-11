@@ -10,7 +10,6 @@ dependencies:
     sdk: flutter
   provider: ^6.1.2
   http: ^1.2.2
-  shared_preferences: ^2.0.15
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.14
 
