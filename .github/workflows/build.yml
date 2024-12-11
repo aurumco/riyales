@@ -1,0 +1,74 @@
+name: Build APK and Linux .deb
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.4'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+
+      - name: Create key.properties
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=android/app/keystore.jks" >> android/key.properties
+
+      - name: Build APK (split per ABI and general)
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
+
+      - name: Upload APKs as GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install FPM for .deb packaging
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev gcc make
+          sudo gem install --no-document fpm
+
+      - name: Build .deb for amd64
+        run: |
+          fpm -s dir -t deb -a amd64 -n sekkeh -v 1.0.0 --prefix /usr/local/bin build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload .deb as GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: sekkeh_1.0.0_amd64.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
