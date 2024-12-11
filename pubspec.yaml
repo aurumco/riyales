@@ -1,0 +1,38 @@
+name: Sekkeh
+description: An application for currency prices and conversion.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.17.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  http: ^1.2.2
+  shared_preferences: ^2.0.15
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.14
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.2.0
+  json_serializable: ^6.1.5
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/Comfortaa-Regular.ttf
+    - assets/fonts/SpaceMono-Regular.ttf
+
+  fonts:
+    - family: Comfortaa
+      fonts:
+        - asset: assets/fonts/Comfortaa-Regular.ttf
+    - family: SpaceMono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn.ttf
