@@ -1,4 +1,4 @@
-package com.example.gheymat
+package com.example.sekkeh
 
 import io.flutter.embedding.android.FlutterActivity
 
