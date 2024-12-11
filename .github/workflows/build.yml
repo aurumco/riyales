@@ -45,6 +45,12 @@ jobs:
           flutter build apk --release --split-per-abi
           flutter build apk --release
 
+      - name: Create Release Tag
+        run: |
+          TAG_NAME="v1.0.0-${GITHUB_SHA}"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
       - name: Upload APKs as GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -55,6 +61,7 @@ jobs:
             build/app/outputs/flutter-apk/app-x86_64-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.create_tag.outputs.tag_name }}
 
       - name: Install FPM for .deb packaging
         run: |
