@@ -1,5 +1,7 @@
-// Mapping of currency codes to full names.
-Map<String, String> currencyNames = {
+import 'dart:ui';
+
+// Mapping of currency codes to English names.
+Map<String, String> currencyNamesEn = {
   'usd': 'US Dollar',
   'eur': 'Euro',
   'gbp': 'British Pound',
@@ -122,4 +124,46 @@ Map<String, Color> currencyColors = {
   'gol18': const Color.fromARGB(255, 255, 205, 54),
   'ounce': const Color.fromARGB(255, 54, 54, 54),
   'bitcoin': const Color.fromARGB(255, 255, 128, 0),
+};
+
+// Mapping of currency codes to Persian names.
+Map<String, String> currencyNamesFa = {
+  'usd': 'دلار آمریکا',
+  'eur': 'یورو',
+  'gbp': 'پوند بریتانیا',
+  'chf': 'فرانک سوئیس',
+  'cad': 'دلار کانادا',
+  'aud': 'دلار استرالیا',
+  'sek': 'کرون سوئد',
+  'nok': 'کرون نروژ',
+  'rub': 'روبل روسیه',
+  'thb': 'بات تایلند',
+  'sgd': 'دلار سنگاپور',
+  'hkd': 'دلار هنگ کنگ',
+  'azn': 'منات آذربایجان',
+  'amd': 'درام ارمنستان',
+  'dkk': 'کرون دانمارک',
+  'aed': 'درهم امارات',
+  'jpy': 'ین ژاپن',
+  'try': 'لیر ترکیه',
+  'cny': 'یوان چین',
+  'sar': 'ریال عربستان',
+  'inr': 'روپیه هند',
+  'irr': 'تومان ایران',
+  'myr': 'رینگیت مالزی',
+  'afn': 'افغانی افغانستان',
+  'kwd': 'دینار کویت',
+  'iqd': 'دینار عراق',
+  'bhd': 'دینار بحرین',
+  'omr': 'ریال عمان',
+  'qar': 'ریال قطر',
+  'emami1': 'سکه امامی',
+  'azadi1g': 'سکه بهار آزادی گرمی',
+  'azadi1': 'سکه تمام بهار آزادی',
+  'azadi1_2': 'نیم سکه بهار آزادی',
+  'azadi1_4': 'ربع سکه بهار آزادی',
+  'mithqal': 'مثقال',
+  'gol18': 'طلای ۱۸ عیار',
+  'ounce': 'اونس طلا',
+  'bitcoin': 'بیت‌کوین',
 };

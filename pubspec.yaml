@@ -3,7 +3,7 @@ description: An application for currency prices and conversion.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.17.0 <3.24.0"
+  sdk: ">=2.17.0 <3.24.4"
 
 dependencies:
   flutter:
@@ -11,7 +11,9 @@ dependencies:
   provider: ^6.1.2
   http: ^1.2.2
   google_fonts: ^6.2.1
+  shared_preferences: ^2.3.3
   build_runner: ^2.4.13
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
@@ -19,20 +21,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
-    - assets/fonts/Comfortaa-Regular.ttf
-    - assets/fonts/SpaceMono-Regular.ttf
     - assets/icons/512.png
     - assets/icons/1024.png
-
   fonts:
-    - family: Comfortaa
+    - family: VarelaRound
       fonts:
-        - asset: assets/fonts/Comfortaa-Regular.ttf
+        - asset: assets/fonts/VarelaRound-Regular.ttf
     - family: SpaceMono
       fonts:
         - asset: assets/fonts/SpaceMono-Regular.ttf
     - family: Vazirmatn
       fonts:
         - asset: assets/fonts/Vazirmatn.ttf
-

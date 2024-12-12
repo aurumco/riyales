@@ -1,38 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Entry point of the application.
 void main() {
   runApp(MyApp());
 }
 
-// Custom theme data with black and white colors, using Google Fonts.
+// Custom theme data with black and white colors using custom fonts from assets.
 final ThemeData appThemeData = ThemeData(
   brightness: Brightness.dark,
   primaryColor: Colors.black,
   scaffoldBackgroundColor: Colors.black,
   hintColor: Colors.white,
   canvasColor: Colors.black,
-  fontFamily: GoogleFonts.varelaRound().fontFamily, // Use Google Fonts
+  fontFamily: 'Vazirmatn', // Use Vazirmatn font from assets
   tabBarTheme: TabBarTheme(
-    labelColor: Colors.white,       // Active tab text color
+    labelColor: Colors.white, // Active tab text color
     unselectedLabelColor: Colors.white60, // Inactive tab text color
     indicator: UnderlineTabIndicator(
       borderSide: BorderSide(color: Colors.white, width: 2), // Active tab underline
     ),
   ),
   textTheme: TextTheme(
-    bodyLarge: TextStyle(color: Colors.white),
-    bodyMedium: TextStyle(color: Colors.white),
-    titleLarge: TextStyle(color: Colors.white),
+    bodyLarge: TextStyle(color: Colors.white, fontFamily: 'Vazirmatn'),
+    bodyMedium: TextStyle(color: Colors.white, fontFamily: 'Vazirmatn'),
+    titleLarge: TextStyle(color: Colors.white, fontFamily: 'Vazirmatn'),
   ),
 );
 
-// Mapping of currency codes to full names.
-Map<String, String> currencyNames = {
+// Mapping of currency codes to English names.
+Map<String, String> currencyNamesEn = {
   'usd': 'US Dollar',
   'eur': 'Euro',
   'gbp': 'British Pound',
@@ -117,7 +118,7 @@ Map<String, String> currencySymbols = {
 
 // Mapping of currency codes to colors for card background.
 Map<String, Color> currencyColors = {
-  'usd': const Color.fromARGB(255, 0, 149, 255),
+  'usd': const Color.fromARGB(103, 160, 121, 85),
   'eur': const Color.fromARGB(255, 21, 72, 255),
   'gbp': const Color.fromARGB(255, 0, 139, 143),
   'chf': const Color.fromARGB(255, 251, 111, 146),
@@ -157,8 +158,50 @@ Map<String, Color> currencyColors = {
   'bitcoin': const Color.fromARGB(255, 255, 128, 0),
 };
 
+// Mapping of currency codes to Persian names.
+Map<String, String> currencyNamesFa = {
+  'usd': 'دلار آمریکا',
+  'eur': 'یورو',
+  'gbp': 'پوند بریتانیا',
+  'chf': 'فرانک سوئیس',
+  'cad': 'دلار کانادا',
+  'aud': 'دلار استرالیا',
+  'sek': 'کرون سوئد',
+  'nok': 'کرون نروژ',
+  'rub': 'روبل روسیه',
+  'thb': 'بات تایلند',
+  'sgd': 'دلار سنگاپور',
+  'hkd': 'دلار هنگ کنگ',
+  'azn': 'منات آذربایجان',
+  'amd': 'درام ارمنستان',
+  'dkk': 'کرون دانمارک',
+  'aed': 'درهم امارات',
+  'jpy': 'ین ژاپن',
+  'try': 'لیر ترکیه',
+  'cny': 'یوان چین',
+  'sar': 'ریال عربستان',
+  'inr': 'روپیه هند',
+  'irr': 'تومان ایران',
+  'myr': 'رینگیت مالزی',
+  'afn': 'افغانی افغانستان',
+  'kwd': 'دینار کویت',
+  'iqd': 'دینار عراق',
+  'bhd': 'دینار بحرین',
+  'omr': 'ریال عمان',
+  'qar': 'ریال قطر',
+  'emami1': 'سکه امامی',
+  'azadi1g': 'سکه بهار آزادی گرمی',
+  'azadi1': 'سکه تمام بهار آزادی',
+  'azadi1_2': 'نیم سکه بهار آزادی',
+  'azadi1_4': 'ربع سکه بهار آزادی',
+  'mithqal': 'مثقال',
+  'gol18': 'طلای ۱۸ عیار',
+  'ounce': 'اونس طلا',
+  'bitcoin': 'بیت‌کوین',
+};
 
-// Function to format numbers with commas and K/M notation
+
+// Function to format numbers with commas and K/M notation.
 String formatPrice(double price) {
   if (price >= 1000000) {
     return '${(price / 1000000).toStringAsFixed(1)}M';
@@ -167,6 +210,14 @@ String formatPrice(double price) {
   } else {
     return price.toStringAsFixed(2);
   }
+}
+
+// List of currencies to exclude from the main screen.
+// You can modify this list to hide currencies you don't want to display.
+List<String> excludedCurrencies = ['irr', 'amd']; // Example: ['usd', 'eur']
+
+Future<void> requestInternetPermission() async {
+  await Permission.storage.request();
 }
 
 // Root widget of the application.
@@ -193,8 +244,8 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // Navigate to HomeScreen after 1.5 seconds
-    Timer(Duration(milliseconds: 1500), () {
+    // Navigate to HomeScreen after 2 seconds or when data is fetched.
+    Timer(Duration(seconds: 2), () {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomeScreen()),
       );
@@ -203,17 +254,30 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // iOS-style loading animation
+    // Splash screen with logo and loading animation.
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: SizedBox(
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo image from assets.
+            Image.asset(
+              'assets/icons/1024.png', // Path to your logo image
+              width: 200, // Adjust logo size here
+              height: 200, // Adjust logo size here
+            ),
+            SizedBox(height: 20),
+            // Loading animation at the bottom.
+            SizedBox(
+              width: 36, // Loading indicator size less than 40 pixels
+              height: 36,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -247,66 +311,32 @@ class _HomeScreenState extends State<HomeScreen> {
   // Last refresh time
   DateTime? lastRefreshTime;
 
-  // Fetch data from the APIs.
+  // Fetch data from the API.
   Future<void> fetchData() async {
-    // Rate-limit refresh to once per minute
-    DateTime now = DateTime.now();
-    if (lastRefreshTime != null &&
-        now.difference(lastRefreshTime!).inSeconds < 60) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please wait a minute before refreshing again.',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.grey[800],
-        ),
-      );
-      return;
-    }
-
-    lastRefreshTime = now;
-
+    // Start loading
     setState(() {
       isLoading = true;
     });
 
-    // Try primary API
-    final response =
-        await http.get(Uri.parse('https://bonbast.amirhn.com/latest'));
-
-    if (response.statusCode == 200) {
-      setState(() {
-        previousCurrencyData = Map.from(currencyData);
-        currencyData = json.decode(response.body);
-
-        // Remove 'irr' from currencyCodes for Price page
-        currencyCodes = currencyData.keys.toList();
-        currencyCodes.remove('irr');
-
-        isLoading = false;
+    // Set a timeout for the API request
+    try {
+      final response = await http
+          .get(Uri.parse('https://bonbast.amirhn.com/latest'))
+          .timeout(Duration(seconds: 15), onTimeout: () {
+        throw TimeoutException('The connection has timed out!');
       });
-    } else {
-      // Try backup API
-      final backupResponse =
-          await http.get(Uri.parse('https://baha24.com/api/v1/price'));
 
-      if (backupResponse.statusCode == 200) {
+      if (response.statusCode == 200) {
         setState(() {
           previousCurrencyData = Map.from(currencyData);
-          Map<String, dynamic> data = json.decode(backupResponse.body);
-          currencyData = {};
-
-          data.forEach((key, value) {
-            currencyData[key.toLowerCase()] = {
-              'buy': value['buy'],
-              'symbol': value['symbol'].toLowerCase(),
-            };
-          });
+          currencyData = json.decode(response.body);
 
           // Remove 'irr' from currencyCodes for Price page
           currencyCodes = currencyData.keys.toList();
           currencyCodes.remove('irr');
+
+          // Remove excluded currencies
+          currencyCodes.removeWhere((code) => excludedCurrencies.contains(code));
 
           isLoading = false;
         });
@@ -314,28 +344,115 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           isLoading = false;
         });
+        // Show error message in a Snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to load data from both primary and backup APIs.',
+              'Server is busy, please try again later.',
               style: TextStyle(color: Colors.white),
             ),
             backgroundColor: Colors.grey[800],
           ),
         );
       }
+    } on TimeoutException catch (_) {
+      setState(() {
+        isLoading = false;
+      });
+      // Check internet connection
+      try {
+        final connectivityTest = await http
+            .get(Uri.parse('https://www.google.com'))
+            .timeout(Duration(seconds: 5));
+        if (connectivityTest.statusCode == 200) {
+          // Internet is connected, server is busy
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Server is busy, please try again later.',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.grey[800],
+            ),
+          );
+        } else {
+          // No internet connection
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'No internet connection.',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.grey[800],
+            ),
+          );
+        }
+      } catch (e) {
+        // No internet connection
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'No internet connection.',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.grey[800],
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      // Show generic error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'An error occurred.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.grey[800],
+        ),
+      );
+    }
+  }
+
+  // Method to save currency data
+  Future<void> saveCurrencyData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('currencyData', json.encode(currencyData));
+  }
+
+  // Method to load currency data
+  Future<void> loadCurrencyData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? data = prefs.getString('currencyData');
+    if (data != null) {
+      setState(() {
+        currencyData = json.decode(data);
+      });
     }
   }
 
   @override
   void initState() {
     super.initState();
+    loadCurrencyData(); // Load previous data on startup
     fetchData();
   }
 
   // Build the application.
   @override
   Widget build(BuildContext context) {
+    // Determine number of columns based on screen width
+    int crossAxisCount = 2; // Default for mobile
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    if (screenWidth >= 1200) {
+      crossAxisCount = 4; // Desktop
+    } else if (screenWidth >= 800) {
+      crossAxisCount = 3; // Tablet
+    }
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -345,11 +462,10 @@ class _HomeScreenState extends State<HomeScreen> {
           automaticallyImplyLeading: false,
           centerTitle: true,
           title: Text(
-            'سکـه',
+            'سکـه', // Application name in Persian
             style: TextStyle(
-              fontFamily: GoogleFonts.vazirmatn().fontFamily,
+              fontFamily: 'Vazirmatn', // Use Vazirmatn font
               fontWeight: FontWeight.bold,
-              
             ),
           ),
           actions: [
@@ -382,10 +498,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: ' Chand?!',
-                        hintStyle:
-                            TextStyle(color: Colors.white60),
-                        suffixIcon: Icon(Icons.search_outlined,
-                            color: Colors.white60),
+                        hintStyle: TextStyle(color: Colors.white60),
+                        suffixIcon:
+                            Icon(Icons.search_outlined, color: Colors.white60),
                         filled: true,
                         fillColor: Color(0xFF1B1B1B),
                         border: OutlineInputBorder(
@@ -408,6 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           previousCurrencyData: previousCurrencyData,
                           currencyCodes: currencyCodes,
                           searchQuery: searchQuery,
+                          crossAxisCount: crossAxisCount, // Pass the crossAxisCount
                         ),
                         ConvertTab(currencyData: currencyData),
                       ],
@@ -426,20 +542,27 @@ class PriceTab extends StatelessWidget {
   final Map<String, dynamic> previousCurrencyData;
   final List<String> currencyCodes;
   final String searchQuery;
+  final int crossAxisCount;
 
   PriceTab({
     required this.currencyData,
     required this.previousCurrencyData,
     required this.currencyCodes,
     required this.searchQuery,
+    required this.crossAxisCount,
   });
 
   @override
   Widget build(BuildContext context) {
     List<String> filteredCurrencyCodes = currencyCodes.where((code) {
-      String name = currencyNames[code.toLowerCase()]?.toLowerCase() ?? '';
+      String nameEn =
+          currencyNamesEn[code.toLowerCase()]?.toLowerCase() ?? '';
+      String nameFa =
+          currencyNamesFa[code.toLowerCase()]?.toLowerCase() ?? '';
       String symbol = code.toLowerCase();
-      return name.contains(searchQuery) || symbol.contains(searchQuery);
+      return nameEn.contains(searchQuery) ||
+          nameFa.contains(searchQuery) ||
+          symbol.contains(searchQuery);
     }).toList();
 
     if (currencyData.isEmpty) {
@@ -449,7 +572,7 @@ class PriceTab extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(16, 10, 16, 16),
         itemCount: filteredCurrencyCodes.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, // Number of columns
+          crossAxisCount: crossAxisCount, // Number of columns based on device
           childAspectRatio: 1.5, // To make cards square
           crossAxisSpacing: 15.0, // Adjust spacing between cards
           mainAxisSpacing: 15.0, // Adjust spacing between cards
@@ -458,8 +581,6 @@ class PriceTab extends StatelessWidget {
           String code = filteredCurrencyCodes[index];
           Map<String, dynamic> data = currencyData[code];
           if (data['buy'] != null) {
-            String name =
-                currencyNames[code.toLowerCase()] ?? code.toUpperCase();
             String symbol = currencySymbols[code.toLowerCase()] ?? '';
             double priceValue = data['buy'].toDouble();
 
@@ -515,10 +636,6 @@ class PriceTab extends StatelessWidget {
                       Color.fromARGB(255, 0, 0, 0),
                     ],
                     center: Alignment.bottomRight,
-                    // focal: Alignment.topLeft,
-                    // focalRadius: 1.0,
-                    // stops: [0.0, 1.0],
-                    // tileMode: TileMode.clamp,
                     radius: 2.1,
                   ),
                   borderRadius: BorderRadius.circular(21),
@@ -533,7 +650,7 @@ class PriceTab extends StatelessWidget {
                         symbol,
                         style: TextStyle(
                           fontSize: 21, // Adjust emoji size here
-                          fontFamily: 'SpaceMono', // Use Space Mono font
+                          fontFamily: 'SpaceMono', // Use SpaceMono font
                         ),
                       ),
                     ),
@@ -556,18 +673,21 @@ class PriceTab extends StatelessWidget {
                               code.toUpperCase(),
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 12, // Adjust badge font size here
-                                fontFamily: 'SpaceMono', // Use Space Mono font
+                                fontSize:
+                                    12, // Adjust badge font size here
+                                fontFamily:
+                                    'SpaceMono', // Use Space Mono font
                               ),
                             ),
                           ),
                           SizedBox(height: 6),
+                          // Display currency name in English and Persian
                           Text(
-                            name,
+                            '${currencyNamesEn[code.toLowerCase()] ?? ''} / ${currencyNamesFa[code.toLowerCase()] ?? ''}',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.white70,
                               fontSize: 0,
-                              fontFamily: 'varelaRound',
+                              fontFamily: 'Vazirmatn',
                             ),
                           ),
                         ],
@@ -582,16 +702,18 @@ class PriceTab extends StatelessWidget {
                         children: [
                           // Price number and symbol
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
                                 priceNumber,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 24, // Adjust price font size here
+                                  fontSize:
+                                      24, // Adjust price font size here
                                   fontWeight: FontWeight.bold,
-                                  fontFamily: 'varelaRound',
+                                  fontFamily: 'VarelaRound',
                                 ),
                               ),
                               SizedBox(width: 4),
@@ -599,8 +721,9 @@ class PriceTab extends StatelessWidget {
                                 priceSymbol,
                                 style: TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 14, // Adjust symbol font size here
-                                  fontFamily: 'varelaRound',
+                                  fontSize:
+                                      14, // Adjust symbol font size here
+                                  fontFamily: 'VarelaRound',
                                 ),
                               ),
                             ],
@@ -675,9 +798,9 @@ class _ConvertTabState extends State<ConvertTab> {
         : convertedAmount.toStringAsFixed(2);
 
     String fromName =
-        currencyNames[fromCurrency.toLowerCase()] ?? fromCurrency.toUpperCase();
+        currencyNamesEn[fromCurrency.toLowerCase()] ?? fromCurrency.toUpperCase();
     String toName =
-        currencyNames[toCurrency.toLowerCase()] ?? toCurrency.toUpperCase();
+        currencyNamesEn[toCurrency.toLowerCase()] ?? toCurrency.toUpperCase();
 
     // Format numbers with comma separator
     String formattedAmount = amount % 1 == 0
@@ -706,7 +829,9 @@ class _ConvertTabState extends State<ConvertTab> {
     if (widget.currencyData.isEmpty) {
       return Center(child: CircularProgressIndicator());
     } else {
-      List<String> currencyCodes = List<String>.from(widget.currencyData.keys);
+      List<String> currencyCodes =
+          List<String>.from(widget.currencyData.keys);
+
       return Padding(
         padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
         child: Column(
@@ -715,7 +840,7 @@ class _ConvertTabState extends State<ConvertTab> {
               controller: amountController,
               style: TextStyle(
                 color: Colors.white,
-                fontFamily: GoogleFonts.varelaRound().fontFamily,
+                fontFamily: 'Vazirmatn',
               ),
               decoration: InputDecoration(
                 labelText: 'Amount',
@@ -753,12 +878,12 @@ class _ConvertTabState extends State<ConvertTab> {
                   borderSide: BorderSide(color: Colors.white),
                   borderRadius: BorderRadius.circular(13), // Round corners
                 ),
-                prefixIcon:
-                    Icon(Icons.arrow_upward_outlined, color: Colors.white), // Outline icon
+                prefixIcon: Icon(Icons.arrow_upward_outlined,
+                    color: Colors.white), // Outline icon
               ),
               items: currencyCodes.map((String code) {
                 String name =
-                    currencyNames[code.toLowerCase()] ?? code.toUpperCase();
+                    currencyNamesEn[code.toLowerCase()] ?? code.toUpperCase();
                 String symbol = currencySymbols[code.toLowerCase()] ?? '';
                 return DropdownMenuItem<String>(
                   value: code,
@@ -768,8 +893,7 @@ class _ConvertTabState extends State<ConvertTab> {
                         symbol,
                         style: TextStyle(
                           fontSize: 16, // Smaller emoji size
-                          fontFamily:
-                              'SpaceMono', // SpaceMono font for symbols
+                          fontFamily: 'SpaceMono', // SpaceMono font for symbols
                         ),
                       ),
                       SizedBox(width: 8),
@@ -777,7 +901,7 @@ class _ConvertTabState extends State<ConvertTab> {
                         name,
                         style: TextStyle(
                           color: Colors.white,
-                          fontFamily: GoogleFonts.varelaRound().fontFamily,
+                          fontFamily: 'Vazirmatn',
                         ),
                       ),
                     ],
@@ -804,12 +928,12 @@ class _ConvertTabState extends State<ConvertTab> {
                   borderSide: BorderSide(color: Colors.white),
                   borderRadius: BorderRadius.circular(13), // Round corners
                 ),
-                prefixIcon:
-                    Icon(Icons.arrow_downward_outlined, color: Colors.white), // Outline icon
+                prefixIcon: Icon(Icons.arrow_downward_outlined,
+                    color: Colors.white), // Outline icon
               ),
               items: currencyCodes.map((String code) {
                 String name =
-                    currencyNames[code.toLowerCase()] ?? code.toUpperCase();
+                    currencyNamesEn[code.toLowerCase()] ?? code.toUpperCase();
                 String symbol = currencySymbols[code.toLowerCase()] ?? '';
                 return DropdownMenuItem<String>(
                   value: code,
@@ -819,8 +943,7 @@ class _ConvertTabState extends State<ConvertTab> {
                         symbol,
                         style: TextStyle(
                           fontSize: 16, // Smaller emoji size
-                          fontFamily:
-                              'SpaceMono', // SpaceMono font for symbols
+                          fontFamily: 'SpaceMono', // SpaceMono font for symbols
                         ),
                       ),
                       SizedBox(width: 8),
@@ -828,7 +951,7 @@ class _ConvertTabState extends State<ConvertTab> {
                         name,
                         style: TextStyle(
                           color: Colors.white,
-                          fontFamily: GoogleFonts.varelaRound().fontFamily,
+                          fontFamily: 'Vazirmatn',
                         ),
                       ),
                     ],
@@ -851,7 +974,7 @@ class _ConvertTabState extends State<ConvertTab> {
                   'Convert',
                   style: TextStyle(
                     color: Colors.black, // Black text color
-                    fontFamily: GoogleFonts.varelaRound().fontFamily,
+                    fontFamily: 'Vazirmatn',
                     fontSize: 18,
                   ),
                 ),
