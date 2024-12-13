@@ -1,6 +1,6 @@
-name: Sekkeh
+name: Keefi
 description: An application for currency prices and conversion.
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=2.17.0 <3.24.4"
@@ -23,8 +23,10 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/icons/512.png
-    - assets/icons/1024.png
+    - assets/
+    - assets/icons/
+    - assets/fonts/
+
   fonts:
     - family: VarelaRound
       fonts:
