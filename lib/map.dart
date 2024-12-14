@@ -125,16 +125,16 @@ class CurrencyMaps {
   };
 
   static Map<String, Color> currencyColors = {
-  'usd': const Color.fromARGB(255, 0, 149, 255),
-  'eur': const Color.fromARGB(255, 21, 72, 255),
-  'gbp': const Color.fromARGB(255, 0, 139, 143),
-  'chf': const Color.fromARGB(255, 251, 111, 146),
+  'usd': const Color.fromARGB(255, 69, 98, 202),
+  'eur': const Color.fromARGB(255, 27, 77, 255),
+  'gbp': const Color.fromARGB(255, 0, 137, 137),
+  'chf': const Color.fromARGB(255, 255, 101, 140),
   'cad': const Color.fromARGB(255, 255, 17, 0),
   'aud': const Color.fromARGB(255, 72, 58, 202),
-  'sek': const Color.fromARGB(255, 216, 213, 11),
+  'sek': const Color.fromARGB(255, 255, 247, 0),
   'nok': const Color.fromARGB(255, 202, 71, 62),
   'rub': const Color.fromARGB(255, 198, 6, 18),
-  'thb': const Color.fromARGB(255, 157, 78, 221),
+  'thb': const Color.fromARGB(255, 180, 66, 215),
   'sgd': const Color.fromARGB(255, 255, 179, 198),
   'hkd': const Color.fromARGB(255, 244, 151, 142),
   'azn': const Color.fromARGB(255, 131, 197, 190),
@@ -162,6 +162,6 @@ class CurrencyMaps {
   'mithqal': const Color.fromARGB(255, 172, 146, 79),
   'gol18': const Color.fromARGB(255, 255, 205, 54),
   'ounce': const Color.fromARGB(255, 54, 54, 54),
-  'bitcoin': const Color.fromARGB(255, 255, 128, 0),
+  'bitcoin': const Color.fromARGB(255, 255, 145, 0),
   };
 }

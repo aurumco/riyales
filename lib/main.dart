@@ -1,10 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:async';
 import 'map.dart';
 
 // Entry point of the application.
@@ -104,11 +105,11 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             // Logo image from assets
             Image.asset(
-              'assets/icons/1024.png', 
-              width: 100,  // Adjust logo width
-              height: 100, // Adjust logo height
+              'assets/icons/1024-2.png', 
+              width: 72,  // Adjust logo width
+              height: 72, // Adjust logo height
             ),
-            SizedBox(height: MediaQuery.of(context).size.height * 0.5), // Pushes loading indicator down
+            SizedBox(height: MediaQuery.of(context).size.height * 0.6), // Pushes loading indicator down
             // Smaller loading animation
             SizedBox(
               width: 18,  // Reduced width
@@ -194,9 +195,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         // Load previous currency data before updating
         await loadPreviousPrices();
+
         setState(() {
-          previousCurrencyData = Map.from(currencyData); // Store previous data
-          currencyData = json.decode(response.body); // Update with new data
+          // Update currencyData with new data
+          currencyData = json.decode(response.body);
 
           // Save new currency data
           PriceStorageManager.savePrices(currencyData);
@@ -300,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        // AppBar with refresh action
+        // AppBar with refresh action and profile icon
         appBar: AppBar(
           backgroundColor: Colors.black,
           automaticallyImplyLeading: false,
@@ -312,10 +314,28 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 15.0, top: 0.5), // Left padding for profile icon
+            child: IconButton(
+            icon: Icon(
+              CupertinoIcons.app_badge,
+              size: 21.0, // You can set the size here as well
+            ),
+              onPressed: () {
+                // TODO: Implement profile page navigation
+              },
+            ),
+          ),
           actions: [
-            IconButton(
-              icon: Icon(Icons.refresh),
-              onPressed: fetchData,
+            Padding(
+              padding: const EdgeInsets.only(right: 15.0, top: 0.5), // Right padding for refresh icon
+              child: IconButton(
+                icon: Icon(
+                  CupertinoIcons.arrow_2_circlepath,
+                  size: 21.0,
+                  ),
+                onPressed: fetchData,
+              ),
             ),
           ],
           bottom: TabBar(
@@ -326,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        body: isLoading && currencyData.isEmpty
+        body: isLoading
             ? Center(
                 child: CircularProgressIndicator(
                   color: Colors.white,
@@ -334,12 +354,13 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : TabBarView(
                 children: [
+                  // Pass a UniqueKey to force rebuild of PriceTab when data changes
                   PriceTab(
+                    key: ValueKey(currencyData), // Add this line
                     currencyData: currencyData,
                     previousCurrencyData: previousCurrencyData,
                     currencyCodes: currencyCodes,
-                    crossAxisCount: crossAxisCount, searchQuery: '', // Pass the crossAxisCount
-                    // Remove searchQuery and scrollController as they are handled inside PriceTab
+                    crossAxisCount: crossAxisCount, searchQuery: '',
                   ),
                   ConvertTab(currencyData: currencyData),
                 ],
@@ -360,7 +381,7 @@ class PriceTab extends StatefulWidget {
     required this.currencyData,
     required this.previousCurrencyData,
     required this.currencyCodes,
-    required this.crossAxisCount, required String searchQuery,
+    required this.crossAxisCount, required ValueKey<Map<String, dynamic>> key, required String searchQuery,
   });
 
   @override
@@ -384,7 +405,7 @@ class _PriceTabState extends State<PriceTab> {
   // Variables to control search bar appearance
   double _searchBarOpacity = 1.0;
   double _searchBarHeight = 90.0; // Adjustable search bar height
-  Color _searchBarBackgroundColor = const Color(0xFF141414)
+  Color _searchBarBackgroundColor = const Color.fromARGB(255, 33, 33, 33)
       .withOpacity(0.5); // Adjustable background color
   Duration _searchBarAnimationDuration =
       Duration(milliseconds: 240); // Adjustable animation duration
@@ -395,6 +416,9 @@ class _PriceTabState extends State<PriceTab> {
   // Variables to control text alignment and direction
   TextAlign textAlign = TextAlign.left;
   TextDirection textDirection = TextDirection.ltr;
+
+  // Variable to control font family
+  String fontFamily = 'VarelaRound'; // Default font
 
   @override
   void initState() {
@@ -454,7 +478,7 @@ class _PriceTabState extends State<PriceTab> {
 
   // Function to pin or unpin a currency with fade animation
   void _togglePinCurrency(String code) {
-    HapticFeedback.lightImpact(); // Light vibration on long press
+    HapticFeedback.mediumImpact(); // Medium vibration on long press
 
     setState(() {
       if (pinnedCurrencies.contains(code)) {
@@ -551,17 +575,17 @@ class _PriceTabState extends State<PriceTab> {
                   controller: searchController,
                   style: TextStyle(
                     color: Colors.white,
-                    fontFamily: 'Vazirmatn', // Use Vazirmatn font
+                    fontFamily: fontFamily, // Use dynamic font family
                   ),
                   decoration: InputDecoration(
                     hintText: 'Chand?!',
                     hintStyle: TextStyle(
                       color: const Color.fromARGB(150, 150, 150, 150)
                           .withOpacity(_hintTextOpacity),
-                      fontFamily: 'Vazirmatn', // Use Vazirmatn font
+                      fontFamily: fontFamily, // Use dynamic font family
                     ),
                     suffixIcon: Icon(
-                      Icons.search_outlined,
+                      CupertinoIcons.search,
                       color: const Color.fromARGB(150, 150, 150, 150)
                           .withOpacity(_hintTextOpacity),
                     ),
@@ -580,15 +604,17 @@ class _PriceTabState extends State<PriceTab> {
                       searchQuery = value.toLowerCase();
 
                       // Check if the input is Persian/Farsi
-                      RegExp persianRegex = RegExp(r'^[\u0600-\u06FF\s]+$');
+                      RegExp persianRegex = RegExp(r'[\u0600-\u06FF]');
                       if (persianRegex.hasMatch(value)) {
-                        // Input is Persian
+                        // Input contains Persian characters
                         textAlign = TextAlign.right;
                         textDirection = TextDirection.rtl;
+                        fontFamily = 'Vazirmatn'; // Use Vazirmatn font
                       } else {
-                        // Input is not Persian
+                        // Input does not contain Persian characters
                         textAlign = TextAlign.left;
                         textDirection = TextDirection.ltr;
+                        fontFamily = 'VarelaRound'; // Use VarelaRound font
                       }
                     });
                   },
@@ -607,7 +633,7 @@ class _PriceTabState extends State<PriceTab> {
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount:
                     widget.crossAxisCount, // Number of columns based on device
-                childAspectRatio: 1.5,
+                childAspectRatio: 1.35,
                 crossAxisSpacing: 15.0,
                 mainAxisSpacing: 15.0,
               ),
@@ -658,15 +684,15 @@ class _PriceTabState extends State<PriceTab> {
                       // Set the price change icon
                       if (diff > 0) {
                         priceChangeIcon = Icon(
-                          Icons.arrow_upward_rounded,
+                          CupertinoIcons.arrow_up_circle,
                           color: Color.fromARGB(239, 167, 255, 204),
-                          size: 14.0,
+                          size: 13.0,
                         );
                       } else if (diff < 0) {
                         priceChangeIcon = Icon(
-                          Icons.arrow_downward_rounded,
+                          CupertinoIcons.arrow_down_circle,
                           color: Color.fromARGB(242, 255, 192, 192),
-                          size: 14.0,
+                          size: 13.0,
                         );
                       }
                     }
@@ -722,9 +748,8 @@ class _PriceTabState extends State<PriceTab> {
                                       height: 28,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color:
-                                            Color.fromARGB(210, 124, 124, 124)
-                                                .withOpacity(0.25),
+                                        color: Color.fromARGB(210, 124, 124, 124)
+                                            .withOpacity(0.25),
                                       ),
                                       child: Icon(
                                         Icons.star_rounded, // Use the star icon
@@ -948,7 +973,8 @@ class _ConvertTabState extends State<ConvertTab> {
                   borderSide: BorderSide(color: Colors.white),
                   borderRadius: BorderRadius.circular(13), // Round corners
                 ),
-                prefixIcon: Icon(Icons.numbers_outlined, color: Colors.white),
+                prefixIcon: Icon(CupertinoIcons.number, color: Colors.white,
+                size: 21.0),
               ),
               keyboardType: TextInputType.number, // Use numeric keyboard
               onChanged: (value) {
@@ -971,7 +997,8 @@ class _ConvertTabState extends State<ConvertTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.arrow_upward_outlined, color: Colors.white),
+                    Icon(CupertinoIcons.arrow_up, color: Colors.white,
+                    size: 21.0),
                     SizedBox(width: 12.0),
                     Text(
                       currencyNamesEn[fromCurrency.toLowerCase()] ?? fromCurrency.toUpperCase(),
@@ -982,7 +1009,9 @@ class _ConvertTabState extends State<ConvertTab> {
                       ),
                     ),
                     Spacer(),
-                    Icon(Icons.expand_more, color: Colors.white),
+                    Icon(
+                      CupertinoIcons.chevron_down, color: Colors.white,
+                      size: 14.0,),
                   ],
                 ),
               ),
@@ -999,7 +1028,8 @@ class _ConvertTabState extends State<ConvertTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.arrow_downward_outlined, color: Colors.white),
+                    Icon(CupertinoIcons.arrow_down, color: Colors.white,
+                    size: 21.0),
                     SizedBox(width: 12.0),
                     Text(
                       currencyNamesEn[toCurrency.toLowerCase()] ?? toCurrency.toUpperCase(),
@@ -1010,7 +1040,8 @@ class _ConvertTabState extends State<ConvertTab> {
                       ),
                     ),
                     Spacer(),
-                    Icon(Icons.expand_more, color: Colors.white),
+                    Icon(CupertinoIcons.chevron_down, color: Colors.white,
+                    size: 14.0),
                   ],
                 ),
               ),
@@ -1134,7 +1165,8 @@ class _CurrencySelectionSheetState extends State<CurrencySelectionSheet> {
                           borderSide: BorderSide(color: Colors.white70),
                           borderRadius: BorderRadius.circular(13),
                         ),
-                        prefixIcon: Icon(Icons.search, color: Colors.white70),
+                        prefixIcon: Icon(CupertinoIcons.search, color: Colors.white70,
+                        size: 21.0),
                       ),
                       onChanged: (value) {
                         setState(() {});
