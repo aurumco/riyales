@@ -1,1216 +1,1664 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:percent_indicator/percent_indicator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
-import 'dart:async';
-import 'map.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:permission_handler/permission_handler.dart';
 
-// Entry point of the application.
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SharedPreferences.getInstance();
+  runApp(const MyApp());
 }
 
-// Custom theme data with black and white colors (Update)
-final ThemeData appThemeData = ThemeData(
-  brightness: Brightness.dark,
-  primaryColor: Colors.black,
-  scaffoldBackgroundColor: Colors.black,
-  hintColor: Colors.white,
-  canvasColor: Colors.black,
-  fontFamily: 'VarelaRound',
-  splashColor: Colors.grey[800],
-  highlightColor: Colors.grey[800],
-  tabBarTheme: TabBarTheme(
-    labelColor: Colors.white,
-    unselectedLabelColor: Colors.white60,
-    indicator: UnderlineTabIndicator(
-      borderSide: BorderSide(color: Colors.white, width: 2),
-    ),
-    overlayColor: WidgetStateProperty.all(Colors.grey[850]),
-  ),
-  textTheme: TextTheme(
-    bodyLarge: TextStyle(color: Colors.white, fontFamily: 'VarelaRound'),
-    bodyMedium: TextStyle(color: Colors.white, fontFamily: 'VarelaRound'),
-    titleLarge: TextStyle(color: Colors.white, fontFamily: 'VarelaRound'),
-  ),
-);
-
-// Mapping of currency codes to names and colors.
-Map<String, String> currencyNamesEn = CurrencyMaps.currencyNamesEn;
-Map<String, String> currencyNamesFa = CurrencyMaps.currencyNamesFa;
-Map<String, String> currencySymbols = CurrencyMaps.currencySymbols;
-Map<String, Color> currencyColors = CurrencyMaps.currencyColors;
-
-// Function to format numbers with commas and K/M notation.
-String formatPrice(double price) {
-  if (price >= 1000000) {
-    return '${(price / 1000000).toStringAsFixed(1)}M';
-  } else if (price >= 1000) {
-    return '${(price / 1000).toStringAsFixed(1)}K';
-  } else {
-    return price.toStringAsFixed(2);
-  }
-}
-
-// List of currencies to exclude from the main screen.
-// You can modify this list to hide currencies you don't want to display.
-List<String> excludedCurrencies = ['irr', 'amd']; // Example: ['usd', 'eur']
-
-Future<void> requestInternetPermission() async {
-  await Permission.storage.request();
-}
-
-// Root widget of the application.
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Sekkeh',
-      theme: appThemeData,
-      home: SplashScreen(), // Start with SplashScreen
-    );
-  }
-}
-
-// SplashScreen widget
-class SplashScreen extends StatefulWidget {
-  @override
-  _SplashScreenState createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Navigate to HomeScreen after 2 seconds or when data is fetched.
-    Timer(Duration(seconds: 2), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen()),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Splash screen with logo and loading animation.
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo image from assets
-            Image.asset(
-              'assets/icons/1024-2.png', 
-              width: 72,  // Adjust logo width
-              height: 72, // Adjust logo height
-            ),
-            SizedBox(height: MediaQuery.of(context).size.height * 0.6), // Pushes loading indicator down
-            // Smaller loading animation
-            SizedBox(
-              width: 18,  // Reduced width
-              height: 18, // Reduced height
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
+      title: 'Fitness Tracker',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        textTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).textTheme.apply(
+                bodyColor: Colors.white,
+                displayColor: Colors.white,
               ),
-            ),
-          ],
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.black, // Changed to black
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+          titleTextStyle: GoogleFonts.varelaRound(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
+      home: const HomeScreen(),
     );
   }
 }
 
-// Price Storage Manager
-class PriceStorageManager {
-  static const String PRICE_KEY = 'last_prices';
-
-  static Future<void> savePrices(Map<String, dynamic> prices) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(PRICE_KEY, json.encode(prices));
-  }
-
-  static Future<Map<String, dynamic>> loadPrices() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? priceData = prefs.getString(PRICE_KEY);
-    if (priceData != null) {
-      return json.decode(priceData);
-    }
-    return {};
-  }
-}
-
-// HomeScreen widget
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-// State of the HomeScreen widget.
-class _HomeScreenState extends State<HomeScreen> {
-  // Map to hold the currency data.
-  Map<String, dynamic> currencyData = {};
+class HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+  final List<Widget> _screens = [
+    const DashboardScreen(),
+    const StatsScreen(),
+    const TimerScreen(),
+    const SettingsScreen(),
+  ];
 
-  // Map to hold the previous currency data for price difference.
-  Map<String, dynamic> previousCurrencyData = {};
-
-  // List of currency codes to display.
-  List<String> currencyCodes = [];
-
-  // Loading state
-  bool isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    loadPreviousPrices();
-    fetchData();
-  }
-
-  // Load previous prices using PriceStorageManager
-  Future<void> loadPreviousPrices() async {
-    previousCurrencyData = await PriceStorageManager.loadPrices();
-  }
-
-  // Fetch data from the API.
-  Future<void> fetchData() async {
-    // Start loading
-    setState(() {
-      isLoading = true;
-    });
-
-    // Set a timeout for the API request
-    try {
-      final response = await http
-          .get(Uri.parse('https://bonbast.amirhn.com/latest'))
-          .timeout(Duration(seconds: 15), onTimeout: () {
-        throw TimeoutException('The connection has timed out!');
-      });
-
-      if (response.statusCode == 200) {
-        // Load previous currency data before updating
-        await loadPreviousPrices();
-
-        setState(() {
-          // Update currencyData with new data
-          currencyData = json.decode(response.body);
-
-          // Save new currency data
-          PriceStorageManager.savePrices(currencyData);
-
-          // Prepare currency codes list
-          currencyCodes = currencyData.keys.toList();
-          currencyCodes.remove('irr'); // Remove 'irr' for Price page
-          // Note: Do not remove excluded currencies here
-
-          isLoading = false; // Stop loading
-        });
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-        // Show error message in a Snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Server is busy, please try again later.',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: const Color.fromARGB(250, 12, 12, 12),
-          ),
-        );
-      }
-    } on TimeoutException catch (_) {
-      setState(() {
-        isLoading = false;
-      });
-      // Check internet connection
-      try {
-        final connectivityTest = await http
-            .get(Uri.parse('https://www.google.com'))
-            .timeout(Duration(seconds: 5));
-        if (connectivityTest.statusCode == 200) {
-          // Internet is connected, server is busy
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Server is busy, please try again later.',
-                style: TextStyle(color: Colors.white),
-              ),
-              backgroundColor: const Color.fromARGB(250, 12, 12, 12),
-            ),
-          );
-        } else {
-          // No internet connection
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'No internet connection.',
-                style: TextStyle(color: Colors.white),
-              ),
-              backgroundColor: const Color.fromARGB(250, 12, 12, 12),
-            ),
-          );
-        }
-      } catch (e) {
-        // No internet connection
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'No internet connection.',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: const Color.fromARGB(250, 12, 12, 12),
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      // Show generic error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'An error occurred.',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: const Color.fromARGB(250, 12, 12, 12),
-        ),
-      );
-    }
-  }
-
-  // Build the application.
   @override
   Widget build(BuildContext context) {
-    // Determine number of columns based on screen width
-    int crossAxisCount = 2; // Default for mobile
-    double screenWidth = MediaQuery.of(context).size.width;
-
-    if (screenWidth >= 1200) {
-      crossAxisCount = 4; // Desktop
-    } else if (screenWidth >= 800) {
-      crossAxisCount = 3; // Tablet
-    }
-
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        // AppBar with refresh action and profile icon
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          automaticallyImplyLeading: false,
-          centerTitle: true,
-          title: Text(
-            'Keefi', // Application name
-            style: TextStyle(
-              fontFamily: 'VarelaRound', // Use VarelaRound font
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 15.0, top: 0.5), // Left padding for profile icon
-            child: IconButton(
-            icon: Icon(
-              CupertinoIcons.app_badge,
-              size: 21.0, // You can set the size here as well
-            ),
-              onPressed: () {
-                // TODO: Implement profile page navigation
-              },
-            ),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 15.0, top: 0.5), // Right padding for refresh icon
-              child: IconButton(
-                icon: Icon(
-                  CupertinoIcons.arrow_2_circlepath,
-                  size: 21.0,
-                  ),
-                onPressed: fetchData,
-              ),
-            ),
-          ],
-          bottom: TabBar(
-            indicatorColor: Colors.white, // Active tab underline color
-            tabs: [
-              Tab(text: 'Price'),
-              Tab(text: 'Convert'),
-            ],
-          ),
-        ),
-        body: isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
-              )
-            : TabBarView(
-                children: [
-                  // Pass a UniqueKey to force rebuild of PriceTab when data changes
-                  PriceTab(
-                    key: ValueKey(currencyData), // Add this line
-                    currencyData: currencyData,
-                    previousCurrencyData: previousCurrencyData,
-                    currencyCodes: currencyCodes,
-                    crossAxisCount: crossAxisCount, searchQuery: '',
-                  ),
-                  ConvertTab(currencyData: currencyData),
-                ],
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(_getAppBarTitle()),
       ),
-    );
-  }
-}
-
-// Widget for the 'Price' tab.
-class PriceTab extends StatefulWidget {
-  final Map<String, dynamic> currencyData;
-  final Map<String, dynamic> previousCurrencyData;
-  final List<String> currencyCodes;
-  final int crossAxisCount;
-
-  PriceTab({
-    required this.currencyData,
-    required this.previousCurrencyData,
-    required this.currencyCodes,
-    required this.crossAxisCount, required ValueKey<Map<String, dynamic>> key, required String searchQuery,
-  });
-
-  @override
-  _PriceTabState createState() => _PriceTabState();
-}
-
-class _PriceTabState extends State<PriceTab> {
-  // List to keep track of pinned currencies
-  List<String> pinnedCurrencies = [];
-
-  // Map to control the opacity of each card for the fade animation
-  Map<String, bool> _cardVisibility = {};
-
-  // For search functionality
-  TextEditingController searchController = TextEditingController();
-  String searchQuery = '';
-
-  // Scroll controller to monitor scrolling
-  final ScrollController _scrollController = ScrollController();
-
-  // Variables to control search bar appearance
-  double _searchBarOpacity = 1.0;
-  double _searchBarHeight = 90.0; // Adjustable search bar height
-  Color _searchBarBackgroundColor = const Color.fromARGB(255, 33, 33, 33)
-      .withOpacity(0.5); // Adjustable background color
-  Duration _searchBarAnimationDuration =
-      Duration(milliseconds: 240); // Adjustable animation duration
-
-  // Variables to control hint text opacity
-  double _hintTextOpacity = 1.0; // Control the opacity of hint text
-
-  // Variables to control text alignment and direction
-  TextAlign textAlign = TextAlign.left;
-  TextDirection textDirection = TextDirection.ltr;
-
-  // Variable to control font family
-  String fontFamily = 'VarelaRound'; // Default font
-
-  @override
-  void initState() {
-    super.initState();
-    loadPinnedCurrencies(); // Load pinned currencies on startup
-    _scrollController.addListener(_onScroll); // Add scroll listener
-  }
-
-  // Function to adjust search bar and hint text opacity and height based on scroll position
-  void _onScroll() {
-    setState(() {
-      if (_scrollController.offset >= 0 && _scrollController.offset <= 50) {
-        double scrollRatio = _scrollController.offset / 50;
-
-        // Fade out the hint text earlier
-        _hintTextOpacity =
-            1.0 - (scrollRatio * 1.5); // Adjust multiplier to control fade speed
-        if (_hintTextOpacity < 0.0) _hintTextOpacity = 0.0;
-
-        // Fade out and collapse the search bar
-        _searchBarOpacity = 1.0 - scrollRatio;
-        _searchBarHeight = 90.0 - (scrollRatio * 90.0); // 90.0 is the initial height
-
-        if (_searchBarOpacity < 0.0) _searchBarOpacity = 0.0;
-        if (_searchBarHeight < 0.0) _searchBarHeight = 0.0;
-      } else if (_scrollController.offset > 50) {
-        // Fully collapsed
-        _hintTextOpacity = 0.0;
-        _searchBarOpacity = 0.0;
-        _searchBarHeight = 0.0;
-      } else {
-        // Fully expanded
-        _hintTextOpacity = 1.0;
-        _searchBarOpacity = 1.0;
-        _searchBarHeight = 90.0; // Reset to initial height
-      }
-    });
-  }
-
-  // Load pinned currencies from SharedPreferences
-  Future<void> loadPinnedCurrencies() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      pinnedCurrencies = prefs.getStringList('pinnedCurrencies') ?? [];
-      // Initialize the visibility map
-      for (var code in pinnedCurrencies) {
-        _cardVisibility[code] = true;
-      }
-    });
-  }
-
-  // Save pinned currencies to SharedPreferences
-  Future<void> savePinnedCurrencies() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setStringList('pinnedCurrencies', pinnedCurrencies);
-  }
-
-  // Function to pin or unpin a currency with fade animation
-  void _togglePinCurrency(String code) {
-    HapticFeedback.mediumImpact(); // Medium vibration on long press
-
-    setState(() {
-      if (pinnedCurrencies.contains(code)) {
-        // Unpin the currency with fade out animation
-        _cardVisibility[code] = false;
-        Future.delayed(Duration(milliseconds: 300), () {
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
           setState(() {
-            pinnedCurrencies.remove(code);
-            _cardVisibility.remove(code);
-            savePinnedCurrencies(); // Save the updated list
+            _currentIndex = index;
           });
-        });
-      } else {
-        if (pinnedCurrencies.length >= 6) {
-          // Show snackbar if more than 6 currencies are pinned
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'You have reached the maximum capacity of pinned cards.',
-                style: TextStyle(color: Colors.white), // Set text color to white
-              ),
-              backgroundColor:
-                  Color.fromARGB(250, 12, 12, 12), // Set background color
-              duration: Duration(seconds: 2),
-            ),
-          );
-        } else {
-          // Pin the currency with fade in animation
-          pinnedCurrencies.add(code);
-          _cardVisibility[code] = false;
-          savePinnedCurrencies(); // Save the updated list
-          // Start fade-in animation
-          Future.delayed(Duration(milliseconds: 90), () {
-            setState(() {
-              _cardVisibility[code] = true;
-            });
-          });
-        }
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Filter currencies based on search query
-    List<String> filteredCurrencyCodes = widget.currencyCodes.where((code) {
-      String nameEn = currencyNamesEn[code.toLowerCase()]?.toLowerCase() ?? '';
-      String nameFa = currencyNamesFa[code.toLowerCase()]?.toLowerCase() ?? '';
-      String symbol = code.toLowerCase();
-
-      bool matchesQuery = nameEn.contains(searchQuery) ||
-          nameFa.contains(searchQuery) ||
-          symbol.contains(searchQuery);
-
-      if (searchQuery.isEmpty) {
-        // If no search query, exclude currencies in excludedCurrencies
-        return !excludedCurrencies.contains(code);
-      } else {
-        // If there's a search query, include all currencies that match
-        return matchesQuery;
-      }
-    }).toList();
-
-    // Separate pinned and unpinned currencies
-    List<String> pinnedList = [];
-    List<String> unpinnedList = [];
-
-    for (String code in filteredCurrencyCodes) {
-      if (pinnedCurrencies.contains(code)) {
-        pinnedList.add(code);
-      } else {
-        unpinnedList.add(code);
-      }
-    }
-
-    // Final list of currencies, with pinned ones at the top
-    List<String> finalCurrencyList = [...pinnedList, ...unpinnedList];
-
-    if (widget.currencyData.isEmpty) {
-      return Center(child: CircularProgressIndicator());
-    } else {
-      return Column(
-        children: [
-          // Search Bar
-          AnimatedContainer(
-            duration: _searchBarAnimationDuration, // Adjustable duration
-            height: _searchBarHeight,
-            curve: Curves.easeOut,
-            child: Opacity(
-              opacity: _searchBarOpacity,
-              child: Container(
-                margin: EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: TextField(
-                  controller: searchController,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontFamily: fontFamily, // Use dynamic font family
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Chand?!',
-                    hintStyle: TextStyle(
-                      color: const Color.fromARGB(150, 150, 150, 150)
-                          .withOpacity(_hintTextOpacity),
-                      fontFamily: fontFamily, // Use dynamic font family
-                    ),
-                    suffixIcon: Icon(
-                      CupertinoIcons.search,
-                      color: const Color.fromARGB(150, 150, 150, 150)
-                          .withOpacity(_hintTextOpacity),
-                    ),
-                    filled: true,
-                    fillColor: _searchBarBackgroundColor, // Adjustable background color
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 17, vertical: 17),
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(13),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value.toLowerCase();
-
-                      // Check if the input is Persian/Farsi
-                      RegExp persianRegex = RegExp(r'[\u0600-\u06FF]');
-                      if (persianRegex.hasMatch(value)) {
-                        // Input contains Persian characters
-                        textAlign = TextAlign.right;
-                        textDirection = TextDirection.rtl;
-                        fontFamily = 'Vazirmatn'; // Use Vazirmatn font
-                      } else {
-                        // Input does not contain Persian characters
-                        textAlign = TextAlign.left;
-                        textDirection = TextDirection.ltr;
-                        fontFamily = 'VarelaRound'; // Use VarelaRound font
-                      }
-                    });
-                  },
-                  cursorColor: Colors.white,
-                  textAlign: textAlign,
-                  textDirection: textDirection,
-                ),
-              ),
-            ),
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.black,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.grey,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.home),
+            label: 'Home',
           ),
-          Expanded(
-            child: GridView.builder(
-              controller: _scrollController, // Use the scroll controller
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 16), // Cards Spacing
-              itemCount: finalCurrencyList.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                    widget.crossAxisCount, // Number of columns based on device
-                childAspectRatio: 1.35,
-                crossAxisSpacing: 15.0,
-                mainAxisSpacing: 15.0,
-              ),
-              itemBuilder: (BuildContext context, int index) {
-                String code = finalCurrencyList[index];
-                Map<String, dynamic> data = widget.currencyData[code];
-
-                // Determine if this card is pinned
-                bool isPinned = pinnedCurrencies.contains(code);
-
-                if (data['buy'] != null) {
-                  String symbol = currencySymbols[code.toLowerCase()] ?? '';
-                  double priceValue = data['buy'].toDouble();
-
-                  // Format the price
-                  String price = formatPrice(priceValue);
-
-                  // Split price into number and symbol
-                  RegExp regExp = RegExp(r'([0-9,.]+)([a-zA-Z]*)');
-                  Match? match = regExp.firstMatch(price);
-                  String priceNumber = '';
-                  String priceSymbol = '';
-                  if (match != null) {
-                    priceNumber = match.group(1) ?? '';
-                    priceSymbol = match.group(2) ?? '';
-                  } else {
-                    priceNumber = price;
-                  }
-
-                  // Calculate price difference
-                  String priceDifference = '';
-                  Color diffColor = Colors.white;
-                  Widget? priceChangeIcon; // Widget to display the price change icon
-
-                  if (widget.previousCurrencyData.isNotEmpty &&
-                      widget.previousCurrencyData.containsKey(code)) {
-                    double previousPriceValue =
-                        widget.previousCurrencyData[code]['buy'].toDouble();
-                    double diff = priceValue - previousPriceValue;
-                    if (diff != 0) {
-                      // Remove '+' and '-' signs
-                      String diffStr = formatPrice(diff.abs());
-                      diffColor = diff > 0
-                          ? Color.fromARGB(239, 167, 255, 204) // Green
-                          : Color.fromARGB(242, 255, 192, 192); // Red
-                      priceDifference = diffStr;
-
-                      // Set the price change icon
-                      if (diff > 0) {
-                        priceChangeIcon = Icon(
-                          CupertinoIcons.arrow_up_circle,
-                          color: Color.fromARGB(239, 167, 255, 204),
-                          size: 13.0,
-                        );
-                      } else if (diff < 0) {
-                        priceChangeIcon = Icon(
-                          CupertinoIcons.arrow_down_circle,
-                          color: Color.fromARGB(242, 255, 192, 192),
-                          size: 13.0,
-                        );
-                      }
-                    }
-                  }
-
-                  // Get background color
-                  Color bgColor = currencyColors[code.toLowerCase()] ??
-                      const Color.fromARGB(255, 15, 15, 15);
-
-                  // Use AnimatedOpacity for fade animation
-                  return AnimatedOpacity(
-                    opacity: _cardVisibility[code] == false ? 0.0 : 1.0,
-                    duration: Duration(milliseconds: 300),
-                    child: GestureDetector(
-                      onLongPress: () => _togglePinCurrency(code),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              bgColor.withOpacity(0.8),
-                              Color.fromARGB(255, 0, 0, 0),
-                            ],
-                            center: Alignment.bottomRight,
-                            radius: 2.1,
-                          ),
-                          borderRadius: BorderRadius.circular(21),
-                        ),
-                        child: Stack(
-                          children: [
-                            // Emoji with reduced size
-                            Positioned(
-                              top: 14,
-                              left: 16,
-                              child: Text(
-                                symbol,
-                                style: TextStyle(
-                                  fontSize: 21,
-                                  fontFamily: 'SpaceMono',
-                                ),
-                              ),
-                            ),
-                            // Top right: Currency code and badges
-                            Positioned(
-                              top: 15,
-                              right: 15,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Pin badge to the left of the currency badge
-                                  if (isPinned)
-                                    Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Color.fromARGB(210, 124, 124, 124)
-                                            .withOpacity(0.25),
-                                      ),
-                                      child: Icon(
-                                        Icons.star_rounded, // Use the star icon
-                                        size: 16,
-                                        color: const Color.fromARGB(
-                                            200, 255, 255, 255),
-                                      ),
-                                    ),
-                                  if (isPinned)
-                                    SizedBox(width: 6), // Spacing between badges
-                                  // Currency code badge
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(18),
-                                      color: Color.fromARGB(210, 124, 124, 124)
-                                          .withOpacity(0.25),
-                                    ),
-                                    child: Text(
-                                      code.toUpperCase(),
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontFamily: 'SpaceMono',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Positioning the price difference above the main price
-                            Positioned(
-                              bottom: 50, // Adjust as needed
-                              left: 15,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Price difference with icon
-                                  if (priceDifference != '')
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        if (priceChangeIcon != null) priceChangeIcon,
-                                        SizedBox(width: 4),
-                                        Text(
-                                          priceDifference,
-                                          style: TextStyle(
-                                            color: diffColor,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ),
-                            // Bottom left: Price number and symbol
-                            Positioned(
-                              bottom: 15,
-                              left: 15,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    priceNumber,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'VarelaRound',
-                                    ),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    priceSymbol,
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                      fontFamily: 'VarelaRound',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                } else {
-                  return Container();
-                }
-              },
-            ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.chart_bar_square),
+            label: 'Stats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.timer),
+            label: 'Timer',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.settings),
+            label: 'Settings',
           ),
         ],
-      );
-    }
-  }
-}
-
-// Widget for the 'Convert' tab.
-class ConvertTab extends StatefulWidget {
-  final Map<String, dynamic> currencyData;
-
-  ConvertTab({required this.currencyData});
-
-  @override
-  _ConvertTabState createState() => _ConvertTabState();
-}
-
-class _ConvertTabState extends State<ConvertTab> {
-  String fromCurrency = 'usd';
-  String toCurrency = 'irr';
-  double amount = 1.0;
-
-  TextEditingController amountController = TextEditingController(text: '1.0');
-
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.currencyData.containsKey('irr')) {
-      widget.currencyData['irr'] = {'buy': 1.0};
-    }
-  }
-
-  void convertCurrency() {
-    double fromRate;
-    double toRate;
-
-    if (fromCurrency == 'irr') {
-      fromRate = 1.0;
-    } else {
-      fromRate = widget.currencyData[fromCurrency]['buy'].toDouble();
-    }
-    if (toCurrency == 'irr') {
-      toRate = 1.0;
-    } else {
-      toRate = widget.currencyData[toCurrency]['buy'].toDouble();
-    }
-    double convertedAmount = (amount * fromRate) / toRate;
-    String result = convertedAmount % 1 == 0
-        ? convertedAmount.toInt().toString()
-        : convertedAmount.toStringAsFixed(2);
-
-    String fromName = currencyNamesEn[fromCurrency.toLowerCase()] ?? fromCurrency.toUpperCase();
-    String toName = currencyNamesEn[toCurrency.toLowerCase()] ?? toCurrency.toUpperCase();
-
-    // Format numbers with comma separator
-    String formattedAmount = amount % 1 == 0
-        ? amount.toInt().toString()
-        : amount.toStringAsFixed(2);
-    formattedAmount = formattedAmount.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
-
-    String formattedResult = result.replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
-
-    // Show the result in a Snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '$formattedAmount $fromName equals $formattedResult $toName',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Color.fromARGB(250, 12, 12, 12), // Darker Snackbar
       ),
     );
   }
 
-  // Function to show the currency selection bottom sheet
-  void _showCurrencySelectionSheet(bool isFromCurrency) {
+  String _getAppBarTitle() {
+    switch (_currentIndex) {
+      case 0:
+        return 'Fitness';
+      case 1:
+        return 'Stats';
+      case 2:
+        return 'Timer';
+      case 3:
+        return 'Settings';
+      default:
+        return 'Fitness';
+    }
+  }
+}
+
+// Dashboard Screen
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  DashboardScreenState createState() => DashboardScreenState();
+}
+
+class DashboardScreenState extends State<DashboardScreen> {
+  late SharedPreferences _prefs;
+  int _currentStreak = 0;
+  int _bestStreak = 0;
+  int _totalCaloriesBurned = 0;
+  int _totalWorkoutMinutes = 0;
+  List<Map<String, dynamic>> _todayActivities = [];
+
+  // ** Customizable Settings **
+  final double _addButtonIconSize = 22; // Size of the add button icon
+  final double _currentStreakIconSize = 32; // Size of the current streak icon
+  final double _cardBorderRadius = 20; // Border radius of the cards
+  final double _cardTitleFontSize = 18; // Font size for card titles
+  final double _cardTextFontSize = 16; // Font size for card text
+  final double _cardContentSpacing = 5; // Spacing between title and content in cards
+  final double _cardIconPadding = 5; // Padding for the icon in cards
+  final List<Color> _weekGradientColors = [
+    const Color.fromARGB(255, 15, 238, 138),
+    const Color.fromARGB(255, 98, 220, 201)
+  ]; // Gradient colors for week card
+  final List<Color> _monthGradientColors = [
+    const Color.fromARGB(255, 255, 66, 79),
+    const Color.fromARGB(255, 255, 112, 150)
+  ]; // Gradient colors for month card
+  final AlignmentGeometry _gradientBegin = Alignment.topLeft; // Gradient begin alignment
+  final AlignmentGeometry _gradientEnd = Alignment.bottomRight; // Gradient end alignment
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentStreak = _prefs.getInt('currentStreak') ?? 0;
+      _bestStreak = _prefs.getInt('bestStreak') ?? 0;
+      _totalCaloriesBurned = _prefs.getInt('totalCaloriesBurned') ?? 0;
+      _totalWorkoutMinutes = _prefs.getInt('totalWorkoutMinutes') ?? 0;
+      _todayActivities =
+          _getTodayActivities(_prefs.getStringList('workoutHistory') ?? []);
+    });
+  }
+
+  List<Map<String, dynamic>> _getTodayActivities(List<String> history) {
+    List<Map<String, dynamic>> activities = [];
+    final today = DateTime.now();
+    final formattedToday = DateFormat('yyyy-MM-dd').format(today);
+    for (final workout in history) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4 && parts[1] == formattedToday) {
+        activities.add({
+          'name': parts[0],
+          'duration': int.tryParse(parts[2].split(' ')[0]) ?? 0,
+          'calories': int.tryParse(parts[3].split(' ')[0]) ?? 0,
+          'icon': _getWorkoutIcon(parts[0]),
+        });
+      }
+    }
+    return activities;
+  }
+
+  IconData _getWorkoutIcon(String workoutName) {
+    switch (workoutName) {
+      case 'Running':
+        return CupertinoIcons.bolt_horizontal_circle_fill;
+      case 'Yoga':
+        return CupertinoIcons.person_2_fill;
+      case 'Cycling':
+        return CupertinoIcons.speedometer;
+      case 'Strength':
+        return CupertinoIcons.square_stack_3d_up_fill;
+      case 'Walking':
+        return CupertinoIcons.person_2_fill;
+      case 'Swimming':
+        return CupertinoIcons.drop_fill;
+      case 'Boxing':
+        return CupertinoIcons.hand_raised_fill;
+      case 'Hiking':
+        return CupertinoIcons.tree;
+      case 'Pilates':
+        return CupertinoIcons.person_fill;
+      case 'Dance':
+        return CupertinoIcons.music_note_2;
+      case 'Aerobics':
+        return CupertinoIcons.heart_fill;
+      case 'Weights':
+        return CupertinoIcons.hammer_fill;
+      default:
+        return CupertinoIcons.question;
+    }
+  }
+
+  void _showAddWorkoutBottomSheet() {
+    Map<String, dynamic> selectedWorkout = {};
+    int duration = 0;
+    int calories = 0;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // Make background transparent to see dimmed effect
+      backgroundColor: Colors.black,
       isScrollControlled: true,
       builder: (context) {
-        return CurrencySelectionSheet(
-          currencyData: widget.currencyData,
-          isFromCurrency: isFromCurrency,
-          onCurrencySelected: (String code) {
-            setState(() {
-              if (isFromCurrency) {
-                fromCurrency = code;
-              } else {
-                toCurrency = code;
-              }
-            });
-            Navigator.pop(context);
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(16.0),
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select Workout',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 4,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      children: [
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Running',
+                          CupertinoIcons.bolt_horizontal_circle_fill,
+                          const [Color(0xFF4e54c8), Color(0xFF8f94fb)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Yoga',
+                          CupertinoIcons.person_2_fill,
+                          const [Color(0xFFf64f59), Color(0xFFc471ed)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Cycling',
+                          CupertinoIcons.speedometer,
+                          const [Color(0xFF00b09b), Color(0xFF96c93d)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Strength',
+                          CupertinoIcons.square_stack_3d_up_fill,
+                          const [Color(0xFFfe8c00), Color(0xFFf83600)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Walking',
+                          CupertinoIcons.person_2_fill,
+                          const [Color(0xFF544a7d), Color(0xFFffd452)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Swimming',
+                          CupertinoIcons.drop_fill,
+                          const [Color(0xFF43cea2), Color(0xFF185a9d)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Boxing',
+                          CupertinoIcons.hand_raised_fill,
+                          const [Color(0xFFee0979), Color(0xFFff6a00)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Hiking',
+                          CupertinoIcons.tree,
+                          const [Color(0xFF4cb8c4), Color(0xFF3cd3ad)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Pilates',
+                          CupertinoIcons.person_fill,
+                          const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Dance',
+                          CupertinoIcons.music_note_2,
+                          const [Color(0xFFf79d00), Color(0xFF64f38c)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Aerobics',
+                          CupertinoIcons.heart_fill,
+                          const [Color(0xFFff4e50), Color(0xFFf9d423)],
+                          selectedWorkout,
+                        ),
+                        _buildWorkoutOption(
+                          setModalState,
+                          'Weights',
+                          CupertinoIcons.hammer_fill,
+                          const [Color(0xFF005AA7), Color(0xFFFFFDE4)],
+                          selectedWorkout,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Duration (minutes)',
+                      labelStyle: TextStyle(color: Colors.grey),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) => duration = int.tryParse(value) ?? 0,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Calories Burned',
+                      labelStyle: TextStyle(color: Colors.grey),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) => calories = int.tryParse(value) ?? 0,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (selectedWorkout.isNotEmpty) {
+                            _addWorkout(
+                                selectedWorkout['name'], duration, calories);
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                        ),
+                        child: const Text('Add',
+                            style: TextStyle(color: Colors.black)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
           },
         );
       },
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (widget.currencyData.isEmpty) {
-      return Center(child: CircularProgressIndicator());
-    } else {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+  Widget _buildWorkoutOption(
+    StateSetter setModalState,
+    String name,
+    IconData icon,
+    List<Color> gradientColors,
+    Map<String, dynamic> selectedWorkout,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        setModalState(() {
+          selectedWorkout.clear();
+          selectedWorkout['name'] = name;
+          selectedWorkout['icon'] = icon;
+        });
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: selectedWorkout['name'] == name
+                ? gradientColors
+                : [const Color(0xFF222222), const Color(0xFF222222)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20), // Rounded corners
+        ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Amount TextField with numeric keyboard
-            TextField(
-              controller: amountController,
-              style: TextStyle(
-                color: Colors.white,
-                fontFamily: 'VarelaRound',
-              ),
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                labelStyle: TextStyle(color: Colors.white),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(13), // Round corners
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white),
-                  borderRadius: BorderRadius.circular(13), // Round corners
-                ),
-                prefixIcon: Icon(CupertinoIcons.number, color: Colors.white,
-                size: 21.0),
-              ),
-              keyboardType: TextInputType.number, // Use numeric keyboard
-              onChanged: (value) {
-                try {
-                  amount = double.parse(value);
-                } catch (e) {
-                  amount = 1.0;
-                }
-              },
-            ),
-            SizedBox(height: 18.0),
-            // From Currency Selection Button
-            GestureDetector(
-              onTap: () => _showCurrencySelectionSheet(true),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Row(
-                  children: [
-                    Icon(CupertinoIcons.arrow_up, color: Colors.white,
-                    size: 21.0),
-                    SizedBox(width: 12.0),
-                    Text(
-                      currencyNamesEn[fromCurrency.toLowerCase()] ?? fromCurrency.toUpperCase(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'VarelaRound',
-                        fontSize: 16.0,
-                      ),
-                    ),
-                    Spacer(),
-                    Icon(
-                      CupertinoIcons.chevron_down, color: Colors.white,
-                      size: 14.0,),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 18.0),
-            // To Currency Selection Button
-            GestureDetector(
-              onTap: () => _showCurrencySelectionSheet(false),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Row(
-                  children: [
-                    Icon(CupertinoIcons.arrow_down, color: Colors.white,
-                    size: 21.0),
-                    SizedBox(width: 12.0),
-                    Text(
-                      currencyNamesEn[toCurrency.toLowerCase()] ?? toCurrency.toUpperCase(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'VarelaRound',
-                        fontSize: 16.0,
-                      ),
-                    ),
-                    Spacer(),
-                    Icon(CupertinoIcons.chevron_down, color: Colors.white,
-                    size: 14.0),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 39.0),
-            SizedBox(
-              width: double.infinity, // Make button full width
-              height: 52, // Match dropdown height
-              child: ElevatedButton(
-                onPressed: convertCurrency,
-                child: Text(
-                  'Convert',
-                  style: TextStyle(
-                    color: Colors.black, // Black text color
-                    fontFamily: 'VarelaRound',
-                    fontSize: 18,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white, // White button color
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12), // Round corners
-                  ),
-                ),
-              ),
-            ),
+            Icon(icon, size: 30),
+            const SizedBox(height: 8),
+            Text(name),
           ],
         ),
-      );
+      ),
+    );
+  }
+
+  void _addWorkout(String name, int duration, int calories) {
+    final formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    List<String> workoutHistory = _prefs.getStringList('workoutHistory') ?? [];
+    workoutHistory.add('$name | $formattedDate | $duration min | $calories kcal');
+    _prefs.setStringList('workoutHistory', workoutHistory);
+
+    setState(() {
+      _todayActivities = _getTodayActivities(workoutHistory);
+      _totalCaloriesBurned += calories;
+      _totalWorkoutMinutes += duration;
+      _prefs.setInt('totalCaloriesBurned', _totalCaloriesBurned);
+      _prefs.setInt('totalWorkoutMinutes', _totalWorkoutMinutes);
+    });
+  }
+
+  void _removeWorkout(int index) {
+    final removedActivity = _todayActivities.removeAt(index);
+    List<String> workoutHistory = _prefs.getStringList('workoutHistory') ?? [];
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    // Find and remove the workout from history
+    for (int i = 0; i < workoutHistory.length; i++) {
+      final parts = workoutHistory[i].split(' | ');
+      if (parts.length == 4 &&
+          parts[0] == removedActivity['name'] &&
+          parts[1] == today &&
+          parts[2] == '${removedActivity['duration']} min' &&
+          parts[3] == '${removedActivity['calories']} kcal') {
+        workoutHistory.removeAt(i);
+        break;
+      }
+    }
+
+    _prefs.setStringList('workoutHistory', workoutHistory);
+
+    setState(() {
+      _totalCaloriesBurned -= (removedActivity['calories'] as int);
+      _totalWorkoutMinutes -= (removedActivity['duration'] as int);
+      _prefs.setInt('totalCaloriesBurned', _totalCaloriesBurned);
+      _prefs.setInt('totalWorkoutMinutes', _totalWorkoutMinutes);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // App Logo
+                // Replace with your app logo
+                // Image.asset('assets/images/app_logo.png', height: 40),
+                const SizedBox(height: 20),
+
+                // Streak Card
+                _buildGradientCard(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Current Streak',
+                              style: TextStyle(
+                                fontSize: _cardTitleFontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: _cardContentSpacing),
+                            Text(
+                              '$_currentStreak Days',
+                              style: TextStyle(fontSize: _cardTextFontSize),
+                            ),
+                            SizedBox(height: _cardContentSpacing),
+                            Text(
+                              'Best Streak: $_bestStreak Days',
+                              style: TextStyle(fontSize: _cardTextFontSize),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Replace with a suitable icon
+                      Padding(
+                        padding: EdgeInsets.only(top: _cardIconPadding), // Add top padding to the icon
+                        child: Icon(CupertinoIcons.flame_fill,
+                            size: _currentStreakIconSize, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  gradient: const LinearGradient(
+                    colors: [Color.fromARGB(255, 99, 81, 255), Color.fromARGB(255, 120, 140, 255)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // This Week Summary Card
+                _buildGradientCard(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'This Week Summary',
+                              style: TextStyle(
+                                fontSize: _cardTitleFontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: _cardContentSpacing),
+                            Text(
+                              'Calories Burned: ${_calculateWeeklyCalories()} kcal',
+                              style: TextStyle(fontSize: _cardTextFontSize),
+                            ),
+                            SizedBox(height: _cardContentSpacing),
+                            Text(
+                              'Workout Time: ${formatWorkoutTime(_calculateWeeklyMinutes())}',
+                              style: TextStyle(fontSize: _cardTextFontSize),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Replace with a suitable icon
+                      Padding(
+                        padding: EdgeInsets.only(top: _cardIconPadding), // Add top padding to the icon
+                        child: Icon(CupertinoIcons.circle_grid_hex_fill,
+                            size: _currentStreakIconSize, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  gradient: LinearGradient(
+                    colors: _weekGradientColors,
+                    begin: _gradientBegin,
+                    end: _gradientEnd,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Monthly Summary Card
+                _buildGradientCard(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'This Month Summary',
+                              style: TextStyle(
+                                fontSize: _cardTitleFontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: _cardContentSpacing),
+                            Text(
+                              'Calories Burned: $_totalCaloriesBurned kcal',
+                              style: TextStyle(fontSize: _cardTextFontSize),
+                            ),
+                            SizedBox(height: _cardContentSpacing),
+                            Text(
+                              'Workout Time: ${formatWorkoutTime(_totalWorkoutMinutes)}',
+                              style: TextStyle(fontSize: _cardTextFontSize),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Replace with a suitable icon
+                      Padding(
+                        padding: EdgeInsets.only(top: _cardIconPadding), // Add top padding to the icon
+                        child: Icon(CupertinoIcons.rocket_fill,
+                            size: _currentStreakIconSize, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  gradient: LinearGradient(
+                    colors: _monthGradientColors,
+                    begin: _gradientBegin,
+                    end: _gradientEnd,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Today's Activity
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        " Today's Activity",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      GestureDetector(
+                        onTap: _showAddWorkoutBottomSheet,
+                        child: Icon(CupertinoIcons.add, size: _addButtonIconSize),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildActivityList(),
+              ],
+            ),
+          ),
+          // Positioned(
+          //   bottom: _addButtonBottomPadding,
+          //   right: 20,
+          //   child: FloatingActionButton(
+          //     onPressed: _showAddWorkoutBottomSheet,
+          //     backgroundColor: Colors.white,
+          //     child: Icon(Icons.add,
+          //         color: Colors.black, size: _addButtonIconSize),
+          //   ),
+          // ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGradientCard(
+      {required Widget child, required LinearGradient gradient}) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(_cardBorderRadius),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildActivityList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _todayActivities.length,
+      itemBuilder: (context, index) {
+        final activity = _todayActivities[index];
+        return GestureDetector(
+          onLongPress: () {
+            _removeWorkout(index);
+          },
+          child: Card(
+            color: const Color(0xFF222222),
+            child: ListTile(
+              leading: Icon(activity['icon'], size: 30),
+              title: Text(activity['name']),
+              subtitle: Text('${activity['duration']} min'),
+              trailing: Text('${activity['calories']} kcal'),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  int _calculateWeeklyCalories() {
+    int weeklyCalories = 0;
+    final today = DateTime.now();
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+    for (final workout in (_prefs.getStringList('workoutHistory') ?? [])) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final date = DateFormat('yyyy-MM-dd').parse(parts[1]);
+        if (date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
+            date.isBefore(today.add(const Duration(days: 1)))) {
+          weeklyCalories += int.tryParse(parts[3].split(' ')[0]) ?? 0;
+        }
+      }
+    }
+    return weeklyCalories;
+  }
+
+  int _calculateWeeklyMinutes() {
+    int weeklyMinutes = 0;
+    final today = DateTime.now();
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+    for (final workout in (_prefs.getStringList('workoutHistory') ?? [])) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final date = DateFormat('yyyy-MM-dd').parse(parts[1]);
+        if (date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
+            date.isBefore(today.add(const Duration(days: 1)))) {
+          weeklyMinutes += int.tryParse(parts[2].split(' ')[0]) ?? 0;
+        }
+      }
+    }
+    return weeklyMinutes;
+  }
+
+  String formatWorkoutTime(int totalMinutes) {
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '$minutes min';
     }
   }
 }
 
-// Currency Selection Bottom Sheet Widget
-class CurrencySelectionSheet extends StatefulWidget {
-  final Map<String, dynamic> currencyData;
-  final bool isFromCurrency;
-  final Function(String) onCurrencySelected;
-
-  CurrencySelectionSheet({
-    required this.currencyData,
-    required this.isFromCurrency,
-    required this.onCurrencySelected,
-  });
+// Stats Screen
+class StatsScreen extends StatefulWidget {
+  const StatsScreen({super.key});
 
   @override
-  _CurrencySelectionSheetState createState() => _CurrencySelectionSheetState();
+  StatsScreenState createState() => StatsScreenState();
 }
 
-class _CurrencySelectionSheetState extends State<CurrencySelectionSheet> {
-  TextEditingController searchController = TextEditingController();
-  List<String> currencyCodes = [];
+class StatsScreenState extends State<StatsScreen> {
+  late SharedPreferences _prefs;
+  List<String> _workoutHistory = [];
+  Map<String, int> _weeklyCalories = {};
+  Map<String, int> _weeklyWorkoutMinutes = {};
+  Map<String, int> _monthlyCalories = {};
+  Map<String, int> _monthlyWorkoutMinutes = {};
+
+  // ** Customizable Settings **
+  final double _factIconSize = 24; // Size of the fact icons
+  final Color _factIconColor = Colors.white; // Color of the fact icons
 
   @override
   void initState() {
     super.initState();
-    currencyCodes = List<String>.from(widget.currencyData.keys);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _workoutHistory = _prefs.getStringList('workoutHistory') ?? [];
+      _calculateWeeklyData();
+      _calculateMonthlyData();
+    });
+  }
+
+  void _calculateWeeklyData() {
+    _weeklyCalories = {};
+    _weeklyWorkoutMinutes = {};
+    final today = DateTime.now();
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+    for (int i = 0; i < 7; i++) {
+      final date = weekStart.add(Duration(days: i));
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      _weeklyCalories[formattedDate] = 0;
+      _weeklyWorkoutMinutes[formattedDate] = 0;
+    }
+
+    for (final workout in _workoutHistory) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final date = parts[1];
+        final minutes = int.tryParse(parts[2].split(' ')[0]) ?? 0;
+        final calories = int.tryParse(parts[3].split(' ')[0]) ?? 0;
+
+        if (_weeklyCalories.containsKey(date)) {
+          _weeklyCalories[date] = _weeklyCalories[date]! + calories;
+          _weeklyWorkoutMinutes[date] = _weeklyWorkoutMinutes[date]! + minutes;
+        }
+      }
+    }
+  }
+
+  void _calculateMonthlyData() {
+    _monthlyCalories = {};
+    _monthlyWorkoutMinutes = {};
+    final today = DateTime.now();
+    final monthStart = DateTime(today.year, today.month, 1);
+    final monthEnd = DateTime(today.year, today.month + 1, 0);
+
+    // Calculate the number of weeks in the current month
+    int weeksInMonth = ((monthEnd.day - monthStart.day) / 7).ceil();
+
+    // Initialize the maps with week numbers
+    for (int i = 1; i <= weeksInMonth; i++) {
+      _monthlyCalories['W$i'] = 0;
+      _monthlyWorkoutMinutes['W$i'] = 0;
+    }
+
+    for (final workout in _workoutHistory) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final date = DateTime.parse(parts[1]);
+        final minutes = int.tryParse(parts[2].split(' ')[0]) ?? 0;
+        final calories = int.tryParse(parts[3].split(' ')[0]) ?? 0;
+
+        // Check if the workout falls within the current month
+        if (date.isAfter(monthStart.subtract(const Duration(days: 1))) &&
+            date.isBefore(monthEnd.add(const Duration(days: 1)))) {
+          // Determine the week number for the workout
+          int weekNumber = ((date.day - monthStart.day) / 7).ceil() + 1;
+          String weekKey = 'W$weekNumber';
+
+          // Update the monthly calories and minutes for the corresponding week
+          _monthlyCalories[weekKey] = (_monthlyCalories[weekKey] ?? 0) + calories;
+          _monthlyWorkoutMinutes[weekKey] = (_monthlyWorkoutMinutes[weekKey] ?? 0) + minutes;
+        }
+      }
+    }
+  }
+
+  String _getMostFrequentWorkout() {
+    Map<String, int> workoutFrequency = {};
+    for (final workout in _workoutHistory) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final name = parts[0];
+        workoutFrequency[name] = (workoutFrequency[name] ?? 0) + 1;
+      }
+    }
+
+    String mostFrequent = '';
+    int maxFrequency = 0;
+    workoutFrequency.forEach((workout, frequency) {
+      if (frequency > maxFrequency) {
+        mostFrequent = workout;
+        maxFrequency = frequency;
+      }
+    });
+
+    return mostFrequent.isNotEmpty ? mostFrequent : 'None';
+  }
+
+  int _getMaxCaloriesBurned() {
+    int maxCalories = 0;
+    for (final workout in _workoutHistory) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final calories = int.tryParse(parts[3].split(' ')[0]) ?? 0;
+        if (calories > maxCalories) {
+          maxCalories = calories;
+        }
+      }
+    }
+    return maxCalories;
+  }
+
+  int _getMaxWorkoutDuration() {
+    int maxDuration = 0;
+    for (final workout in _workoutHistory) {
+      final parts = workout.split(' | ');
+      if (parts.length == 4) {
+        final duration = int.tryParse(parts[2].split(' ')[0]) ?? 0;
+        if (duration > maxDuration) {
+          maxDuration = duration;
+        }
+      }
+    }
+    return maxDuration;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Filter currencies based on search query
-    String query = searchController.text.toLowerCase();
-    List<String> filteredCurrencyCodes = currencyCodes.where((code) {
-      String nameEn = currencyNamesEn[code.toLowerCase()]?.toLowerCase() ?? '';
-      String nameFa = currencyNamesFa[code.toLowerCase()]?.toLowerCase() ?? '';
-      String symbol = code.toLowerCase();
-      return nameEn.contains(query) || nameFa.contains(query) || symbol.contains(query);
-    }).toList();
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Weekly Calories Burned',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildCaloriesChart(_weeklyCalories, Colors.lightBlueAccent),
+            const SizedBox(height: 32),
+            const Text(
+              'Weekly Workout Minutes',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildWorkoutMinutesChart(
+                _weeklyWorkoutMinutes, Colors.lightGreenAccent),
+            const SizedBox(height: 32),
+            const Text(
+              'Monthly Calories Burned',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildCaloriesChart(_monthlyCalories, Colors.orangeAccent, isMonthly: true),
+            const SizedBox(height: 32),
+            const Text(
+              'Monthly Workout Minutes',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildWorkoutMinutesChart(
+                _monthlyWorkoutMinutes, Colors.purpleAccent, isMonthly: true),
+            const SizedBox(height: 32),
+            const Text(
+              'Workout Facts',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildWorkoutFacts(),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return GestureDetector(
-      onTap: () {
-        // Close the bottom sheet when tapping outside
-        Navigator.of(context).pop();
-      },
-      child: Container(
-        color: Colors.black.withOpacity(0.4), // Dimmed background
-        child: GestureDetector(
-          onTap: () {}, // Prevent closing when tapping inside
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              // Rounded corners at the top
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(21),
-                ),
-              ),
-              height: MediaQuery.of(context).size.height * 0.7, // 70% height
-              child: Column(
-                children: [
-                  // Drag handle
-                  Container(
-                    width: 40,
-                    height: 5,
-                    margin: EdgeInsets.symmetric(vertical: 12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+  Widget _buildCaloriesChart(Map<String, int> data, Color barColor, {bool isMonthly = false}) {
+    return SizedBox(
+      height: 200,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: data.values
+                  .reduce((curr, next) => curr > next ? curr : next)
+                  .toDouble() +
+              100,
+          barTouchData: BarTouchData(
+            enabled: false,
+            touchTooltipData: BarTouchTooltipData(
+              tooltipBgColor: Colors.blueGrey,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                String label;
+                if (data == _weeklyCalories || data == _weeklyWorkoutMinutes) {
+                  label = DateFormat('EEE').format(
+                      DateTime.parse(data.keys.elementAt(groupIndex)));
+                } else {
+                  label = data.keys.elementAt(groupIndex);
+                }
+                return BarTooltipItem(
+                  '$label\n',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
-                  // Search Field
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: TextField(
-                      controller: searchController,
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: '${rod.toY.toInt()} ${data == _weeklyCalories || data == _monthlyCalories ? "kcal" : "min"}',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'VarelaRound',
+                        color: barColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle: TextStyle(color: Colors.white70),
-                        filled: true,
-                        fillColor: Colors.black, // Black background for search field
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white70),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        prefixIcon: Icon(CupertinoIcons.search, color: Colors.white70,
-                        size: 21.0),
-                      ),
-                      onChanged: (value) {
-                        setState(() {});
-                      },
                     ),
-                  ),
-                  SizedBox(height: 12.0),
-                  // Currency List
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filteredCurrencyCodes.length,
-                      itemBuilder: (context, index) {
-                        String code = filteredCurrencyCodes[index];
-                        String nameEn = currencyNamesEn[code.toLowerCase()] ?? code.toUpperCase();
-                        // String nameFa = currencyNamesFa[code.toLowerCase()] ?? code.toUpperCase();
-                        String symbol = currencySymbols[code.toLowerCase()] ?? '';
+                  ],
+                );
+              },
+            ),
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (double value, TitleMeta meta) {
+                  final index = value.toInt();
+                  String label;
+                  if (isMonthly) {
+                    label = data.keys.elementAt(index);
+                  } else {
+                    label = DateFormat('EEE').format(
+                        DateTime.parse(data.keys.elementAt(index)));
+                  }
+                  if (index >= 0 && index < data.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    );
+                  } else {
+                    return const Text('');
+                  }
+                },
+                reservedSize: 38,
+              ),
+            ),
+            leftTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: false,
+              ),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: false,
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: false,
+              ),
+            ),
+          ),
+          borderData: FlBorderData(
+            show: false,
+          ),
+          barGroups: data.entries
+              .map(
+                (entry) => BarChartGroupData(
+                  x: data.keys.toList().indexOf(entry.key),
+                  barRods: [
+                    BarChartRodData(
+                      toY: entry.value.toDouble(),
+                      color: barColor,
+                      width: 16,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(6),
+                        topRight: Radius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
+          gridData: const FlGridData(show: false),
+        ),
+      ),
+    );
+  }
 
-                        return ListTile(
-                          leading: Text(
-                            symbol,
-                            style: TextStyle(
-                              fontSize: 21,
-                              fontFamily: 'SpaceMono',
-                              color: Colors.white,
-                            ),
-                          ),
-                          title: Text(
-                            '$nameEn', //$nameEn - $nameFa
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'VarelaRound',
-                            ),
-                          ),
-                          onTap: () {
-                            widget.onCurrencySelected(code);
-                          },
-                        );
-                      },
+  Widget _buildWorkoutMinutesChart(Map<String, int> data, Color barColor, {bool isMonthly = false}) {
+    return SizedBox(
+      height: 200,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: data.values
+                  .reduce((curr, next) => curr > next ? curr : next)
+                  .toDouble() +
+              30,
+          barTouchData: BarTouchData(
+            enabled: false,
+            touchTooltipData: BarTouchTooltipData(
+              tooltipBgColor: Colors.blueGrey,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                String label;
+                if (data == _weeklyCalories || data == _weeklyWorkoutMinutes) {
+                  label = DateFormat('EEE').format(
+                      DateTime.parse(data.keys.elementAt(groupIndex)));
+                } else {
+                  label = data.keys.elementAt(groupIndex);
+                }
+                return BarTooltipItem(
+                  '$label\n',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: '${rod.toY.toInt()} min',
+                      style: TextStyle(
+                        color: barColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
+                  ],
+                );
+              },
+            ),
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (double value, TitleMeta meta) {
+                  final index = value.toInt();
+                  String label;
+                  if (isMonthly) {
+                    label = data.keys.elementAt(index);
+                  } else {
+                    label = DateFormat('EEE').format(
+                        DateTime.parse(data.keys.elementAt(index)));
+                  }
+                  if (index >= 0 && index < data.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    );
+                  } else {
+                    return const Text('');
+                  }
+                },
+                reservedSize: 38,
+              ),
+            ),
+            leftTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: false,
+              ),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: false,
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: false,
+              ),
+            ),
+          ),
+          borderData: FlBorderData(
+            show: false,
+          ),
+          barGroups: data.entries
+              .map(
+                (entry) => BarChartGroupData(
+                  x: data.keys.toList().indexOf(entry.key),
+                  barRods: [
+                    BarChartRodData(
+                      toY: entry.value.toDouble(),
+                      color: barColor,
+                      width: 16,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(6),
+                        topRight: Radius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
+          gridData: const FlGridData(show: false),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWorkoutFacts() {
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        color: const Color(0xFF222222),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFactRow(
+                  CupertinoIcons.star_fill,
+                  'Most Frequent Workout',
+                  _getMostFrequentWorkout(),
+                  _factIconColor,
+                  _factIconSize),
+              const SizedBox(height: 16),
+              _buildFactRow(
+                  CupertinoIcons.flame_fill,
+                  'Max Calories Burned',
+                  '${_getMaxCaloriesBurned()} kcal',
+                  _factIconColor,
+                  _factIconSize),
+              const SizedBox(height: 16),
+              _buildFactRow(
+                  CupertinoIcons.time,
+                  'Max Workout Duration',
+                  '${_getMaxWorkoutDuration()} min',
+                  _factIconColor,
+                  _factIconSize),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFactRow(
+      IconData icon, String title, String value, Color color, double size) {
+    return Row(
+      children: [
+        Icon(icon, size: size, color: color),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+//Timer Screen
+class TimerScreen extends StatefulWidget {
+  const TimerScreen({super.key});
+
+  @override
+  TimerScreenState createState() => TimerScreenState();
+}
+
+class TimerScreenState extends State<TimerScreen> {
+  final Stopwatch _stopwatch = Stopwatch();
+  Duration _duration = const Duration();
+  bool _isRunning = false;
+
+  // ** Customizable Settings **
+  final double _timerButtonSpacing = 24; // Spacing between timer buttons
+  final double _circularIndicatorRadius = 120; // Radius of the circular indicator
+  final double _circularIndicatorLineWidth = 7; // Line width of the circular indicator
+  final Color _resetButtonColor = const Color.fromARGB(255, 255, 31, 49); // Color for the reset button
+  final double _iconButtonSize = 39; // Size for the icon buttons
+  final Color _startButtonRestColor =
+      const Color.fromARGB(255, 26, 220, 97); // Color for the start button when not running
+  final Color _startButtonRunningColor =
+      const Color.fromARGB(255, 255, 41, 70); // Color for the start button when running
+// Color for the resume button
+  final double _buttonVerticalPadding = 40; // Vertical padding around the buttons
+
+  void _setDuration(Duration duration) {
+    setState(() {
+      _duration = duration;
+      _stopwatch.reset();
+    });
+  }
+
+  void _startStopTimer() {
+    setState(() {
+      if (_isRunning) {
+        _stopwatch.stop();
+      } else {
+        _stopwatch.start();
+        _updateTimer();
+      }
+      _isRunning = !_isRunning;
+    });
+  }
+
+  void _resetTimer() {
+    setState(() {
+      _stopwatch.reset();
+      _duration = const Duration();
+      _isRunning = false;
+    });
+  }
+
+  void _updateTimer() {
+    if (_stopwatch.isRunning) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (_stopwatch.isRunning) {
+          setState(() {
+            if (_stopwatch.elapsed >= _duration) {
+              _stopwatch.stop();
+              _isRunning = false;
+              _showTimerCompleteDialog();
+            }
+          });
+          _updateTimer();
+        }
+      });
+    }
+  }
+
+  void _showTimerCompleteDialog() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    // Vibrate 3 times with a 500ms pause between each vibration
+    // for (int i = 0; i < 3; i++) {
+    //   if (await Vibration.hasVibrator() ?? false) {
+    //     Vibration.vibrate(duration: 100);
+    //   }
+    //   await Future.delayed(const Duration(milliseconds: 500));
+    // }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF222222),
+          title: const Text('Timer Complete'),
+          content: const Text('The timer has finished.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _formatTime(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+            CircularPercentIndicator(
+              radius: _circularIndicatorRadius,
+              lineWidth: _circularIndicatorLineWidth,
+              animation: false,
+              percent: _stopwatch.elapsed >= _duration
+                  ? 0
+                  : 1 - (_stopwatch.elapsed.inSeconds / _duration.inSeconds),
+              center: Text(
+                _formatTime(_duration - _stopwatch.elapsed),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 40.0),
+              ),
+              circularStrokeCap: CircularStrokeCap.round,
+              progressColor: Colors.red,
+              backgroundColor: Colors.grey,
+            ),
+            const SizedBox(height: 40),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: _buttonVerticalPadding),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    iconSize: _iconButtonSize,
+                    onPressed: _startStopTimer,
+                    icon:
+                        Icon(_isRunning ? Icons.pause_circle : Icons.play_circle),
+                    color: _isRunning
+                        ? _startButtonRunningColor
+                        : _startButtonRestColor,
+                  ),
+                  SizedBox(width: _timerButtonSpacing),
+                  IconButton(
+                    iconSize: _iconButtonSize,
+                    onPressed: _resetTimer,
+                    icon: const Icon(Icons.stop_circle),
+                    color: _resetButtonColor,
+                  ),
+                  SizedBox(width: _timerButtonSpacing),
+                  IconButton(
+                    iconSize: _iconButtonSize,
+                    onPressed: () {
+                      _showDurationPickerDialog();
+                    },
+                    icon: const Icon(Icons.access_time),
+                    color: Colors.blue,
                   ),
                 ],
               ),
             ),
-          ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDurationPickerDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black,
+      builder: (context) {
+        Duration tempDuration = _duration;
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              height: 250,
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: CupertinoTimerPicker(
+                      mode: CupertinoTimerPickerMode.ms,
+                      initialTimerDuration: tempDuration,
+                      onTimerDurationChanged: (Duration newDuration) {
+                        setModalState(() {
+                          tempDuration = newDuration;
+                        });
+                      },
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          _setDuration(tempDuration);
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                        ),
+                        child: const Text('Set',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// Settings Screen
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  SettingsScreenState createState() => SettingsScreenState();
+}
+
+class SettingsScreenState extends State<SettingsScreen> {
+  late SharedPreferences _prefs;
+  bool _notificationsEnabled = false;
+  String _selectedLanguage = 'English';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = _prefs.getBool('notificationsEnabled') ?? false;
+      _selectedLanguage = _prefs.getString('selectedLanguage') ?? 'English';
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    await _prefs.setBool('notificationsEnabled', _notificationsEnabled);
+    await _prefs.setString('selectedLanguage', _selectedLanguage);
+  }
+
+  void _exportData() async {
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
+    }
+
+    // Use the Downloads directory for saving the file
+    Directory? directory = await getDownloadsDirectory();
+
+    if (directory != null) {
+      final file = File('${directory.path}/fitness_data.json');
+
+      final data = {
+        'workoutHistory': _prefs.getStringList('workoutHistory') ?? [],
+        'currentStreak': _prefs.getInt('currentStreak') ?? 0,
+        'totalCaloriesBurned': _prefs.getInt('totalCaloriesBurned') ?? 0,
+        'totalWorkoutMinutes': _prefs.getInt('totalWorkoutMinutes') ?? 0,
+        'userName': _prefs.getString('userName') ?? 'User',
+        'userAge': _prefs.getInt('userAge') ?? 25,
+        'userHeight': _prefs.getDouble('userHeight') ?? 175.0,
+        'userWeight': _prefs.getDouble('userWeight') ?? 70.0,
+        'notificationsEnabled': _prefs.getBool('notificationsEnabled') ?? false,
+        'selectedLanguage': _prefs.getString('selectedLanguage') ?? 'English',
+      };
+
+      final String jsonData = jsonEncode(data);
+
+      await file.writeAsString(jsonData);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Data exported to ${file.path}'),
+        ),
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to get the Downloads directory.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            Card(
+              color: const Color(0xFF222222),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.notifications),
+                    title: const Text('Notifications'),
+                    trailing: Switch(
+                      value: _notificationsEnabled,
+                      onChanged: (value) {
+                        setState(() {
+                          _notificationsEnabled = value;
+                          _saveSettings();
+                        });
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.language),
+                    title: const Text('Language'),
+                    trailing: Text(_selectedLanguage),
+                    onTap: () {
+                      // Show language selection dialog
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            backgroundColor: const Color(0xFF222222),
+                            title: const Text('Select Language'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  title: const Text('English'),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedLanguage = 'English';
+                                      _saveSettings();
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                                ListTile(
+                                  title: const Text('فارسی'),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedLanguage = 'فارسی';
+                                      _saveSettings();
+                                    });
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 21),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _exportData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 0, 72, 255),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Export Data as JSON',
+                    style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
         ),
       ),
     );
