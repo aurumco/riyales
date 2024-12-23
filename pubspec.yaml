@@ -1,40 +1,39 @@
-name: Keefi
-description: An application for currency prices and conversion.
-version: 1.0.0+2
+name: Fitness
+description: A new Flutter project.
+
+publish_to: 'none' 
+
+version: 1.0.0+1
 
 environment:
-  sdk: ">=2.17.0 <3.24.4"
+  sdk: '>=3.1.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  provider: ^6.1.2
-  http: ^1.2.2
-  google_fonts: ^6.2.1
-  shared_preferences: ^2.3.3
-  build_runner: ^2.4.13
-  permission_handler: ^11.3.1
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.2
+  google_fonts: ^6.1.0
+  shared_preferences: ^2.2.2
+  json_annotation: ^4.8.1
+  fl_chart: ^0.66.2
+  path_provider: ^2.1.2
+  permission_handler: ^11.2.0
+  circular_countdown_timer: ^0.2.4
+  flutter_svg: ^2.0.9
+  intl: ^0.19.0
+  table_calendar: ^3.1.0
+  percent_indicator: ^4.2.3
+  share_plus: ^7.2.1
+  numberpicker: ^2.1.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
 
 flutter:
   uses-material-design: true
-
   assets:
-    - assets/
-    - assets/icons/
-    - assets/fonts/
-
-  fonts:
-    - family: VarelaRound
-      fonts:
-        - asset: assets/fonts/VarelaRound-Regular.ttf
-    - family: SpaceMono
-      fonts:
-        - asset: assets/fonts/SpaceMono-Regular.ttf
-    - family: Vazirmatn
-      fonts:
-        - asset: assets/fonts/Vazirmatn.ttf
+    - assets/images/
