@@ -10,7 +10,7 @@
 ## 📦 Tech Stack
 
 - **Frontend:** Flutter (Cross-platform)
-- **Backend:** Python (FastAPI/Django)
+- **Backend:** Python
 - **APIs:** Realtime financial data APIs (e.g., CoinGecko, Forex APIs, etc.)
 
 ## 🚀 Features
@@ -18,7 +18,6 @@
 - Live currency exchange rates 🕒  
 - Gold and crypto price updates in real-time 🪙  
 - Beautiful UI/UX with smooth animations 🌈  
-- Localization support (coming soon) 🌍  
 - Dark & light themes 🌓  
 
 ## 📲 Getting Started
