@@ -1,6 +1,6 @@
-# 🪙 Rialess
+# 🪙 Riyales
 
-**Rialess** is a modern and elegant mobile app built with Flutter 🐦 and powered by a Python backend 🐍, designed to provide real-time financial data including:
+**Riyales** is a modern and elegant mobile app built with Flutter 🐦 and powered by a Python backend 🐍, designed to provide real-time financial data including:
 
 - 💵 Currency exchange rates (USD, EUR, etc.)
 - 🪙 Cryptocurrency prices (BTC, ETH, etc.)
@@ -26,8 +26,8 @@
 To run the app locally:
 
 ```bash
-git clone https://github.com/aurumco/rialess.git
-cd rialess
+git clone https://github.com/aurumco/Riyales.git
+cd Riyales
 ```
 
 ### Flutter Setup
