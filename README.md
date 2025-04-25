@@ -40,7 +40,7 @@ flutter run
 
 ## 🧪 Status
 
-🚧 **Under active development.**
+✅ **Under active development.**
 
 ## 📫 Contact
 
