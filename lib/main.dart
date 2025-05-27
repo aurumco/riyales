@@ -543,7 +543,7 @@ class UpdateInfoConfig extends Equatable {
         changelogFa,
         updateMode,
         updatePackage,
-        updateLink
+        updateLink,
       ];
 }
 
@@ -1258,13 +1258,13 @@ abstract class DataFetcherNotifier<T extends Asset>
     // Use priceUpdateIntervalMinutes instead of updateIntervalMs which is inconsistently defined
     final updateIntervalMs = _appConfig.priceUpdateIntervalMinutes * 60 * 1000;
     print(
-        "DEBUG: Setting auto-refresh interval to ${_appConfig.priceUpdateIntervalMinutes} minutes");
-    _updateTimer = Timer.periodic(
-      Duration(milliseconds: updateIntervalMs),
-      (timer) {
-        fetchData(url, isRefresh: true);
-      },
+      "DEBUG: Setting auto-refresh interval to ${_appConfig.priceUpdateIntervalMinutes} minutes",
     );
+    _updateTimer = Timer.periodic(Duration(milliseconds: updateIntervalMs), (
+      timer,
+    ) {
+      fetchData(url, isRefresh: true);
+    });
   }
 
   @override
@@ -1290,17 +1290,21 @@ class CurrencyNotifier extends DataFetcherNotifier<CurrencyAsset> {
     List<CurrencyAsset> assets = [];
     if (responseData is Map && responseData.containsKey('currency')) {
       assets = (responseData['currency'] as List)
-          .map((item) => CurrencyAsset.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => CurrencyAsset.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     }
     // Load priority list for currency
     List<String> priorityList = [];
     try {
-      final dyn = await _apiService
-          .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+      final dyn = await _apiService.fetchData(
+        _appConfig.apiEndpoints.priorityAssetsUrl,
+      );
       if (dyn is Map<String, dynamic>) {
-        priorityList =
-            List<String>.from(dyn['currency'] as List<dynamic>? ?? []);
+        priorityList = List<String>.from(
+          dyn['currency'] as List<dynamic>? ?? [],
+        );
       }
     } catch (_) {}
     // Apply priority: items in priorityList first, then others
@@ -1360,18 +1364,36 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
             commodityResponseData['metal_base'] as List<dynamic>? ?? [];
         final energyList =
             commodityResponseData['energy'] as List<dynamic>? ?? [];
-        commodityAssets.addAll(preciousList
-            .map((item) => GoldAsset.fromJson(item as Map<String, dynamic>,
-                isCommodity: true))
-            .toList());
-        commodityAssets.addAll(baseList
-            .map((item) => GoldAsset.fromJson(item as Map<String, dynamic>,
-                isCommodity: true))
-            .toList());
-        commodityAssets.addAll(energyList
-            .map((item) => GoldAsset.fromJson(item as Map<String, dynamic>,
-                isCommodity: true))
-            .toList());
+        commodityAssets.addAll(
+          preciousList
+              .map(
+                (item) => GoldAsset.fromJson(
+                  item as Map<String, dynamic>,
+                  isCommodity: true,
+                ),
+              )
+              .toList(),
+        );
+        commodityAssets.addAll(
+          baseList
+              .map(
+                (item) => GoldAsset.fromJson(
+                  item as Map<String, dynamic>,
+                  isCommodity: true,
+                ),
+              )
+              .toList(),
+        );
+        commodityAssets.addAll(
+          energyList
+              .map(
+                (item) => GoldAsset.fromJson(
+                  item as Map<String, dynamic>,
+                  isCommodity: true,
+                ),
+              )
+              .toList(),
+        );
       }
     }
     // Combine gold and commodity assets, avoiding duplicates by symbol
@@ -1391,21 +1413,25 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
     List<String> goldPriorityList = [];
     List<String> commodityPriorityList = [];
     try {
-      final dyn = await _apiService
-          .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+      final dyn = await _apiService.fetchData(
+        _appConfig.apiEndpoints.priorityAssetsUrl,
+      );
       if (dyn is Map<String, dynamic>) {
-        goldPriorityList =
-            List<String>.from(dyn['gold'] as List<dynamic>? ?? []);
-        commodityPriorityList =
-            List<String>.from(dyn['commodity'] as List<dynamic>? ?? []);
+        goldPriorityList = List<String>.from(
+          dyn['gold'] as List<dynamic>? ?? [],
+        );
+        commodityPriorityList = List<String>.from(
+          dyn['commodity'] as List<dynamic>? ?? [],
+        );
       }
     } catch (_) {}
     // Apply priority: gold first, then commodity, then others
     final goldPriorityAssets = <GoldAsset>[];
     final remainingAssets = <GoldAsset>[];
     for (final symbol in goldPriorityList) {
-      goldPriorityAssets
-          .addAll(combinedAssets.where((a) => a.symbol == symbol));
+      goldPriorityAssets.addAll(
+        combinedAssets.where((a) => a.symbol == symbol),
+      );
     }
     for (final asset in combinedAssets) {
       if (!goldPriorityAssets.contains(asset)) {
@@ -1416,8 +1442,9 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
     final otherAssets = <GoldAsset>[];
     for (final symbol in commodityPriorityList) {
       commodityPriorityAssets.addAll(
-        remainingAssets
-            .where((a) => a.symbol.toLowerCase() == symbol.toLowerCase()),
+        remainingAssets.where(
+          (a) => a.symbol.toLowerCase() == symbol.toLowerCase(),
+        ),
       );
     }
     for (final asset in remainingAssets) {
@@ -1456,11 +1483,13 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
       // Load priority list for crypto
       List<String> priorityList = [];
       try {
-        final dyn = await _apiService
-            .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+        final dyn = await _apiService.fetchData(
+          _appConfig.apiEndpoints.priorityAssetsUrl,
+        );
         if (dyn is Map<String, dynamic>) {
-          priorityList =
-              List<String>.from(dyn['crypto'] as List<dynamic>? ?? <dynamic>[]);
+          priorityList = List<String>.from(
+            dyn['crypto'] as List<dynamic>? ?? <dynamic>[],
+          );
         }
       } catch (_) {}
       // Partition assets into iconed (custom icons) and non-iconed
@@ -1498,7 +1527,7 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
         ...iconedPriority,
         ...iconedOthers,
         ...nonIconedPriority,
-        ...nonIconedOthers
+        ...nonIconedOthers,
       ];
     }
     return <CryptoAsset>[];
@@ -1531,11 +1560,13 @@ class StockTseIfbNotifier extends DataFetcherNotifier<StockAsset> {
       // Load priority list for TSE/IFB symbols
       List<String> priorityList = [];
       try {
-        final dyn = await _apiService
-            .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+        final dyn = await _apiService.fetchData(
+          _appConfig.apiEndpoints.priorityAssetsUrl,
+        );
         if (dyn is Map<String, dynamic>) {
           priorityList = List<String>.from(
-              dyn['stock_tse_ifb_symbols'] as List<dynamic>? ?? []);
+            dyn['stock_tse_ifb_symbols'] as List<dynamic>? ?? [],
+          );
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
@@ -1582,11 +1613,13 @@ class StockDebtSecuritiesNotifier extends DataFetcherNotifier<StockAsset> {
       // Load priority list for debt securities
       List<String> priorityList = [];
       try {
-        final dyn = await _apiService
-            .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+        final dyn = await _apiService.fetchData(
+          _appConfig.apiEndpoints.priorityAssetsUrl,
+        );
         if (dyn is Map<String, dynamic>) {
           priorityList = List<String>.from(
-              dyn['stock_debt_securities'] as List<dynamic>? ?? []);
+            dyn['stock_debt_securities'] as List<dynamic>? ?? [],
+          );
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
@@ -1631,11 +1664,13 @@ class StockFuturesNotifier extends DataFetcherNotifier<StockAsset> {
       // Load priority list for futures
       List<String> priorityList = [];
       try {
-        final dyn = await _apiService
-            .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+        final dyn = await _apiService.fetchData(
+          _appConfig.apiEndpoints.priorityAssetsUrl,
+        );
         if (dyn is Map<String, dynamic>) {
-          priorityList =
-              List<String>.from(dyn['stock_futures'] as List<dynamic>? ?? []);
+          priorityList = List<String>.from(
+            dyn['stock_futures'] as List<dynamic>? ?? [],
+          );
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
@@ -1682,11 +1717,13 @@ class StockHousingFacilitiesNotifier extends DataFetcherNotifier<StockAsset> {
       // Load priority list for housing facilities
       List<String> priorityList = [];
       try {
-        final dyn = await _apiService
-            .fetchData(_appConfig.apiEndpoints.priorityAssetsUrl);
+        final dyn = await _apiService.fetchData(
+          _appConfig.apiEndpoints.priorityAssetsUrl,
+        );
         if (dyn is Map<String, dynamic>) {
           priorityList = List<String>.from(
-              dyn['stock_housing_facilities'] as List<dynamic>? ?? []);
+            dyn['stock_housing_facilities'] as List<dynamic>? ?? [],
+          );
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
@@ -1831,6 +1868,10 @@ class ApiService {
 // region 3. Main Application & Entry Point
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   // Initialize ConnectionService singleton
   final connectionService = ConnectionService();
 
@@ -1892,80 +1933,95 @@ class _RiyalesAppState extends ConsumerState<RiyalesApp> {
           TextTheme createTextTheme(String fontFamily, Color textColor) {
             return TextTheme(
               displayLarge: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 57,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 57,
+                fontWeight: FontWeight.w400,
+              ),
               displayMedium: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 45,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 45,
+                fontWeight: FontWeight.w400,
+              ),
               displaySmall: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 36,
+                fontWeight: FontWeight.w400,
+              ),
               headlineLarge: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 32,
+                fontWeight: FontWeight.w400,
+              ),
               headlineMedium: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 28,
+                fontWeight: FontWeight.w400,
+              ),
               headlineSmall: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
               titleLarge: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 22,
+                fontWeight: FontWeight.w500,
+              ),
               titleMedium: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
               titleSmall: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
               bodyLarge: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
               bodyMedium: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
               bodySmall: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+              ),
               labelLarge: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
               labelMedium: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
               labelSmall: TextStyle(
-                  fontFamily: fontFamily,
-                  color: textColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400),
+                fontFamily: fontFamily,
+                color: textColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+              ),
             );
           }
 
@@ -2549,14 +2605,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final segmentActiveTextColor = isDarkMode
         ? tealGreen.withAlpha(230)
         : Theme.of(context).colorScheme.onSecondaryContainer;
+    // Get screen width for responsive text sizing
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Reduce font size on smaller screens
+    final tabFontSize = screenWidth < 360 ? 12.0 : 14.0;
+
     final selectedTextStyle = TextStyle(
       color: segmentActiveTextColor,
-      fontSize: 14,
+      fontSize: tabFontSize,
       fontWeight: FontWeight.w600,
     );
     final unselectedTextStyle = TextStyle(
       color: Theme.of(context).textTheme.bodyLarge?.color,
-      fontSize: 14,
+      fontSize: tabFontSize,
       fontWeight: FontWeight.w600,
     );
 
@@ -2564,10 +2625,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     Widget mainScaffold = Scaffold(
       appBar: AppBar(
         // Create a custom title animation that ensures sequential transition
-        title: TitleWithLanguageTransition(
-          title: l10n.riyalesAppTitle,
-          isRTL: Localizations.localeOf(context).languageCode == 'fa',
-        ),
+        title: Text(l10n.riyalesAppTitle),
         actions: [
           // 3. Add animations to the action icons based on locale
           AnimatedAlign(
@@ -2698,14 +2756,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56.0),
+          preferredSize: const Size.fromHeight(
+            56.0 + 2.0,
+          ), // Added 12.0 for bottom padding
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 8.0, vertical: 0.0), // Reduced vertical padding
+            padding: const EdgeInsets.only(
+              left: 8.0,
+              right: 8.0,
+              bottom: 2.0, // Added bottom padding, kept horizontal
+            ), // Added bottom padding, kept horizontal
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isMobile = constraints.maxWidth < 600;
-                final horizontalMargin = isMobile ? 4.0 : 1.0;
+                final horizontalMargin =
+                    isMobile ? 4.0 : 0.0; // Reduced margin for desktop/tablet
                 // Use existing themeConfig for main tabs defined earlier
                 final tabRadius =
                     themeConfig.cardBorderRadius * 0.7; //Tab corner radius
@@ -2754,25 +2818,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       child: Padding(
                         // bump vertical padding slightly for height
                         padding: const EdgeInsets.symmetric(
-                            vertical: 10.0, horizontal: 12.0),
+                          vertical: 10.0,
+                          horizontal: 16.0,
+                        ), // Increased horizontal padding
                         child: Center(
                           child: Builder(
                             builder: (context) {
-                              Widget text = Text(
+                              Widget textWidget = Text(
                                 label,
                                 style: isSelected
                                     ? selectedTextStyle
                                     : unselectedTextStyle,
                                 textAlign: TextAlign.center,
                               );
-                              // shift light-theme active text down by 1px
+                              // Ensure text fits within the tab
+                              Widget fittedText = FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: textWidget,
+                              );
+
+                              // Shift light-theme active text down by 1px
                               if (isSelected && !isDarkMode) {
-                                text = Transform.translate(
+                                fittedText = Transform.translate(
                                   offset: const Offset(0, 1),
-                                  child: text,
+                                  child: fittedText,
                                 );
                               }
-                              return text;
+                              return fittedText;
                             },
                           ),
                         ),
@@ -2786,7 +2858,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ? Expanded(child: wrapped)
                         : Padding(
                             padding: EdgeInsets.symmetric(
-                                horizontal: horizontalMargin),
+                              horizontal: horizontalMargin,
+                            ),
                             child: wrapped,
                           );
                   }),
@@ -2806,7 +2879,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               curve: Curves.easeInOutQuart,
               height: _showSearchBar ? 48.0 : 0.0,
               margin: _showSearchBar
-                  ? const EdgeInsets.only(top: 10.0, bottom: 2.0)
+                  ? const EdgeInsets.only(
+                      top: 10.0,
+                      bottom: 4.0,
+                    ) // Increased bottom margin by 2.0
                   : EdgeInsets.zero,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               color: Theme.of(context).scaffoldBackgroundColor,
@@ -2836,11 +2912,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
 
                               return CupertinoTextField(
-                                controller:
-                                    TextEditingController(text: searchText)
-                                      ..selection = TextSelection.fromPosition(
-                                        TextPosition(offset: searchText.length),
-                                      ),
+                                controller: TextEditingController(
+                                  text: searchText,
+                                )..selection = TextSelection.fromPosition(
+                                    TextPosition(offset: searchText.length),
+                                  ),
                                 onChanged: (v) => ref
                                     .read(searchQueryProvider.notifier)
                                     .state = v,
@@ -2875,7 +2951,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         onPressed: () {
                                           ref
                                               .read(
-                                                  searchQueryProvider.notifier)
+                                                searchQueryProvider.notifier,
+                                              )
                                               .state = '';
                                         },
                                       )
@@ -3065,7 +3142,9 @@ class SettingsSheet extends ConsumerWidget {
 
     if (appConfig != null) {
       if (_isVersionGreaterThan(
-          appConfig.updateInfo.latestVersion, currentAppVersion)) {
+        appConfig.updateInfo.latestVersion,
+        currentAppVersion,
+      )) {
         updateAvailable = true;
         changelog = locale.languageCode == 'fa'
             ? appConfig.updateInfo.changelogFa
@@ -3263,7 +3342,8 @@ class SettingsSheet extends ConsumerWidget {
                   } else {
                     // Fallback web URL for Play Store
                     final webUri = Uri.parse(
-                        'https://play.google.com/store/apps/details?id=$pkg');
+                      'https://play.google.com/store/apps/details?id=$pkg',
+                    );
                     await launchUrl(webUri);
                   }
                 } else {
@@ -3623,7 +3703,9 @@ class _StockPageState extends ConsumerState<StockPage>
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: 8.0, vertical: 0.0), // Reduced vertical padding
+            horizontal: 8.0,
+            vertical: 0.0,
+          ), // Reduced vertical padding
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < 600;
@@ -3634,14 +3716,14 @@ class _StockPageState extends ConsumerState<StockPage>
                   : appConfig!.themeOptions.light;
               final tabRadius =
                   themeConfig.cardBorderRadius * 0.7; //Tab corner radius
-              final segmentInactiveBackground =
-                  _hexToColor(themeConfig.cardColor);
+              final segmentInactiveBackground = _hexToColor(
+                themeConfig.cardColor,
+              );
               final segmentActiveBackground = isDarkMode
                   ? tealGreen.withAlpha(38)
-                  : Theme.of(context)
-                      .colorScheme
-                      .secondaryContainer
-                      .withAlpha(128);
+                  : Theme.of(
+                      context,
+                    ).colorScheme.secondaryContainer.withAlpha(128);
               final segmentActiveTextColor = isDarkMode
                   ? tealGreen.withAlpha(230)
                   : Theme.of(context).colorScheme.onSecondaryContainer;
@@ -3693,36 +3775,42 @@ class _StockPageState extends ConsumerState<StockPage>
                         : segmentInactiveBackground,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 10.0, horizontal: 12.0),
+                        vertical: 10.0,
+                        horizontal: 12.0,
+                      ),
                       child: Center(
-                        child: Builder(builder: (context) {
-                          Widget text = Text(
-                            label,
-                            style: isSelected
-                                ? selectedTextStyle
-                                : unselectedTextStyle,
-                            textAlign: TextAlign.center,
-                          );
-                          if (isSelected && !isDarkMode) {
-                            text = Transform.translate(
-                              offset: const Offset(0, 1),
-                              child: text,
+                        child: Builder(
+                          builder: (context) {
+                            Widget textWidget = Text(
+                              label,
+                              style: isSelected
+                                  ? selectedTextStyle
+                                  : unselectedTextStyle,
+                              textAlign: TextAlign.center,
                             );
-                          }
-                          return text;
-                        }),
+                            Widget fittedText = FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: textWidget,
+                            );
+                            if (isSelected && !isDarkMode) {
+                              fittedText = Transform.translate(
+                                offset: const Offset(0, 1),
+                                child: fittedText,
+                              );
+                            }
+                            return fittedText;
+                          },
+                        ),
                       ),
                     ),
                   );
-                  final wrapped = GestureDetector(
-                    onTap: onTap,
-                    child: segment,
-                  );
+                  final wrapped = GestureDetector(onTap: onTap, child: segment);
                   return isMobile
                       ? Expanded(child: wrapped)
                       : Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: horizontalMargin),
+                            horizontal: horizontalMargin,
+                          ),
                           child: wrapped,
                         );
                 }),
@@ -3772,7 +3860,8 @@ class _StockPageState extends ConsumerState<StockPage>
                       return CupertinoTextField(
                         controller: TextEditingController(text: searchText)
                           ..selection = TextSelection.fromPosition(
-                              TextPosition(offset: searchText.length)),
+                            TextPosition(offset: searchText.length),
+                          ),
                         onChanged: (v) =>
                             ref.read(searchQueryProvider.notifier).state = v,
                         placeholder:
@@ -3782,19 +3871,30 @@ class _StockPageState extends ConsumerState<StockPage>
                           fontFamily: fontFamily,
                         ),
                         prefix: Padding(
-                          padding: const EdgeInsetsDirectional.only(start: 18),
-                          child: Icon(CupertinoIcons.search,
-                              size: 20, color: iconColor),
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 18,
+                          ),
+                          child: Icon(
+                            CupertinoIcons.search,
+                            size: 20,
+                            color: iconColor,
+                          ),
                         ),
                         suffix: searchText.isNotEmpty
                             ? CupertinoButton(
-                                padding:
-                                    const EdgeInsetsDirectional.only(end: 18),
+                                padding: const EdgeInsetsDirectional.only(
+                                  end: 18,
+                                ),
                                 minSize: 30,
-                                child: Icon(CupertinoIcons.clear,
-                                    size: 18, color: iconColor),
+                                child: Icon(
+                                  CupertinoIcons.clear,
+                                  size: 18,
+                                  color: iconColor,
+                                ),
                                 onPressed: () => ref
-                                    .read(searchQueryProvider.notifier)
+                                    .read(
+                                      searchQueryProvider.notifier,
+                                    )
                                     .state = '',
                               )
                             : null,
@@ -3805,8 +3905,10 @@ class _StockPageState extends ConsumerState<StockPage>
                           top: 8,
                           bottom: 8,
                         ),
-                        style:
-                            TextStyle(color: textColor, fontFamily: fontFamily),
+                        style: TextStyle(
+                          color: textColor,
+                          fontFamily: fontFamily,
+                        ),
                         cursorColor: iconColor,
                         decoration: BoxDecoration(
                           color:
@@ -4413,19 +4515,23 @@ class AssetCard extends ConsumerWidget {
       final CryptoIconInfo? cryptoIconInfo = _cryptoIconMap[cryptoName];
 
       if (cryptoIconInfo != null) {
-        // Use network image for palette generation, fallback to local SVG if missing
-        final String? url = (asset as CryptoAsset).iconUrl;
-        // Prepare palette provider explicitly as ImageProvider
-        late final ImageProvider<Object> paletteProvider;
-        if (url != null && url.isNotEmpty) {
-          paletteProvider = CachedNetworkImageProvider(url);
-        } else {
-          paletteProvider = AssetImage(cryptoIconInfo.iconPath);
-        }
+        // Use local SVG with predefined glow color
+        // The imageProvider for local SVGs is tricky for PaletteGenerator,
+        // but since we use preferredGlowColor, PaletteGenerator will be skipped.
+        // We can pass a dummy ImageProvider or the AssetImage if it helps CacheManager,
+        // but it won't be used for palette generation.
+        // For simplicity, let's use AssetImage, assuming it's a raster or PaletteGenerator handles it gracefully if unused.
+        final ImageProvider<Object> localIconProvider = AssetImage(
+          cryptoIconInfo.iconPath,
+        );
+
         iconWidget = _DynamicGlow(
           key: ValueKey(asset.id),
-          imageProvider: paletteProvider,
-          defaultGlowColor: cryptoIconInfo.color, // Use predefined color
+          imageProvider:
+              localIconProvider, // Primarily for consistency, won't be used by PaletteGenerator
+          preferredGlowColor:
+              cryptoIconInfo.color, // Pass the specific color here
+          defaultGlowColor: defaultGlow, // Fallback
           size: 32.0,
           child: ClipOval(
             child: SvgPicture.asset(
@@ -4437,16 +4543,20 @@ class AssetCard extends ConsumerWidget {
           ),
         );
       } else {
-        // Use network image with dynamic glow as before
+        // Use network image with dynamic glow (PaletteGenerator will run with size optimization)
         iconWidget = _DynamicGlow(
           key: ValueKey(asset.id),
           imageProvider: CachedNetworkImageProvider(
             (asset as CryptoAsset).iconUrl!,
           ),
-          defaultGlowColor: defaultGlow,
+          // preferredGlowColor is null, so PaletteGenerator will attempt generation
+          defaultGlowColor: defaultGlow, // Fallback if PaletteGenerator fails
           size: 32.0,
           child: ColorFiltered(
-            colorFilter: ColorFilter.matrix(matrix),
+            // This ColorFiltered was here before, ensure it's still applied correctly
+            colorFilter: ColorFilter.matrix(
+              matrix,
+            ), // matrix is defined earlier in the original code
             child: CachedNetworkImage(
               cacheManager: CacheManager(
                 Config('cryptoCache', stalePeriod: const Duration(days: 30)),
@@ -6039,13 +6149,17 @@ class _DynamicGlow extends StatefulWidget {
   final ImageProvider imageProvider;
   final Widget child;
   final double size;
-  final Color defaultGlowColor;
+  final Color defaultGlowColor; // This is the ultimate fallback
+  final Color?
+      preferredGlowColor; // If provided, use this and skip PaletteGenerator
+
   const _DynamicGlow({
     super.key,
     required this.imageProvider,
     required this.child,
     required this.size,
     required this.defaultGlowColor,
+    this.preferredGlowColor, // New parameter
   });
   @override
   State<_DynamicGlow> createState() => _DynamicGlowState();
@@ -6053,25 +6167,38 @@ class _DynamicGlow extends StatefulWidget {
 
 class _DynamicGlowState extends State<_DynamicGlow> {
   Color? _glowColor;
+
   @override
   void initState() {
     super.initState();
-    _initPalette();
+    if (widget.preferredGlowColor != null) {
+      // If preferred color exists
+      _glowColor = widget.preferredGlowColor;
+    } else {
+      // Otherwise, initialize with default and try to generate from image
+      _glowColor = widget.defaultGlowColor;
+      _initPalette();
+    }
   }
 
   Future<void> _initPalette() async {
+    // Only called if preferredGlowColor is null
     try {
       final palette = await PaletteGenerator.fromImageProvider(
         widget.imageProvider,
+        size: const Size(50, 50), // Resize for faster palette generation
       );
-      final color = palette.dominantColor?.color ?? widget.defaultGlowColor;
-      if (mounted) {
+      final color = palette.dominantColor?.color;
+      if (mounted && color != null) {
+        // Only update if a dominant color was found
         setState(() {
           _glowColor = color;
         });
       }
+      // If color is null, _glowColor remains widget.defaultGlowColor (which was set in initState)
     } catch (_) {
-      // Ignore errors and use default glow color
+      // On error, _glowColor remains widget.defaultGlowColor (set in initState)
+      // Optionally log the error: print("PaletteGenerator failed: $_");
     }
   }
 
@@ -6444,10 +6571,9 @@ class _TitleWithLanguageTransitionState
     _slideAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: Offset(widget.isRTL ? -1.5 : 1.5, 0),
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOutQuart,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutQuart),
+    );
     _controller.addStatusListener(_handleAnimationStatus);
   }
 
@@ -6471,10 +6597,9 @@ class _TitleWithLanguageTransitionState
     _slideAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: Offset(widget.isRTL ? 1.5 : -1.5, 0),
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOutQuart,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutQuart),
+    );
 
     _controller.forward(from: 0.0);
   }
@@ -6518,10 +6643,12 @@ class _TitleWithLanguageTransitionState
             position: Tween<Offset>(
               begin: Offset(widget.isRTL ? -1.5 : 1.5, 0),
               end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: _controller.drive(Tween(begin: 1.0, end: 0.0)),
-              curve: Curves.easeInOutQuart,
-            )),
+            ).animate(
+              CurvedAnimation(
+                parent: ReverseAnimation(_controller),
+                curve: Curves.easeInOutQuart,
+              ),
+            ),
             child: Text(
               _currentTitle,
               style: TextStyle(
@@ -6542,8 +6669,11 @@ class TermsData extends Equatable {
   final String content;
   final String lastUpdated;
 
-  const TermsData(
-      {required this.title, required this.content, required this.lastUpdated});
+  const TermsData({
+    required this.title,
+    required this.content,
+    required this.lastUpdated,
+  });
 
   factory TermsData.fromJson(Map<String, dynamic> json) {
     return TermsData(
@@ -6557,8 +6687,10 @@ class TermsData extends Equatable {
   List<Object?> get props => [title, content, lastUpdated];
 }
 
-final termsProvider = FutureProvider.autoDispose
-    .family<TermsData, String>((ref, languageCode) async {
+final termsProvider = FutureProvider.autoDispose.family<TermsData, String>((
+  ref,
+  languageCode,
+) async {
   final dio = ref.watch(dioProvider);
   final appConfig = await ref.watch(appConfigProvider.future);
   final isPersian = languageCode == 'fa';
@@ -6640,12 +6772,13 @@ class TermsAndConditionsScreen extends ConsumerWidget {
                             behavior: HitTestBehavior.opaque,
                             onTap: () => Navigator.of(context).pop(),
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                               child: Icon(
                                 isFa
-                                    ? Icons.keyboard_arrow_right
-                                    : Icons.keyboard_arrow_left,
+                                    ? CupertinoIcons.chevron_right
+                                    : CupertinoIcons.chevron_left,
                                 size: 20,
                                 color: fadedTextColor,
                               ),
@@ -6674,7 +6807,9 @@ class TermsAndConditionsScreen extends ConsumerWidget {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 0),
+                        horizontal: 16,
+                        vertical: 0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -6696,8 +6831,10 @@ class TermsAndConditionsScreen extends ConsumerWidget {
                           ),
                           if (terms.lastUpdated.isNotEmpty)
                             Padding(
-                              padding:
-                                  const EdgeInsets.only(top: 16, bottom: 16),
+                              padding: const EdgeInsets.only(
+                                top: 16,
+                                bottom: 16,
+                              ),
                               child: Center(
                                 child: Text(
                                   isFa
