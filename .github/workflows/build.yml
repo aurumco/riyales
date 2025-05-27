@@ -57,7 +57,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK (Universal)
-        run: flutter build apk --release --no-split-per-abi
+        run: flutter build apk --release
 
       - name: Zip APK artifact
         working-directory: build/app/outputs/flutter-apk
