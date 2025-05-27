@@ -70,9 +70,15 @@ jobs:
             echo "Updated AGP version to 8.3.0"
             cat android/settings.gradle.kts
           fi
+      
+      - name: Flutter clean
+        run: flutter clean
 
       - name: Flutter pub get
         run: flutter pub get
+
+      - name: Generate App Icon
+        run: flutter pub run flutter_launcher_icons:main
 
       - name: Update plugins
         run: |
