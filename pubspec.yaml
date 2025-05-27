@@ -1,39 +1,79 @@
-name: Fitness
-description: A new Flutter project.
-
-publish_to: 'none' 
+name: riyales
+description: A Flutter application for real-time rates of currency, gold, crypto, and stocks.
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.1.0 <4.0.0'
+  sdk: '>=3.24.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  google_fonts: ^6.1.0
-  shared_preferences: ^2.2.2
-  json_annotation: ^4.8.1
-  fl_chart: ^0.66.2
-  path_provider: ^2.1.2
-  permission_handler: ^11.2.0
-  circular_countdown_timer: ^0.2.4
-  flutter_svg: ^2.0.9
-  intl: ^0.19.0
-  table_calendar: ^3.1.0
-  percent_indicator: ^4.2.3
-  share_plus: ^7.2.1
-  numberpicker: ^2.1.2
+  flutter_localizations:
+    sdk: flutter
+
+  # UI & UX
+  cupertino_icons: ^1.0.6 # iOS style icons
+  flutter_svg: ^2.0.10+1 # For SVG icons
+  cached_network_image: ^3.3.1 # For loading and caching network images (e.g., crypto icons)
+  flutter_staggered_grid_view: ^0.7.0 # For zig-zag card layout
+  vibration: ^1.8.4 # For haptic feedback
+
+  # State Management
+  flutter_riverpod: ^2.5.1 # For state management
+
+  # Networking
+  dio: ^5.4.3+1 # For HTTP requests
+  connectivity_plus: ^6.1.4
+
+  # Local Storage
+  shared_preferences: ^2.2.3 # For storing preferences like theme, favorites
+  # flutter_secure_storage: ^9.0.0 # For sensitive data (if needed in future)
+
+  # Utilities
+  intl: ^0.19.0 # For internationalization and localization (date/number formatting)
+  equatable: ^2.0.5 # For simplifying model value comparisons
+  smooth_corner: ^1.1.1
+  flutter_cache_manager: ^3.4.1
+  palette_generator: ^0.3.3+7
+  url_launcher: ^6.1.7
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
-  build_runner: ^2.4.8
-  json_serializable: ^6.7.1
+  flutter_lints: ^3.0.0 # For static analysis
+  build_runner: ^2.4.9 # For code generation (e.g., with intl)
+  # riverpod_generator: ^2.4.0 # If using Riverpod code generation
+  # riverpod_lint: ^2.3.10 # Lint rules for Riverpod
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/images/
+    - assets/fonts/
+    - assets/config/
+    - assets/icons/flags/
+    - assets/icons/crypto/
+    - assets/icons/commodity/
+    - assets/icons/
+
+  fonts:
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn.ttf
+    - family: SF-Pro
+      fonts:
+        - asset: assets/fonts/SF-Pro.ttf
+    - family: CourierPrime
+      fonts:
+        - asset: assets/fonts/CourierPrime.ttf
+    - family: Onest
+      fonts:
+        - asset: assets/fonts/Onest.ttf
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand.ttf
+
+  generate: true

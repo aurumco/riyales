@@ -1,11 +1,11 @@
 {
-    "name": "sekkeh",
-    "short_name": "sekkeh",
+    "name": "Riyales",
+    "short_name": "Riyales",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#00B894",
+    "theme_color": "#00B894",
+    "description": "Riyales – Currency, Gold, Crypto & Stock Prices",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
