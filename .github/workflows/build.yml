@@ -23,7 +23,7 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.4'
+          flutter-version: '3.32.0'
           cache: true
 
       - name: Cache Pub Dependencies
@@ -43,6 +43,16 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+        
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          set-up-sdk-manager: true
+          set-up-sdk-tools: true
+          set-up-android-emulator: true
+          set-up-android-sdk-manager: true
+          set-up-android-sdk-tools: true
+          set-up-android-emulator: true
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses
