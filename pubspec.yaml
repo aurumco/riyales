@@ -32,7 +32,7 @@ dependencies:
   # flutter_secure_storage: ^9.0.0 # For sensitive data (if needed in future)
 
   # Utilities
-  intl: ^0.20.2 # For internationalization and localization (date/number formatting)
+  intl: ^0.19.0 # For internationalization and localization (date/number formatting)
   equatable: ^2.0.5 # For simplifying model value comparisons
   smooth_corner: ^1.1.1
   flutter_cache_manager: ^3.4.1
