@@ -8,6 +8,7 @@ on:
 env:
   SKIP_JDK_VERSION_CHECK: true
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+  JAVA_OPTS: "-XX:+UseParallelGC -Xmx2g -Xms512m"
 
 jobs:
   build:
@@ -25,8 +26,11 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.27.0'
           cache: true
+          
+      - name: Check Flutter version
+        run: flutter --version
 
       - name: Cache Pub Dependencies
         uses: actions/cache@v4
@@ -59,13 +63,22 @@ jobs:
             rm android/settings.gradle.kts
           fi
 
+      - name: Update AGP version in settings.gradle.kts
+        run: |
+          if [ -f "android/settings.gradle.kts" ]; then
+            sed -i 's/id("com.android.application") version "8.7.0" apply false/id("com.android.application") version "8.3.0" apply false/g' android/settings.gradle.kts
+            echo "Updated AGP version to 8.3.0"
+            cat android/settings.gradle.kts
+          fi
+
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Update connectivity_plus
+      - name: Update plugins
         run: |
           flutter pub remove connectivity_plus
-          flutter pub add connectivity_plus:^5.0.1
+          flutter pub add connectivity_plus:^6.1.4
+          flutter pub get
 
       - name: Flutter doctor
         run: flutter doctor -v
@@ -76,16 +89,16 @@ jobs:
 
       - name: Check APK output
         run: |
-          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+          echo "Checking APK outputs directory..."
+          find build/app/outputs -type f -name "*.apk"
+          
+          if [ -d "build/app/outputs/flutter-apk" ]; then
             echo "APK build successful"
+            cd build/app/outputs/flutter-apk && zip riyales-universal.zip *.apk
           else
-            echo "APK build failed - file not found"
+            echo "APK build failed - directory not found"
             exit 1
           fi
-
-      - name: Zip APK artifact
-        working-directory: build/app/outputs/flutter-apk
-        run: zip riyales-universal.zip app-release.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
