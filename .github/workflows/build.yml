@@ -71,7 +71,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Build APK (Universal)
-        run: flutter build apk --release --no-split-per-abi --android-skip-build-dependency-validation
+        run: flutter build apk --release --android-skip-build-dependency-validation
         continue-on-error: false
 
       - name: Check APK output
