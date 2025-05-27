@@ -46,13 +46,6 @@ jobs:
         
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          set-up-sdk-manager: true
-          set-up-sdk-tools: true
-          set-up-android-emulator: true
-          set-up-android-sdk-manager: true
-          set-up-android-sdk-tools: true
-          set-up-android-emulator: true
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses
