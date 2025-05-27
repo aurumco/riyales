@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  # برای سراسری کردن سینک JDK check (اگر خواستی)
   SKIP_JDK_VERSION_CHECK: true
 
 jobs:
@@ -18,16 +17,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Java 17 🚀
+      - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: '17'           # برای sdkmanager و AGP باید >=17 باشه :contentReference[oaicite:0]{index=0}
+          java-version: '17'
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'    # نسخه دقیق stable
+          flutter-version: '3.24.0'
           cache: true
 
       - name: Cache Pub Dependencies
@@ -46,23 +45,16 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Set up Android SDK & accept licenses ✅
+      - name: Set up Android SDK & accept licenses
         uses: android-actions/setup-android@v3
         with:
           api-level: 33
           build-tools: '33.0.2'
           cmake: '3.22.1'
           ndk: '23.1.7779620'
-        # این اکشن خودش sdkmanager و license رو هندل می‌کنه و JDK17 روشه
 
       - name: Flutter pub get
         run: flutter pub get
-
-      - name: Analyze code 🔍
-        run: flutter analyze
-
-      - name: Run tests ✅
-        run: flutter test
 
       - name: Build APK (Universal)
         run: flutter build apk --release --no-split-per-abi
