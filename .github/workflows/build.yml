@@ -1,4 +1,3 @@
-
 name: Android APK CI
 
 on:
@@ -24,7 +23,7 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: '3.24.4'
           cache: true
 
       - name: Cache Pub Dependencies
