@@ -47,7 +47,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Build Web App
-        run: flutter build web --release
+        run: flutter build web --release --base-href=/riyales/
         continue-on-error: false
 
       - name: Check Web Output
