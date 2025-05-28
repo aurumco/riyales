@@ -685,10 +685,10 @@ const RESOURCES = {"icons/apple-touch-icon.png": "fa7c31ededed2971e86d664ae4d765
 "canvaskit/chromium/canvaskit.js": "b7ba6d908089f706772b2007c37e6da4",
 "canvaskit/chromium/canvaskit.wasm": "ea5ab288728f7200f398f60089048b48",
 "canvaskit/chromium/canvaskit.js.symbols": "e115ddcfad5f5b98a90e389433606502",
-"flutter_bootstrap.js": "ccedae6627b7afdd4f10c540899f5f73",
+"flutter_bootstrap.js": "61900f6bf957cf0f1059423fe4e7e3c6",
 "favicon.png": "81c6f74ccce2dea83a7c4244d9345a30",
-"index.html": "f43cf73e7460c5f140398fb135b306b0",
-"/": "f43cf73e7460c5f140398fb135b306b0",
+"index.html": "b893a4f6b81f5c3a495723a40b8b71a2",
+"/": "b893a4f6b81f5c3a495723a40b8b71a2",
 "flutter.js": "4b2350e14c6650ba82871f60906437ea"};
 // The application shell files that are downloaded before a service worker can
 // start.
