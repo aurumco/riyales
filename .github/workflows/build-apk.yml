@@ -1,4 +1,4 @@
-name: Riyales CI
+name: ‌Build and Release APK
 
 on:
   # push:
