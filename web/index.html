@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Aurum">
+
+  <meta name="description" content="Riyales – Currency, Gold, Crypto & Stock Prices">
+
+  <!-- PWA & status bar styles -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Riyales">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Riyales</title>
+  <link rel="manifest" href="manifest.json">
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="Riyales">
+  <meta property="og:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta property="og:image" content="icons/Icon-maskable-192.png">
+  <meta property="og:url" content="https://ryls.ir">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Riyales">
+  <meta name="twitter:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta name="twitter:image" content="icons/Icon-maskable-192.png">
+
+  <!-- Disable right-click, text selection, drag/drop, copy/paste -->
+  <style>
+    html, body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      /* Always show vertical scrollbar on desktop/tablet */
+      overflow-y: scroll !important;
+    }
+    /* Scrollbar styling for WebKit browsers */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(0,0,0,0.4);
+      border-radius: 5px;
+      border: 2px solid #f1f1f1;
+    }
+    /* Firefox scrollbar */
+    body {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.4) #f1f1f1;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.body.style.userSelect='none';
+      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+      document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+      document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+      document.addEventListener('dragover', function(e) { e.preventDefault(); });
+      document.addEventListener('drop', function(e) { e.preventDefault(); });
+      document.addEventListener('copy', function(e) { e.preventDefault(); });
+      document.addEventListener('paste', function(e) { e.preventDefault(); });
+    });
+  </script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
