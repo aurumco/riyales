@@ -20,10 +20,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <!-- Theme colors for status bar -->
-  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="msapplication-navbutton-color" content="#121212">
+  <meta name="theme-color" content="#FFFFFF"> <!-- Default to light, script will update -->
   <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker">
   <meta name="robots" content="index, follow">
   <meta name="author" content="Aurum">
@@ -119,6 +116,23 @@
       document.addEventListener('drop', function(e) { e.preventDefault(); });
       document.addEventListener('copy', function(e) { e.preventDefault(); });
       document.addEventListener('paste', function(e) { e.preventDefault(); });
+      
+      // Handle theme color changes for Chrome
+      const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      function updateThemeColor(isDark) {
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+          metaThemeColor.setAttribute('content', isDark ? '#1C1C1E' : '#FFFFFF');
+        }
+      }
+      
+      // Apply initial theme
+      updateThemeColor(darkModeMediaQuery.matches);
+      
+      // Listen for changes
+      darkModeMediaQuery.addEventListener('change', function(e) {
+        updateThemeColor(e.matches);
+      });
     });
   </script>
 </head>
