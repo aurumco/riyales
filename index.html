@@ -19,8 +19,11 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="theme-color" content="#ffffff">
+  <!-- Theme colors for status bar -->
   <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-navbutton-color" content="#121212">
   <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker">
   <meta name="robots" content="index, follow">
   <meta name="author" content="Aurum">
@@ -30,7 +33,6 @@
   <!-- PWA & status bar styles -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Riyales">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -54,31 +56,57 @@
 
   <!-- Disable right-click, text selection, drag/drop, copy/paste -->
   <style>
+    :root {
+      --scrollbar-track-light: #f1f1f1;
+      --scrollbar-thumb-light: rgba(0,0,0,0.4);
+      --scrollbar-track-dark: #2C2C2E;
+      --scrollbar-thumb-dark: rgba(255,255,255,0.4);
+    }
     html, body {
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
-      /* Always show vertical scrollbar on desktop/tablet */
-      overflow-y: scroll !important;
+      scroll-behavior: smooth;
+      overflow: hidden; /* Prevent body scrolling */
     }
     /* Scrollbar styling for WebKit browsers */
-    ::-webkit-scrollbar {
+    /* Only show scrollbar on desktop and make auto-hide */
+    .flutter-scrollbar::-webkit-scrollbar {
       width: 10px;
+      display: none; /* Hide by default */
     }
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1;
+    .flutter-scrollbar:hover::-webkit-scrollbar, 
+    .flutter-scrollbar:active::-webkit-scrollbar, 
+    .flutter-scrollbar:focus::-webkit-scrollbar {
+      display: block; /* Show on interaction */
     }
-    ::-webkit-scrollbar-thumb {
-      background-color: rgba(0,0,0,0.4);
+    .flutter-scrollbar::-webkit-scrollbar-track {
+      background: var(--scrollbar-track-light);
+      border-radius: 10px;
+    }
+    .flutter-scrollbar::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbar-thumb-light);
       border-radius: 5px;
-      border: 2px solid #f1f1f1;
+      border: 2px solid var(--scrollbar-track-light);
     }
     /* Firefox scrollbar */
-    body {
+    .flutter-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: rgba(0,0,0,0.4) #f1f1f1;
+      scrollbar-color: var(--scrollbar-thumb-light) var(--scrollbar-track-light);
+    }
+    @media (prefers-color-scheme: dark) {
+      .flutter-scrollbar::-webkit-scrollbar-track {
+        background: var(--scrollbar-track-dark);
+      }
+      .flutter-scrollbar::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb-dark);
+        border: 2px solid var(--scrollbar-track-dark);
+      }
+      .flutter-scrollbar {
+        scrollbar-color: var(--scrollbar-thumb-dark) var(--scrollbar-track-dark);
+      }
     }
   </style>
   <script>
@@ -96,5 +124,34 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <!-- Script to apply flutter-scrollbar class to the right container -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Apply class initially
+      applyScrollbarClass();
+      // Watch for DOM changes to apply class to dynamically created elements
+      const observer = new MutationObserver(function(mutations) {
+        applyScrollbarClass();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      
+      function applyScrollbarClass() {
+        // First try to find elements with the flutter-scrollbar key
+        const scrollElem = document.querySelector('[data-key="flutter-scrollbar"]');
+        if (scrollElem) {
+          scrollElem.classList.add('flutter-scrollbar');
+        }
+        
+        // Also apply to primary scrollable container in Flutter web
+        const scrollContainer = document.querySelector('.flutter-view, flt-glass-pane');
+        if (scrollContainer) {
+          const scrollableChildren = scrollContainer.querySelectorAll('[class*="scrollable"]');
+          scrollableChildren.forEach(function(elem) {
+            elem.classList.add('flutter-scrollbar');
+          });
+        }
+      }
+    });
+  </script>
 </body>
 </html>
