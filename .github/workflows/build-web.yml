@@ -77,4 +77,4 @@ jobs:
           projectName: riyales
           directory: build/web
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          commitDirty: true
+          commit-dirty: true
