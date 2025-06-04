@@ -1,8 +1,6 @@
-name: ‌Build and Release APK
+name: Release
 
 on:
-  # push:
-  #   branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -48,14 +46,26 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Set up Android SDK & accept licenses
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 33
-          build-tools: '33.0.2'
-          cmake: '3.22.1'
-          ndk: '23.1.7779620'
-      
+      - name: Set up Android SDK
+        run: |
+          # Install command line tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d $ANDROID_HOME
+          rm cmdline-tools.zip
+          mkdir -p $ANDROID_HOME/cmdline-tools/latest
+          mv $ANDROID_HOME/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ || true
+          
+          # Accept licenses
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          
+          # Install required SDK components
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "cmake;3.22.1" \
+            "ndk;23.1.7779620"
+
       - name: Fix Gradle settings issue
         run: |
           if [ -f "android/settings.gradle" ] && [ -f "android/settings.gradle.kts" ]; then
@@ -142,24 +152,33 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
       - uses: actions/download-artifact@v4
         with:
           name: riyales-apk
           path: artifacts/apk
+
       - uses: actions/download-artifact@v4
         with:
           name: riyales-web
           path: artifacts/web
+
       - id: create_release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
+          tag_name: v${{ env.APP_VERSION }}
+          name: Release v${{ env.APP_VERSION }}
           files: |
             artifacts/apk/riyales-universal.zip
             artifacts/web/riyales-web.zip
-
 
   cleanup:
     name: Cleanup
@@ -169,8 +188,8 @@ jobs:
       actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      REPO:    ${{ github.repository }}
-      WF:      ${{ github.workflow }}
+      REPO: ${{ github.repository }}
+      WF: ${{ github.workflow }}
     steps:
       - name: Remove old workflow runs
         run: |
