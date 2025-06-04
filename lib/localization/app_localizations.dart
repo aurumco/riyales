@@ -53,16 +53,16 @@ class AppLocalizations {
         'retrying': 'در حال تلاش مجدد...',
         'youreOffline': 'اتصال اینترنت قطع است.',
         'youreBackOnline': 'اتصال به اینترنت برقرار شد.',
-        'settingsUpdateAvailable': 'برنامه جدید',
-        'settingsTerms': 'شرایط و ضوابط',
-        'settingsAppVersion': 'ورژن برنامه',
+        // 'settingsUpdateAvailable': 'برنامه جدید', // Removed older duplicate
+        // 'settingsTerms': 'شرایط و ضوابط', // Removed older duplicate
+        // 'settingsAppVersion': 'ورژن برنامه', // Removed older duplicate
         'settingsCardCorner': 'زاویه گرد کردن کارت',
         'settingsCardRadius': 'شعاع کارت',
         'settingsCardSmoothness': 'صافی کارت',
         'settingsCardPreview': 'پیش نمایش کارت',
-        'settingsTerms': 'قوانین و مقررات',
-        'settingsAppVersion': 'نسخه برنامه',
-        'settingsUpdateAvailable': 'بروزرسانی موجود است',
+        'settingsTerms': 'قوانین و مقررات', // Kept later definition
+        'settingsAppVersion': 'نسخه برنامه', // Kept later definition
+        'settingsUpdateAvailable': 'بروزرسانی موجود است', // Kept later definition
       };
     } else {
       // English fallback
@@ -104,6 +104,11 @@ class AppLocalizations {
         'settingsTerms': 'Terms & Conditions',
         'settingsAppVersion': 'App Version',
         'settingsUpdateAvailable': 'Update Available',
+        // Added missing English localization for card settings
+        'settingsCardCorner': 'Card Corner Style',
+        'settingsCardRadius': 'Card Radius',
+        'settingsCardSmoothness': 'Card Smoothness',
+        'settingsCardPreview': 'Card Preview',
       };
     }
     return true;

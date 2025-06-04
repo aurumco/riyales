@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart'; // Added Provider
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../providers/app_config_provider.dart' as config_provider;
+import '../../providers/app_config_provider.dart'; // No longer aliased if appConfigProvider is the FutureProvider itself
 import '../../config/app_config.dart' as config;
 import '../../providers/locale_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -19,7 +19,7 @@ const String currentAppVersion = '0.140.0';
 
 
 // Settings Sheet (minimal bottom sheet)
-class SettingsSheet extends ConsumerWidget {
+class SettingsSheet extends StatelessWidget { // Changed to StatelessWidget
   const SettingsSheet({super.key});
 
   // Helper to compare semantic versions (e.g., "1.0.1" > "1.0.0")
@@ -38,11 +38,14 @@ class SettingsSheet extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeNotifierProvider);
-    final locale = ref.watch(localeNotifierProvider);
-    final currencyUnit = ref.watch(currencyUnitProvider);
-    final appConfig = ref.watch(config_provider.appConfigProvider).asData?.value;
+  Widget build(BuildContext context) { // WidgetRef ref removed
+    final themeNotifier = context.watch<ThemeNotifier>();
+    final themeMode = themeNotifier.themeMode;
+    final localeNotifier = context.watch<LocaleNotifier>();
+    final locale = localeNotifier.locale;
+    final currencyUnitNotifier = context.watch<CurrencyUnitNotifier>();
+    final currencyUnit = currencyUnitNotifier.unit;
+    final appConfig = context.watch<AppConfig>(); // AppConfig is directly provided by FutureProvider
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -113,7 +116,7 @@ class SettingsSheet extends ConsumerWidget {
                     value: themeMode == ThemeMode.dark,
                     activeTrackColor: tealGreen,
                     onChanged: (v) =>
-                        ref.read(themeNotifierProvider.notifier).toggleTheme(),
+                        context.read<ThemeNotifier>().toggleTheme(), // Using Provider
                   ),
                 ],
               ),
@@ -125,7 +128,8 @@ class SettingsSheet extends ConsumerWidget {
             CupertinoActionSheetAction(
               onPressed: () {
                 // Show iOS-style picker for language selection
-                _showLanguagePicker(context, ref, locale, appConfig, l10n); // Added l10n
+                // ref is no longer passed; context is available in _showLanguagePicker
+                _showLanguagePicker(context, localeNotifier, appConfig, l10n);
               },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -169,7 +173,8 @@ class SettingsSheet extends ConsumerWidget {
           CupertinoActionSheetAction(
             onPressed: () {
               // Show iOS-style picker for currency unit selection
-              _showCurrencyUnitPicker(context, ref, locale, currencyUnit, l10n);
+              // ref is no longer passed; context is available in _showCurrencyUnitPicker
+              _showCurrencyUnitPicker(context, currencyUnitNotifier, locale, l10n);
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -358,19 +363,17 @@ class SettingsSheet extends ConsumerWidget {
 
 // Helper method to show language picker in iOS style
 void _showLanguagePicker(
-  BuildContext context,
-  WidgetRef ref,
-  Locale currentLocale,
-  config.AppConfig appConfig, // Updated to use the namespaced config
-  AppLocalizations l10n, // Added l10n
+  BuildContext context, // BuildContext is already available
+  LocaleNotifier localeNotifier, // Pass Notifier directly
+  AppConfig appConfig,
+  AppLocalizations l10n,
 ) {
   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-  // final l10n = AppLocalizations.of(context)!; // Already passed as parameter
+  final currentLocale = localeNotifier.locale; // Get locale from Notifier
 
   showCupertinoModalPopup(
     context: context,
-    builder: (BuildContext context) {
-      // Find the current language index
+    builder: (BuildContext pickerContext) { // Use a different context name for builder
       int selectedIndex = appConfig.supportedLocales.indexOf(
         currentLocale.languageCode,
       );
@@ -430,7 +433,8 @@ void _showLanguagePicker(
                 ),
                 onSelectedItemChanged: (index) {
                   final locale = Locale(appConfig.supportedLocales[index]);
-                  ref.read(localeNotifierProvider.notifier).setLocale(locale);
+                  // Use the passed localeNotifier instance
+                  localeNotifier.setLocale(locale);
                 },
                 children: appConfig.supportedLocales.map((code) {
                   return Center(
@@ -455,18 +459,17 @@ void _showLanguagePicker(
 
 // Helper method to show currency unit picker in iOS style
 void _showCurrencyUnitPicker(
-  BuildContext context,
-  WidgetRef ref,
-  Locale currentLocale,
-  CurrencyUnit currentUnit,
+  BuildContext context, // BuildContext is available
+  CurrencyUnitNotifier currencyUnitNotifier, // Pass Notifier
+  Locale currentLocale, // Keep for font decisions based on language
   AppLocalizations l10n,
 ) {
   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  final currentUnit = currencyUnitNotifier.unit; // Get current unit from Notifier
 
   showCupertinoModalPopup(
     context: context,
-    builder: (BuildContext context) {
-      // Find the current currency unit index
+    builder: (BuildContext pickerContext) { // Use a different context name
       int selectedIndex = CurrencyUnit.values.indexOf(currentUnit);
 
       return Container(
@@ -522,9 +525,8 @@ void _showCurrencyUnitPicker(
                   initialItem: selectedIndex,
                 ),
                 onSelectedItemChanged: (index) {
-                  ref
-                      .read(currencyUnitProvider.notifier)
-                      .setCurrencyUnit(CurrencyUnit.values[index]);
+                  // Use the passed currencyUnitNotifier instance
+                  currencyUnitNotifier.setCurrencyUnit(CurrencyUnit.values[index]);
                 },
                 children: CurrencyUnit.values.map((unit) {
                   String labelText = unit == CurrencyUnit.toman

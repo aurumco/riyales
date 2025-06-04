@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart'; // Added Provider
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -11,13 +11,12 @@ import 'package:palette_generator/palette_generator.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../models/asset_models.dart' as models;
-import '../../models/crypto_icon_info.dart'; // Assuming this will be the new path
-import '../../providers/app_config_provider.dart' as config_provider;
-import '../../config/app_config.dart' as config;
+import '../../models/crypto_icon_info.dart';
+import '../../config/app_config.dart'; // For AppConfig type
 import '../../providers/locale_provider.dart';
-import '../../providers/currency_unit_provider.dart';
+import '../../providers/currency_unit_provider.dart'; // For CurrencyUnit enum and Notifier
 import '../../providers/favorites_provider.dart';
-import '../../providers/data_providers/data_providers.dart'; // Assuming this will be the new path
+import '../../providers/data_providers/currency_data_provider.dart';
 import '../../providers/card_corner_settings_provider.dart';
 import '../../localization/app_localizations.dart';
 import '../../utils/color_utils.dart';
@@ -315,7 +314,7 @@ const Map<String, CryptoIconInfo> _cryptoIconMap = {
   ),
 };
 
-class AssetCard extends ConsumerWidget {
+class AssetCard extends StatelessWidget { // Changed to StatelessWidget
   final models.Asset asset;
   final AssetType assetType;
   // final double? height;
@@ -327,18 +326,24 @@ class AssetCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appConfig = ref.watch(config_provider.appConfigProvider).asData!.value;
-    final isFavorite = ref.watch(
-      favoritesProvider.select((favs) => favs.contains(asset.id)),
-    );
+    final appConfig = context.watch<AppConfig>();
+    final favoritesNotifier = context.watch<FavoritesNotifier>();
+    final isFavorite = favoritesNotifier.isFavorite(asset.id);
+
     final l10n = AppLocalizations.of(context)!;
-    final currentLocale = ref.watch(localeNotifierProvider);
-    final currencyUnit = ref.watch(currencyUnitProvider);
-    final allCurrencies = ref.watch(currencyProvider); // For conversion rates
+    final localeNotifier = context.watch<LocaleNotifier>();
+    final currentLocale = localeNotifier.locale;
+    final currencyUnitNotifier = context.watch<CurrencyUnitNotifier>();
+    final currencyUnit = currencyUnitNotifier.unit;
+
+    final currencyDataNotifier = context.watch<CurrencyDataNotifier>();
+    final allCurrenciesList = currencyDataNotifier.items; // Using the .items getter
+
     final isDarkMode = theme.brightness == Brightness.dark;
-    final cornerSettings = ref.watch(cardCornerSettingsProvider);
+    final cornerSettingsNotifier = context.watch<CardCornerSettingsNotifier>();
+    final cornerSettings = cornerSettingsNotifier.settings;
 
     // Get current theme config based on mode
     final themeConfig =
@@ -352,95 +357,56 @@ class AssetCard extends ConsumerWidget {
     String displayUnit = '';
 
     num priceToConvert = asset.price;
-    String originalUnitSymbol =
-        ''; // e.g., "USD" or "تومان" for the asset's original price
+    String originalUnitSymbol = '';
 
     if (asset is models.CurrencyAsset) {
       originalUnitSymbol = (asset as models.CurrencyAsset).unit;
     } else if (asset is models.GoldAsset) {
       originalUnitSymbol = (asset as models.GoldAsset).unit;
-      // If gold is in USD (like XAUUSD) and user wants Toman, we need USD->Toman rate
     } else if (asset is models.CryptoAsset) {
-      originalUnitSymbol = "USD"; // Crypto prices are in USD from API
-      // If user wants Toman, use price_toman field or convert USD->Toman
+      originalUnitSymbol = "USD";
       if (currencyUnit == CurrencyUnit.toman) {
-        priceToConvert = num.tryParse(
-              (asset as models.CryptoAsset).priceToman.replaceAll(',', ''),
-            ) ??
-            asset.price;
+        priceToConvert = num.tryParse((asset as models.CryptoAsset).priceToman.replaceAll(',', ''),) ?? asset.price;
         originalUnitSymbol = "تومان";
       }
     } else if (asset is models.StockAsset) {
-      originalUnitSymbol =
-          "ریال"; // Assuming TSE stocks are in Rial, then convert to Toman
-      priceToConvert = asset.price / 10; // Rial to Toman
+      originalUnitSymbol = "ریال";
+      priceToConvert = asset.price / 10;
     }
 
-    if (allCurrencies is AsyncData<List<models.CurrencyAsset>>) {
-      final usdToTomanRate = allCurrencies.value
-          .firstWhere(
-            (c) => c.symbol == 'USD',
-            orElse: () => const models.CurrencyAsset(
-              id: 'USD',
-              name: 'Dollar',
-              nameEn: 'US Dollar',
-              symbol: 'USD',
-              price: 50000, // A sensible default, though ideally always found
-              unit: 'تومان',
-            ),
-          )
+    // Use the data from CurrencyDataNotifier's items getter
+    if (allCurrenciesList.isNotEmpty) {
+      final usdToTomanRate = allCurrenciesList
+          .firstWhere((c) => c.symbol == 'USD', orElse: () => models.CurrencyAsset.defaultUsd())
           .price;
-      final eurToTomanRate = allCurrencies.value
-          .firstWhere(
-            (c) => c.symbol == 'EUR',
-            orElse: () => const models.CurrencyAsset(
-              id: 'EUR',
-              name: 'Euro',
-              nameEn: 'Euro',
-              symbol: 'EUR',
-              price: 60000, // A sensible default
-              unit: 'تومان',
-            ),
-          )
+      final eurToTomanRate = allCurrenciesList
+          .firstWhere((c) => c.symbol == 'EUR', orElse: () => models.CurrencyAsset.defaultEur())
           .price;
 
       num finalPrice = priceToConvert;
 
       if (currencyUnit == CurrencyUnit.toman) {
-        if (originalUnitSymbol.toLowerCase() == "usd" ||
-            originalUnitSymbol.toLowerCase() == "دلار") {
+        if (originalUnitSymbol.toLowerCase() == "usd" || originalUnitSymbol.toLowerCase() == "دلار") {
           finalPrice = priceToConvert * usdToTomanRate;
-        } else if (originalUnitSymbol.toLowerCase() == "eur" ||
-            originalUnitSymbol.toLowerCase() == "یورو") {
+        } else if (originalUnitSymbol.toLowerCase() == "eur" || originalUnitSymbol.toLowerCase() == "یورو") {
           finalPrice = priceToConvert * eurToTomanRate;
-        } else if (originalUnitSymbol.toLowerCase() == "ریال") {
-          finalPrice =
-              priceToConvert; // Already converted from Rial to Toman for stocks
-        }
+        } // No change if originalUnitSymbol is "ریال" as priceToConvert is already in Toman for stocks
         displayUnit = l10n.currencyUnitToman;
         numericPrice = finalPrice.toDouble();
       } else if (currencyUnit == CurrencyUnit.usd) {
-        if (originalUnitSymbol.toLowerCase() == "toman" ||
-            originalUnitSymbol.toLowerCase() == "تومان" ||
-            originalUnitSymbol.toLowerCase() == "ریال") {
+        if (originalUnitSymbol.toLowerCase() == "toman" || originalUnitSymbol.toLowerCase() == "تومان" || originalUnitSymbol.toLowerCase() == "ریال") {
           finalPrice = priceToConvert / usdToTomanRate;
-        } else if (originalUnitSymbol.toLowerCase() == "eur" ||
-            originalUnitSymbol.toLowerCase() == "یورو") {
-          finalPrice = (priceToConvert * eurToTomanRate) /
-              usdToTomanRate; // EUR -> Toman -> USD
-        }
+        } else if (originalUnitSymbol.toLowerCase() == "eur" || originalUnitSymbol.toLowerCase() == "یورو") {
+          finalPrice = (priceToConvert * eurToTomanRate) / usdToTomanRate;
+        } // No change if original is USD
         displayUnit = l10n.currencyUnitUSD;
         numericPrice = finalPrice.toDouble();
       } else if (currencyUnit == CurrencyUnit.eur) {
-        if (originalUnitSymbol.toLowerCase() == "toman" ||
-            originalUnitSymbol.toLowerCase() == "تومان" ||
-            originalUnitSymbol.toLowerCase() == "ریال") {
+        if (originalUnitSymbol.toLowerCase() == "toman" || originalUnitSymbol.toLowerCase() == "تومان" || originalUnitSymbol.toLowerCase() == "ریال") {
           finalPrice = priceToConvert / eurToTomanRate;
-        } else if (originalUnitSymbol.toLowerCase() == "usd" ||
-            originalUnitSymbol.toLowerCase() == "دلار") {
-          finalPrice = (priceToConvert * usdToTomanRate) /
-              eurToTomanRate; // USD -> Toman -> EUR
-        }
+        } else if (originalUnitSymbol.toLowerCase() == "usd" || originalUnitSymbol.toLowerCase() == "دلار") {
+          finalPrice = (priceToConvert * usdToTomanRate) / eurToTomanRate;
+        } // No change if original is EUR
         displayUnit = l10n.currencyUnitEUR;
         numericPrice = finalPrice.toDouble();
       }
@@ -449,9 +415,7 @@ class AssetCard extends ConsumerWidget {
       numericPrice = priceToConvert.toDouble();
       displayUnit = (asset is models.StockAsset)
           ? l10n.currencyUnitToman
-          : (asset is models.CryptoAsset
-              ? "USD"
-              : (asset as dynamic).unit ?? '');
+          : (asset is models.CryptoAsset ? "USD" : (asset as dynamic).unit ?? '');
     }
 
     Widget iconWidget;
@@ -609,7 +573,7 @@ class AssetCard extends ConsumerWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: flagColor.withOpacity(0.5),
+              color: flagColor.withAlpha((255 * 0.5).round()),
               blurRadius: 60,
               spreadRadius: 6,
             ),
@@ -670,7 +634,7 @@ class AssetCard extends ConsumerWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: stockColor.withOpacity(0.5),
+              color: stockColor.withAlpha((255 * 0.5).round()),
               blurRadius: 60,
               spreadRadius: 6,
             ),
@@ -709,13 +673,12 @@ class AssetCard extends ConsumerWidget {
         ? hexToColor(appConfig.themeOptions.dark.accentColorRed)
         : hexToColor(appConfig.themeOptions.light.accentColorRed);
 
-    final isNameRTL = hasPersianChars || currentLocale.languageCode == 'fa';
-    // final ui.TextDirection nameDirection = // Not directly used with current layout
-    //     isNameRTL ? ui.TextDirection.rtl : ui.TextDirection.ltr;
+    // Text direction for assetName is implicitly handled by its textAlign property based on content/locale.
+    // final isNameRTL = hasPersianChars || currentLocale.languageCode == 'fa'; // Removed as unused
 
     return GestureDetector(
       onLongPress: () {
-        ref.read(favoritesProvider.notifier).toggleFavorite(asset.id);
+        context.read<FavoritesNotifier>().toggleFavorite(asset.id);
       },
       child: SmoothCard(
         smoothness: cornerSettings.smoothness,
@@ -729,8 +692,7 @@ class AssetCard extends ConsumerWidget {
               end: Alignment.center,
               colors: [
                 theme.colorScheme.primary
-                    .withOpacity(0.1) // Adjusted opacity
-                    .withAlpha(25),
+                    .withAlpha((255 * 0.1).round()), // Adjusted opacity using withAlpha directly
                 Colors.transparent,
               ],
             ),

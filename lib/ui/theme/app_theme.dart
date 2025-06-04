@@ -27,7 +27,7 @@ class AppTheme {
 
   static ThemeData getThemeData(ThemeConfig themeConfig, String fontFamily, String defaultFontFamilyForThemeTitle, bool isDarkMode) {
     final Color primaryColor = hexToColor(themeConfig.primaryColor);
-    final Color backgroundColor = hexToColor(themeConfig.backgroundColor);
+    // final Color backgroundColor = hexToColor(themeConfig.backgroundColor); // Removed as unused
     final Color scaffoldBackgroundColor = hexToColor(themeConfig.scaffoldBackgroundColor);
     final Color appBarColor = hexToColor(themeConfig.appBarColor);
     final Color cardColor = hexToColor(themeConfig.cardColor);
@@ -82,8 +82,8 @@ class AppTheme {
             onSurface: textColor,
             error: accentColorRed,
             onError: textColor, // Ensure good contrast
-            background: finalScaffoldBackgroundColor, // Use potentially darkened background
-            onBackground: textColor,
+            // background: finalScaffoldBackgroundColor, // Use ThemeData.scaffoldBackgroundColor directly
+            // onBackground: textColor, // Text on scaffold background will use TextTheme
           )
         : ColorScheme.light(
             primary: primaryColor,
@@ -94,8 +94,8 @@ class AppTheme {
             onSurface: textColor,
             error: accentColorRed,
             onError: Colors.white, // Common for light themes
-            background: finalScaffoldBackgroundColor,
-            onBackground: textColor,
+            // background: finalScaffoldBackgroundColor, // Use ThemeData.scaffoldBackgroundColor directly
+            // onBackground: textColor, // Text on scaffold background will use TextTheme
           ),
       iconTheme: IconThemeData(color: secondaryTextColor),
       dividerColor: Colors.transparent,

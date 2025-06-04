@@ -1,20 +1,24 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart'; // Added Provider
 import 'package:smooth_corner/smooth_corner.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../providers/app_config_provider.dart' as config_provider;
 import '../../config/app_config.dart' as config;
-import '../../providers/data_providers/data_providers.dart';
+// Specific stock data provider imports (assuming they export the provider variables for now)
+import '../../providers/data_providers/stock_tse_ifb_data_provider.dart';
+import '../../providers/data_providers/stock_debt_securities_data_provider.dart';
+import '../../providers/data_providers/stock_futures_data_provider.dart';
+import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
 import '../../providers/search_provider.dart';
 import '../../localization/app_localizations.dart';
 import '../../utils/color_utils.dart';
 import '../../utils/helpers.dart';
-import 'asset_list_page.dart'; // Already moved
+import 'asset_list_page.dart';
 
 // Stock Page with Sub-Tabs
-class StockPage extends ConsumerStatefulWidget {
+class StockPage extends StatefulWidget { // Changed to StatefulWidget
   final bool showSearchBar;
   final bool isSearchActive;
   const StockPage({
@@ -24,19 +28,19 @@ class StockPage extends ConsumerStatefulWidget {
   });
 
   @override
-  _StockPageState createState() => _StockPageState();
+  StockPageState createState() => StockPageState();
 }
 
-class _StockPageState extends ConsumerState<StockPage>
+class StockPageState extends State<StockPage> // Changed from ConsumerState
     with TickerProviderStateMixin<StockPage> {
   late TabController _stockTabController;
   final List<Tab> _stockTabs = [];
   final List<Widget> _stockTabViews = [];
   // Add keys for each stock sub-tab to access their scroll controllers
-  final stockTseIfbKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
-  final stockDebtKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
-  final stockFuturesKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
-  final stockHousingKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
+  final stockTseIfbKey = GlobalKey<AssetListPageState<models.StockAsset>>();
+  final stockDebtKey = GlobalKey<AssetListPageState<models.StockAsset>>();
+  final stockFuturesKey = GlobalKey<AssetListPageState<models.StockAsset>>();
+  final stockHousingKey = GlobalKey<AssetListPageState<models.StockAsset>>();
   // Map to store scroll controllers for each stock sub-tab
   final Map<int, ScrollController?> _stockScrollControllers = {};
 
@@ -62,25 +66,57 @@ class _StockPageState extends ConsumerState<StockPage>
     ]);
 
     _stockTabViews.addAll([
-      AssetListPage<models.StockAsset>(
-        key: stockTseIfbKey,
-        provider: stockTseIfbProvider,
-        assetType: AssetType.stock,
+      Consumer<StockTseIfbDataNotifier>(
+        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+          key: stockTseIfbKey,
+          items: notifier.items,
+          fullItemsListForSearch: notifier.fullDataList,
+          isLoading: notifier.isLoading,
+          error: notifier.error,
+          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+          onLoadMore: () => notifier.loadMore(),
+          onInitialize: () async => notifier.fetchInitialData(),
+          assetType: AssetType.stock, // Consider a more specific type if needed
+        ),
       ),
-      AssetListPage<models.StockAsset>(
-        key: stockDebtKey,
-        provider: stockDebtSecuritiesProvider,
-        assetType: AssetType.stock,
+      Consumer<StockDebtSecuritiesDataNotifier>(
+        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+          key: stockDebtKey,
+          items: notifier.items,
+          fullItemsListForSearch: notifier.fullDataList,
+          isLoading: notifier.isLoading,
+          error: notifier.error,
+          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+          onLoadMore: () => notifier.loadMore(),
+          onInitialize: () async => notifier.fetchInitialData(),
+          assetType: AssetType.stock,
+        ),
       ),
-      AssetListPage<models.StockAsset>(
-        key: stockFuturesKey,
-        provider: stockFuturesProvider,
-        assetType: AssetType.stock,
+      Consumer<StockFuturesDataNotifier>(
+        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+          key: stockFuturesKey,
+          items: notifier.items,
+          fullItemsListForSearch: notifier.fullDataList,
+          isLoading: notifier.isLoading,
+          error: notifier.error,
+          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+          onLoadMore: () => notifier.loadMore(),
+          onInitialize: () async => notifier.fetchInitialData(),
+          assetType: AssetType.stock,
+        ),
       ),
-      AssetListPage<models.StockAsset>(
-        key: stockHousingKey,
-        provider: stockHousingFacilitiesProvider,
-        assetType: AssetType.stock,
+      Consumer<StockHousingFacilitiesDataNotifier>(
+        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+          key: stockHousingKey,
+          items: notifier.items,
+          fullItemsListForSearch: notifier.fullDataList,
+          isLoading: notifier.isLoading,
+          error: notifier.error,
+          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+          onLoadMore: () => notifier.loadMore(),
+          onInitialize: () async => notifier.fetchInitialData(),
+          assetType: AssetType.stock,
+        ),
       ),
     ]);
     _stockTabController = TabController(length: _stockTabs.length, vsync: this);
@@ -113,10 +149,9 @@ class _StockPageState extends ConsumerState<StockPage>
 
   @override
   Widget build(BuildContext context) {
-    // Get teal green for tab indicator
-    final appConfig = ref.watch(config_provider.appConfigProvider).asData?.value;
+    final appConfig = context.watch<AppConfig>(); // Using Provider
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final tealGreen = hexToColor( // from utils/color_utils.dart
+    final tealGreen = hexToColor(
       isDarkMode
           ? appConfig?.themeOptions.dark.accentColorGreen ?? "#00B894"
           : appConfig?.themeOptions.light.accentColorGreen ?? "#00B894",
@@ -261,23 +296,14 @@ class _StockPageState extends ConsumerState<StockPage>
             child: widget.isSearchActive
                 ? Builder(
                     builder: (context) {
-                      final searchText = ref.watch(searchQueryProvider);
-                      final isRTL =
-                          Localizations.localeOf(context).languageCode ==
-                                  'fa' ||
-                              containsPersian(searchText); // from utils/helpers.dart
-                      final textColor =
-                          (Theme.of(context).brightness == Brightness.dark)
-                              ? Colors.grey[300]
-                              : Colors.grey[700];
-                      final placeholderColor =
-                          (Theme.of(context).brightness == Brightness.dark)
-                              ? Colors.grey[600]
-                              : Colors.grey[500];
-                      final iconColor =
-                          (Theme.of(context).brightness == Brightness.dark)
-                              ? Colors.grey[400]
-                              : Colors.grey[600];
+                      final searchQueryNotifier = context.watch<SearchQueryNotifier>(); // Using Provider
+                      final searchText = searchQueryNotifier.query;
+                      final localeNotifier = context.watch<LocaleNotifier>(); // For RTL check
+                      final isRTL = localeNotifier.locale.languageCode == 'fa' || containsPersian(searchText);
+
+                      final textColor = Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700];
+                      final placeholderColor = Theme.of(context).brightness == Brightness.dark ? Colors.grey[600] : Colors.grey[500];
+                      final iconColor = Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600];
                       final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
 
                       return CupertinoTextField(
@@ -285,40 +311,22 @@ class _StockPageState extends ConsumerState<StockPage>
                           ..selection = TextSelection.fromPosition(
                             TextPosition(offset: searchText.length),
                           ),
-                        onChanged: (v) =>
-                            ref.read(searchQueryProvider.notifier).state = v,
-                        placeholder:
-                            AppLocalizations.of(context)!.searchPlaceholder,
+                        onChanged: (v) => context.read<SearchQueryNotifier>().query = v, // Using Provider
+                        placeholder: AppLocalizations.of(context)!.searchPlaceholder,
                         placeholderStyle: TextStyle(
                           color: placeholderColor,
                           fontFamily: fontFamily,
                         ),
                         prefix: Padding(
-                          padding: const EdgeInsetsDirectional.only(
-                            start: 18,
-                          ),
-                          child: Icon(
-                            CupertinoIcons.search,
-                            size: 20,
-                            color: iconColor,
-                          ),
+                          padding: const EdgeInsetsDirectional.only(start: 18),
+                          child: Icon(CupertinoIcons.search, size: 20, color: iconColor),
                         ),
                         suffix: searchText.isNotEmpty
                             ? CupertinoButton(
-                                padding: const EdgeInsetsDirectional.only(
-                                  end: 18,
-                                ),
+                                padding: const EdgeInsetsDirectional.only(end: 18),
                                 minSize: 30,
-                                child: Icon(
-                                  CupertinoIcons.clear,
-                                  size: 18,
-                                  color: iconColor,
-                                ),
-                                onPressed: () => ref
-                                    .read(
-                                      searchQueryProvider.notifier,
-                                    )
-                                    .state = '',
+                                child: Icon(CupertinoIcons.clear, size: 18, color: iconColor),
+                                onPressed: () => context.read<SearchQueryNotifier>().query = '', // Using Provider
                               )
                             : null,
                         textAlign: isRTL ? TextAlign.right : TextAlign.left,

@@ -97,7 +97,7 @@ class _DynamicGlowState extends State<DynamicGlow> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: glow.withOpacity(0.5),
+            color: glow.withAlpha((255 * 0.5).round()),
             blurRadius: 60,
             spreadRadius: 6,
           ),
