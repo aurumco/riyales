@@ -175,9 +175,9 @@ void main() async {
             ),
         ),
       ],
-      child: const ScrollConfiguration(
+      child: ScrollConfiguration(
         behavior: SmoothScrollBehavior(),
-        child: RiyalesApp(),
+        child: const RiyalesApp(),
       ),
     ),
   );

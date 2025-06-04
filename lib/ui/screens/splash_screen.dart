@@ -36,33 +36,38 @@ class _SplashScreenState extends State<SplashScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    final imagePath = isDarkMode
-        ? widget.config.logoPathDark
-        : widget.config.logoPathLight;
+    // Use the iconPath from config directly.
+    // If specific dark/light mode icons are needed, the config should provide them or logic here should adapt.
+    final imagePath = widget.config.iconPath;
 
-    final backgroundColor = isDarkMode
-        ? hexToColor(widget.config.backgroundColorDark)
-        : hexToColor(widget.config.backgroundColorLight);
+    // Use scaffoldBackgroundColor as SplashScreenConfig doesn't define background colors.
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
+    // Define fixed values for layout as these are not in SplashScreenConfig
+    const double logoTopMarginFactor = 0.25; // Adjusted factor
+    const double logoSize = 120.0; // Fixed size for width and height
+    const double loaderBottomMarginFactor = 0.15; // Adjusted factor
+    const double loaderRadius = 14.0;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: screenHeight * widget.config.logoTopMarginFactor), // Use factor from config
+            SizedBox(height: screenHeight * logoTopMarginFactor),
             Center(
               child: SvgPicture.asset(
-                imagePath,
-                width: widget.config.logoWidth,
-                height: widget.config.logoHeight,
+                imagePath, // Use path from config
+                width: logoSize,
+                height: logoSize,
               ),
             ),
             const Spacer(),
             Padding(
-              padding: EdgeInsets.only(bottom: screenHeight * widget.config.loaderBottomMarginFactor), // Use factor
+              padding: EdgeInsets.only(bottom: screenHeight * loaderBottomMarginFactor),
               child: CupertinoActivityIndicator(
-                radius: widget.config.loaderRadius, // Use config
-                color: hexToColor(isDarkMode ? widget.config.loaderColorDark : widget.config.loaderColorLight), // Use config
+                radius: loaderRadius,
+                color: hexToColor(widget.config.loadingIndicatorColor), // Use color from config
               ),
             ),
           ],

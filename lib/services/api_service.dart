@@ -4,9 +4,9 @@ import '../config/app_config.dart'; // Corrected import path for AppConfig/ApiEn
 
 class ApiService {
   final Dio _dio;
-  final ApiEndpoints _apiEndpoints;
+  final ApiEndpoints apiEndpoints;
 
-  ApiService(this._dio, this._apiEndpoints);
+  ApiService(this._dio, this.apiEndpoints);
 
   Future<dynamic> fetchData(String url) async {
     try {

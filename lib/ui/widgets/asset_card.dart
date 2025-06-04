@@ -7,7 +7,6 @@ import 'package:provider/provider.dart'; // Added Provider
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:palette_generator/palette_generator.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../models/asset_models.dart' as models;

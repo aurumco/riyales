@@ -1,4 +1,3 @@
-import 'dart:convert'; // For jsonDecode if used directly (though TermsNotifier handles it)
 import 'dart:ui' as ui; // For TextDirection
 
 import 'package:flutter/cupertino.dart';
@@ -11,9 +10,6 @@ import '../../models/terms_data.dart';
 // Providers
 import '../../providers/locale_provider.dart';
 import '../../providers/terms_provider.dart'; // This will be the new ChangeNotifier-based provider later
-
-// Localization
-import '../../localization/app_localizations.dart';
 
 // Widgets (if ErrorPlaceholder is used)
 // import '../widgets/common/error_placeholder.dart';

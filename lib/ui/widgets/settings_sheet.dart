@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Added Provider
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../providers/app_config_provider.dart'; // No longer aliased if appConfigProvider is the FutureProvider itself
-import '../../config/app_config.dart' as config;
+import '../../config/app_config.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/currency_unit_provider.dart';
@@ -45,7 +44,7 @@ class SettingsSheet extends StatelessWidget { // Changed to StatelessWidget
     final locale = localeNotifier.locale;
     final currencyUnitNotifier = context.watch<CurrencyUnitNotifier>();
     final currencyUnit = currencyUnitNotifier.unit;
-    final appConfig = context.watch<AppConfig>(); // AppConfig is directly provided by FutureProvider
+    final appConfig = context.watch<AppConfig>();
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -66,16 +65,15 @@ class SettingsSheet extends StatelessWidget { // Changed to StatelessWidget
     String updateButtonText = l10n.settingsUpdateAvailable;
     // String changelog = ''; // Not used in the original extracted code
 
-    if (appConfig != null) {
-      if (_isVersionGreaterThan(
-        appConfig.updateInfo.latestVersion,
-        currentAppVersion,
-      )) {
-        updateAvailable = true;
-        // changelog = locale.languageCode == 'fa' // Not used
-        //     ? appConfig.updateInfo.changelogFa
-        //     : appConfig.updateInfo.changelogEn;
-      }
+    // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
+    if (_isVersionGreaterThan(
+      appConfig.updateInfo.latestVersion,
+      currentAppVersion,
+    )) {
+      updateAvailable = true;
+      // changelog = locale.languageCode == 'fa' // Not used
+      //     ? appConfig.updateInfo.changelogFa
+      //     : appConfig.updateInfo.changelogEn;
     }
 
     return CupertinoTheme(
@@ -124,14 +122,13 @@ class SettingsSheet extends StatelessWidget { // Changed to StatelessWidget
           ),
 
           // Language selector
-          if (appConfig != null)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                // Show iOS-style picker for language selection
-                // ref is no longer passed; context is available in _showLanguagePicker
-                _showLanguagePicker(context, localeNotifier, appConfig, l10n);
-              },
-              child: Row(
+          // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
+          CupertinoActionSheetAction(
+            onPressed: () {
+              // Show iOS-style picker for language selection
+              _showLanguagePicker(context, localeNotifier, appConfig, l10n);
+            },
+            child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
@@ -298,7 +295,8 @@ class SettingsSheet extends StatelessWidget { // Changed to StatelessWidget
               onPressed: () async {
                 Navigator.pop(context);
                 // Handle update action based on configuration
-                final updateInfo = appConfig!.updateInfo;
+                // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
+                final updateInfo = appConfig.updateInfo;
                 if (updateInfo.updateMode == 'package') {
                   final pkg = updateInfo.updatePackage;
                   // Deep link to app store

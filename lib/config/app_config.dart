@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart'; // For Color, and other Flutter types if needed by models
 
 // --- App Config Model ---
 // This model represents the structure of your app_config.json

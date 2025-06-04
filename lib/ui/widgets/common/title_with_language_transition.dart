@@ -18,80 +18,24 @@ class TitleWithLanguageTransition extends StatefulWidget {
 }
 
 class _TitleWithLanguageTransitionState
-    extends State<TitleWithLanguageTransition>
-    with SingleTickerProviderStateMixin {
-  String _lastTitle = '';
-  String _currentTitle = '';
-  bool _isAnimating = false;
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
+    extends State<TitleWithLanguageTransition> {
+  // Unused fields and animation controller logic removed as AnimatedSwitcher handles the transition.
 
   @override
   void initState() {
     super.initState();
-    _currentTitle = widget.title;
-    _lastTitle = widget.title;
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: Offset(widget.isRTL ? -1.5 : 1.5, 0),
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutQuart),
-    );
-    _controller.addStatusListener(_handleAnimationStatus);
+    // No manual animation setup needed with AnimatedSwitcher
   }
 
   @override
   void didUpdateWidget(TitleWithLanguageTransition oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.title != _currentTitle && !_isAnimating) {
-      _startAnimation();
-    }
-  }
-
-  void _startAnimation() {
-    if (_controller.isAnimating) return;
-
-    setState(() {
-      _lastTitle = _currentTitle;
-      _isAnimating = true;
-    });
-
-    // Update slide direction based on RTL/LTR
-    _slideAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: Offset(widget.isRTL ? 1.5 : -1.5, 0), // Corrected direction for exit
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutQuart),
-    );
-
-    _controller.forward(from: 0.0);
-  }
-
-  void _handleAnimationStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
-      setState(() {
-        _currentTitle = widget.title;
-        _isAnimating = false;
-         // Update slide animation for the new title's entrance
-        _slideAnimation = Tween<Offset>(
-          begin: Offset(widget.isRTL ? -1.5 : 1.5, 0), // Corrected direction for entry
-          end: Offset.zero,
-        ).animate(
-           CurvedAnimation(parent: ReverseAnimation(_controller), curve: Curves.easeInOutQuart),
-        );
-      });
-      _controller.reverse(from: 1.0); // Reverse to bring the new title in
-    }
+    // AnimatedSwitcher reacts to widget.title changes automatically.
   }
 
   @override
   void dispose() {
-    _controller.removeStatusListener(_handleAnimationStatus);
-    _controller.dispose();
+    // No manual controller to dispose
     super.dispose();
   }
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -7,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/asset_models.dart' as models;
-import '../../config/app_config.dart'; // For AppConfig type
 import '../../providers/locale_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/search_provider.dart';
@@ -318,7 +316,10 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     );
   }
 
-  void _setSortMode(SortMode mode) {
+  // Public getter for the ScrollController
+  ScrollController get scrollController => _scrollController;
+
+  void setSortMode(SortMode mode) {
     setState(() {
       _sortMode = mode;
     });

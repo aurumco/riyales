@@ -4,8 +4,7 @@ import 'package:provider/provider.dart'; // Added Provider
 import 'package:smooth_corner/smooth_corner.dart';
 
 import '../../models/asset_models.dart' as models;
-import '../../providers/app_config_provider.dart' as config_provider;
-import '../../config/app_config.dart' as config;
+import '../../config/app_config.dart';
 // Specific stock data provider imports (assuming they export the provider variables for now)
 import '../../providers/data_providers/stock_tse_ifb_data_provider.dart';
 import '../../providers/data_providers/stock_debt_securities_data_provider.dart';
@@ -126,12 +125,12 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
 
   // Method to update the scroll controllers map
   void _updateStockScrollControllers() {
-    _stockScrollControllers[0] = stockTseIfbKey.currentState?._scrollController;
-    _stockScrollControllers[1] = stockDebtKey.currentState?._scrollController;
+    _stockScrollControllers[0] = stockTseIfbKey.currentState?.scrollController;
+    _stockScrollControllers[1] = stockDebtKey.currentState?.scrollController;
     _stockScrollControllers[2] =
-        stockFuturesKey.currentState?._scrollController;
+        stockFuturesKey.currentState?.scrollController;
     _stockScrollControllers[3] =
-        stockHousingKey.currentState?._scrollController;
+        stockHousingKey.currentState?.scrollController;
   }
 
   // Getter for stockTabController to be accessed by HomeScreen

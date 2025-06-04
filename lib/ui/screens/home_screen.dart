@@ -50,10 +50,10 @@ class HomeScreen extends StatefulWidget { // Changed to StatefulWidget
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
+class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     with WidgetsBindingObserver, TickerProviderStateMixin<HomeScreen> {
   late TabController _tabController;
   final List<Tab> _mainTabs = [];
@@ -149,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     _tabScrollListeners.clear(); // Clear listeners as well
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _tabController.hasListeners) { // check mounted
+      if (mounted) { // check mounted, removed _tabController.hasListeners
         _initializeTab(_tabController.index);
       }
     });
@@ -158,37 +158,39 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (!mounted) return; // Ensure widget is mounted
+    if (!mounted) { return; } // Ensure widget is mounted
 
     if (state == AppLifecycleState.resumed) {
       final currentTabIndex = _tabController.index;
       // Using context.read<NotifierClass>().fetchInitialData(isRefresh: true) or a dedicated refreshData()
       switch (currentTabIndex) {
-        case 0: context.read<CurrencyDataNotifier>().fetchInitialData(isRefresh: true); break;
-        case 1: context.read<GoldDataNotifier>().fetchInitialData(isRefresh: true); break;
-        case 2: context.read<CryptoDataNotifier>().fetchInitialData(isRefresh: true); break;
+        case 0: { context.read<CurrencyDataNotifier>().fetchInitialData(isRefresh: true); break; }
+        case 1: { context.read<GoldDataNotifier>().fetchInitialData(isRefresh: true); break; }
+        case 2: { context.read<CryptoDataNotifier>().fetchInitialData(isRefresh: true); break; }
         case 3:
-          final stockState = stockTabKey.currentState;
-          if (stockState != null) {
-            final activeStockTabIndex = stockState.stockTabController.index;
-            if (activeStockTabIndex == 0) context.read<StockTseIfbDataNotifier>().fetchInitialData(isRefresh: true);
-            else if (activeStockTabIndex == 1) context.read<StockDebtSecuritiesDataNotifier>().fetchInitialData(isRefresh: true);
-            else if (activeStockTabIndex == 2) context.read<StockFuturesDataNotifier>().fetchInitialData(isRefresh: true);
-            else if (activeStockTabIndex == 3) context.read<StockHousingFacilitiesDataNotifier>().fetchInitialData(isRefresh: true);
+          {
+            final stockState = stockTabKey.currentState;
+            if (stockState != null) {
+              final activeStockTabIndex = stockState.stockTabController.index;
+              if (activeStockTabIndex == 0) { context.read<StockTseIfbDataNotifier>().fetchInitialData(isRefresh: true); }
+              else if (activeStockTabIndex == 1) { context.read<StockDebtSecuritiesDataNotifier>().fetchInitialData(isRefresh: true); }
+              else if (activeStockTabIndex == 2) { context.read<StockFuturesDataNotifier>().fetchInitialData(isRefresh: true); }
+              else if (activeStockTabIndex == 3) { context.read<StockHousingFacilitiesDataNotifier>().fetchInitialData(isRefresh: true); }
+            }
+            break;
           }
-          break;
       }
     }
   }
 
   void _setupTabs() {
-    if (!mounted) return;
+    if (!mounted) { return; }
 
     _mainTabs.clear();
     _mainTabViews.clear();
 
     final l10n = AppLocalizations.of(context);
-    if (l10n == null) return;
+    if (l10n == null) { return; }
 
     _mainTabs.addAll([
       Tab(text: l10n.tabCurrency),
@@ -340,21 +342,10 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             alignment: localeNotifier.locale.languageCode == 'fa' ? Alignment.centerLeft : Alignment.center, // Using localeNotifier
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutQuart,
-            // return const Scaffold(body: Center(child: CupertinoActivityIndicator())); // Duplicate line removed
     );
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final tealGreen = hexToColor(isDarkMode ? appConfig.themeOptions.dark.accentColorGreen : appConfig.themeOptions.light.accentColorGreen);
-    final themeConfig = isDarkMode ? appConfig.themeOptions.dark : appConfig.themeOptions.light;
-    final segmentInactiveBackground = hexToColor(themeConfig.cardColor);
-    final segmentActiveBackground = isDarkMode ? tealGreen.withAlpha(38) : Theme.of(context).colorScheme.secondaryContainer.withAlpha(128);
-    final segmentActiveTextColor = isDarkMode ? tealGreen.withAlpha(230) : Theme.of(context).colorScheme.onSecondaryContainer;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final tabFontSize = screenWidth < 360 ? 12.0 : 14.0;
-
-    final selectedTextStyle = TextStyle(color: segmentActiveTextColor, fontSize: tabFontSize, fontWeight: FontWeight.w600);
-    final unselectedTextStyle = TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: tabFontSize, fontWeight: FontWeight.w600);
-
+    // Removed duplicated block of variable definitions that was here.
+    // The first set of definitions (around line 350 in original) is kept.
     Widget mainScaffold = Scaffold(
       appBar: AppBar(
         title: TitleWithLanguageTransition( // Using the new widget
@@ -379,11 +370,13 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
               ),
               onPressed: () {
                 if (_isSearchActive) {
-                  if (mounted) setState(() {
-                    context.read<SearchQueryNotifier>().query = ''; // Using Provider
-                    _showSearchBar = false;
-                    _isSearchActive = false;
-                  });
+                  if (mounted) {
+                    setState(() {
+                      context.read<SearchQueryNotifier>().query = ''; // Using Provider
+                      _showSearchBar = false;
+                      _isSearchActive = false;
+                    });
+                  }
                   return;
                 }
                 final currentTabIndex = _tabController.index;
@@ -391,15 +384,15 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 final controller = _tabScrollControllers[currentTabIndex];
                 if (controller != null && controller.hasClients) {
                   if (controller.offset <= 0) {
-                    if (mounted) setState(() { _showSearchBar = true; _isSearchActive = true; });
+                    if (mounted) { setState(() { _showSearchBar = true; _isSearchActive = true; }); }
                     _setupScrollListener(currentTabIndex);
                   } else {
                     controller.jumpTo(controller.offset);
                     controller.animateTo(0, duration: const Duration(milliseconds: 400), curve: Curves.easeInOutQuart)
-                        .then((_) { if (mounted) setState(() { _showSearchBar = true; _isSearchActive = true; }); _setupScrollListener(currentTabIndex); });
+                        .then((_) { if (mounted) { setState(() { _showSearchBar = true; _isSearchActive = true; }); } _setupScrollListener(currentTabIndex); });
                   }
                 } else {
-                  if (mounted) setState(() { _showSearchBar = true; _isSearchActive = true; });
+                  if (mounted) { setState(() { _showSearchBar = true; _isSearchActive = true; }); }
                 }
               },
               splashColor: Colors.transparent, hoverColor: Colors.transparent, highlightColor: Colors.transparent, focusColor: Colors.transparent,
@@ -454,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           controller.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOutQuart);
                         }
                       } else {
-                        if (mounted) setState(() => _tabController.animateTo(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOutQuart));
+                        if (mounted) { setState(() => _tabController.animateTo(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOutQuart)); }
                       }
                     }
                     final segment = SmoothCard(
@@ -499,11 +492,11 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                 return CupertinoActionSheetAction(
                                   onPressed: () {
                                     GlobalKey<AssetListPageState<models.Asset>>? currentKey;
-                                    if (index == 0) currentKey = currencyTabKey as GlobalKey<AssetListPageState<models.Asset>>?;
-                                    else if (index == 1) currentKey = goldTabKey as GlobalKey<AssetListPageState<models.Asset>>?;
-                                    else if (index == 2) currentKey = cryptoTabKey as GlobalKey<AssetListPageState<models.Asset>>?;
+                                    if (index == 0) { currentKey = currencyTabKey as GlobalKey<AssetListPageState<models.Asset>>?; }
+                                    else if (index == 1) { currentKey = goldTabKey as GlobalKey<AssetListPageState<models.Asset>>?; }
+                                    else if (index == 2) { currentKey = cryptoTabKey as GlobalKey<AssetListPageState<models.Asset>>?; }
                                     // Stock page sorting is internal or not available via this menu
-                                    currentKey?.currentState?._setSortMode(sortOptions[i]);
+                                    currentKey?.currentState?.setSortMode(sortOptions[i]);
                                     Navigator.of(context).pop();
                                   },
                                   child: Text(optionLabels[i], style: TextStyle(fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro', fontSize: 17, fontWeight: FontWeight.normal, color: isDarkMode ? Colors.white : Colors.black)),
@@ -606,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                   onTap: () {
                     if (mounted) setState(() {
                       if (_isSearchActive) {
-                        ref.read(searchQueryProvider.notifier).query = ''; // Adapted
+                        context.read<SearchQueryNotifier>().query = '';
                         _showSearchBar = false;
                         _isSearchActive = false;
                       }
@@ -628,12 +621,12 @@ class _HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   }
 
   ScrollController? _findScrollController(int tabIndex) {
-    if (!mounted) return null;
+    if (!mounted) { return null; }
     try {
       switch (tabIndex) {
-        case 0: return currencyTabKey.currentState?._scrollController;
-        case 1: return goldTabKey.currentState?._scrollController;
-        case 2: return cryptoTabKey.currentState?._scrollController;
+        case 0: return currencyTabKey.currentState?.scrollController;
+        case 1: return goldTabKey.currentState?.scrollController;
+        case 2: return cryptoTabKey.currentState?.scrollController;
         case 3:
           final stockState = stockTabKey.currentState;
           if (stockState != null) {
