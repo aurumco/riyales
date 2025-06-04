@@ -1,0 +1,372 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smooth_corner/smooth_corner.dart';
+
+import '../../models/asset_models.dart' as models;
+import '../../providers/app_config_provider.dart' as config_provider;
+import '../../config/app_config.dart' as config;
+import '../../providers/data_providers/data_providers.dart';
+import '../../providers/search_provider.dart';
+import '../../localization/app_localizations.dart';
+import '../../utils/color_utils.dart';
+import '../../utils/helpers.dart';
+import 'asset_list_page.dart'; // Already moved
+
+// Stock Page with Sub-Tabs
+class StockPage extends ConsumerStatefulWidget {
+  final bool showSearchBar;
+  final bool isSearchActive;
+  const StockPage({
+    super.key,
+    required this.showSearchBar,
+    required this.isSearchActive,
+  });
+
+  @override
+  _StockPageState createState() => _StockPageState();
+}
+
+class _StockPageState extends ConsumerState<StockPage>
+    with TickerProviderStateMixin<StockPage> {
+  late TabController _stockTabController;
+  final List<Tab> _stockTabs = [];
+  final List<Widget> _stockTabViews = [];
+  // Add keys for each stock sub-tab to access their scroll controllers
+  final stockTseIfbKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
+  final stockDebtKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
+  final stockFuturesKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
+  final stockHousingKey = GlobalKey<_AssetListPageState<models.StockAsset>>();
+  // Map to store scroll controllers for each stock sub-tab
+  final Map<int, ScrollController?> _stockScrollControllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialized in didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context)!;
+
+    _stockTabs.clear();
+    _stockTabViews.clear();
+
+    _stockTabs.addAll([
+      Tab(text: l10n.stockTabSymbols), // TSE/IFB Symbols (نمادها) - Priority
+      Tab(text: l10n.stockTabDebtSecurities), // اوراق بدهی
+      Tab(text: l10n.stockTabFutures), // آتی
+      Tab(text: l10n.stockTabHousingFacilities), // تسهیلات مسکن
+    ]);
+
+    _stockTabViews.addAll([
+      AssetListPage<models.StockAsset>(
+        key: stockTseIfbKey,
+        provider: stockTseIfbProvider,
+        assetType: AssetType.stock,
+      ),
+      AssetListPage<models.StockAsset>(
+        key: stockDebtKey,
+        provider: stockDebtSecuritiesProvider,
+        assetType: AssetType.stock,
+      ),
+      AssetListPage<models.StockAsset>(
+        key: stockFuturesKey,
+        provider: stockFuturesProvider,
+        assetType: AssetType.stock,
+      ),
+      AssetListPage<models.StockAsset>(
+        key: stockHousingKey,
+        provider: stockHousingFacilitiesProvider,
+        assetType: AssetType.stock,
+      ),
+    ]);
+    _stockTabController = TabController(length: _stockTabs.length, vsync: this);
+    // Initialize scroll controllers after tabs are set up
+    _updateStockScrollControllers();
+  }
+
+  // Method to update the scroll controllers map
+  void _updateStockScrollControllers() {
+    _stockScrollControllers[0] = stockTseIfbKey.currentState?._scrollController;
+    _stockScrollControllers[1] = stockDebtKey.currentState?._scrollController;
+    _stockScrollControllers[2] =
+        stockFuturesKey.currentState?._scrollController;
+    _stockScrollControllers[3] =
+        stockHousingKey.currentState?._scrollController;
+  }
+
+  // Getter for stockTabController to be accessed by HomeScreen
+  TabController get stockTabController => _stockTabController;
+
+  // Getter for stockScrollControllers to be accessed by HomeScreen
+  Map<int, ScrollController?> get stockScrollControllers => _stockScrollControllers;
+
+
+  @override
+  void dispose() {
+    _stockTabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Get teal green for tab indicator
+    final appConfig = ref.watch(config_provider.appConfigProvider).asData?.value;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final tealGreen = hexToColor( // from utils/color_utils.dart
+      isDarkMode
+          ? appConfig?.themeOptions.dark.accentColorGreen ?? "#00B894"
+          : appConfig?.themeOptions.light.accentColorGreen ?? "#00B894",
+    );
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8.0,
+            vertical: 0.0,
+          ), // Reduced vertical padding
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              const horizontalMargin = 1.0; // Reduced horizontal spacing
+              // Use fixed tab radius and smoothness from theme, not from provider
+              final themeConfig = isDarkMode
+                  ? appConfig!.themeOptions.dark
+                  : appConfig!.themeOptions.light;
+              final tabRadius =
+                  themeConfig.cardBorderRadius * 0.7; //Tab corner radius
+              final segmentInactiveBackground = hexToColor( // from utils/color_utils.dart
+                themeConfig.cardColor,
+              );
+              final segmentActiveBackground = isDarkMode
+                  ? tealGreen.withAlpha(38)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.secondaryContainer.withAlpha(128);
+              final segmentActiveTextColor = isDarkMode
+                  ? tealGreen.withAlpha(230)
+                  : Theme.of(context).colorScheme.onSecondaryContainer;
+              final selectedTextStyle = TextStyle(
+                color: segmentActiveTextColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              );
+              final unselectedTextStyle = TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              );
+              return Row(
+                mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_stockTabs.length, (index) {
+                  final isSelected = _stockTabController.index == index;
+                  final label = _stockTabs[index].text!;
+                  void onTap() {
+                    if (_stockTabController.index == index) {
+                      _updateStockScrollControllers();
+                      final controller = _stockScrollControllers[index];
+                      if (controller != null && controller.hasClients) {
+                        controller.jumpTo(controller.offset);
+                        controller.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOutQuart,
+                        );
+                      }
+                    } else {
+                      setState(() {
+                        _stockTabController.animateTo(
+                          index,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutQuart,
+                        );
+                      });
+                    }
+                  }
+
+                  final segment = SmoothCard(
+                    smoothness: themeConfig.cardCornerSmoothness,
+                    borderRadius: BorderRadius.circular(tabRadius),
+                    elevation: 0,
+                    color: isSelected
+                        ? segmentActiveBackground
+                        : segmentInactiveBackground,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10.0,
+                        horizontal: 12.0,
+                      ),
+                      child: Center(
+                        child: Builder(
+                          builder: (context) {
+                            Widget textWidget = Text(
+                              label,
+                              style: isSelected
+                                  ? selectedTextStyle
+                                  : unselectedTextStyle,
+                              textAlign: TextAlign.center,
+                            );
+                            Widget fittedText = FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: textWidget,
+                            );
+                            if (isSelected && !isDarkMode) {
+                              fittedText = Transform.translate(
+                                offset: const Offset(0, 1),
+                                child: fittedText,
+                              );
+                            }
+                            return fittedText;
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                  final wrapped = GestureDetector(onTap: onTap, child: segment);
+                  return isMobile
+                      ? Expanded(child: wrapped)
+                      : Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontalMargin,
+                          ),
+                          child: wrapped,
+                        );
+                }),
+              );
+            },
+          ),
+        ),
+        // Add search bar after stock tabs
+        AnimatedContainer(
+          duration: widget.showSearchBar
+              ? const Duration(milliseconds: 400)
+              : const Duration(milliseconds: 300),
+          curve: Curves.easeInOutQuart,
+          height: widget.showSearchBar ? 48.0 : 0.0,
+          margin: widget.showSearchBar
+              ? const EdgeInsets.only(top: 10.0, bottom: 2.0)
+              : EdgeInsets.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: AnimatedOpacity(
+            opacity: widget.showSearchBar ? 1.0 : 0.0,
+            duration: widget.showSearchBar
+                ? const Duration(milliseconds: 300)
+                : const Duration(milliseconds: 200),
+            child: widget.isSearchActive
+                ? Builder(
+                    builder: (context) {
+                      final searchText = ref.watch(searchQueryProvider);
+                      final isRTL =
+                          Localizations.localeOf(context).languageCode ==
+                                  'fa' ||
+                              containsPersian(searchText); // from utils/helpers.dart
+                      final textColor =
+                          (Theme.of(context).brightness == Brightness.dark)
+                              ? Colors.grey[300]
+                              : Colors.grey[700];
+                      final placeholderColor =
+                          (Theme.of(context).brightness == Brightness.dark)
+                              ? Colors.grey[600]
+                              : Colors.grey[500];
+                      final iconColor =
+                          (Theme.of(context).brightness == Brightness.dark)
+                              ? Colors.grey[400]
+                              : Colors.grey[600];
+                      final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
+
+                      return CupertinoTextField(
+                        controller: TextEditingController(text: searchText)
+                          ..selection = TextSelection.fromPosition(
+                            TextPosition(offset: searchText.length),
+                          ),
+                        onChanged: (v) =>
+                            ref.read(searchQueryProvider.notifier).state = v,
+                        placeholder:
+                            AppLocalizations.of(context)!.searchPlaceholder,
+                        placeholderStyle: TextStyle(
+                          color: placeholderColor,
+                          fontFamily: fontFamily,
+                        ),
+                        prefix: Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 18,
+                          ),
+                          child: Icon(
+                            CupertinoIcons.search,
+                            size: 20,
+                            color: iconColor,
+                          ),
+                        ),
+                        suffix: searchText.isNotEmpty
+                            ? CupertinoButton(
+                                padding: const EdgeInsetsDirectional.only(
+                                  end: 18,
+                                ),
+                                minSize: 30,
+                                child: Icon(
+                                  CupertinoIcons.clear,
+                                  size: 18,
+                                  color: iconColor,
+                                ),
+                                onPressed: () => ref
+                                    .read(
+                                      searchQueryProvider.notifier,
+                                    )
+                                    .state = '',
+                              )
+                            : null,
+                        textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                        padding: EdgeInsetsDirectional.only(
+                          start: 9,
+                          end: searchText.isNotEmpty ? 28 : 12,
+                          top: 8,
+                          bottom: 8,
+                        ),
+                        style: TextStyle(
+                          color: textColor,
+                          fontFamily: fontFamily,
+                        ),
+                        cursorColor: iconColor,
+                        decoration: BoxDecoration(
+                          color:
+                              (Theme.of(context).brightness == Brightness.dark)
+                                  ? const Color(0xFF2C2C2E)
+                                  : const Color(0xFFE2E2E6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      );
+                    },
+                  )
+                : const SizedBox(),
+          ),
+        ),
+        Expanded(
+          child: AnimatedBuilder(
+            animation: _stockTabController,
+            builder: (context, child) {
+              final index = _stockTabController.index;
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeInOutQuart,
+                switchOutCurve: Curves.easeInOutQuart,
+                transitionBuilder: (Widget child, Animation<double> anim) =>
+                    FadeTransition(opacity: anim, child: child),
+                child: Container(
+                  key: ValueKey<int>(index),
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: _stockTabViews[index],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
