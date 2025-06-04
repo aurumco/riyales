@@ -24,649 +24,11 @@ import 'package:url_launcher/url_launcher.dart';
 // Hardcoded current app version
 const String currentAppVersion = '0.140.0'; // Update this with each release
 
-// Extension methods
-extension ColorExtension on Color {
-  Color darken(int percent) {
-    assert(1 <= percent && percent <= 100);
-    final value = 1 - percent / 100;
-    return Color.fromARGB(
-      alpha,
-      (red * value).round(),
-      (green * value).round(),
-      (blue * value).round(),
-    );
-  }
-
-  Color lighten(int percent) {
-    assert(1 <= percent && percent <= 100);
-    final value = percent / 100;
-    return Color.fromARGB(
-      alpha,
-      (red + ((255 - red) * value)).round(),
-      (green + ((255 - green) * value)).round(),
-      (blue + ((255 - blue) * value)).round(),
-    );
-  }
-}
-
-// Class for storing icon path and color for crypto icons
-class CryptoIconInfo {
-  final String iconPath;
-  final Color color;
-
-  const CryptoIconInfo({required this.iconPath, required this.color});
-}
-
 // region 0. Application Configuration (Constants and Models)
 
-// --- App Config Model ---
-// This model represents the structure of your app_config.json
-class AppConfig extends Equatable {
-  final String appName;
-  final String remoteConfigUrl;
-  final ApiEndpoints apiEndpoints;
-  final int priceUpdateIntervalMinutes;
-  final int updateIntervalMs;
-  final List<String> supportedLocales;
-  final String defaultLocale;
-  final ThemeOptions themeOptions;
-  final FontsConfig fonts;
-  final SplashScreenConfig splashScreen;
-  final int itemsPerLazyLoad;
-  final int initialItemsToLoad;
-  final CryptoIconFilterConfig cryptoIconFilter;
-  final FeatureFlags featureFlags;
-  final UpdateInfoConfig updateInfo; // New
-
-  const AppConfig({
-    required this.appName,
-    required this.remoteConfigUrl,
-    required this.apiEndpoints,
-    required this.priceUpdateIntervalMinutes,
-    required this.updateIntervalMs,
-    required this.supportedLocales,
-    required this.defaultLocale,
-    required this.themeOptions,
-    required this.fonts,
-    required this.splashScreen,
-    required this.itemsPerLazyLoad,
-    required this.initialItemsToLoad,
-    required this.cryptoIconFilter,
-    required this.featureFlags,
-    required this.updateInfo, // New
-  });
-
-  factory AppConfig.fromJson(Map<String, dynamic> json) {
-    // Merge top-level app_version into update_info if present
-    final updateMap = (json['update_info'] as Map<String, dynamic>?)
-            ?.cast<String, dynamic>() ??
-        {};
-    if (json.containsKey('app_version')) {
-      updateMap['latest_version'] = json['app_version'];
-    }
-    return AppConfig(
-      appName: json['app_name'] as String? ?? 'Riyales',
-      remoteConfigUrl: json['remote_config_url'] as String? ?? '',
-      apiEndpoints: ApiEndpoints.fromJson(
-        json['api_endpoints'] as Map<String, dynamic>? ?? {},
-      ),
-      priceUpdateIntervalMinutes:
-          json['priceUpdateIntervalMinutes'] as int? ?? 5,
-      updateIntervalMs: json['update_interval_ms'] as int? ?? 30000,
-      supportedLocales: List<String>.from(
-        json['supported_locales'] as List<dynamic>? ?? ['en', 'fa'],
-      ),
-      defaultLocale: json['default_locale'] as String? ?? 'fa',
-      themeOptions: ThemeOptions.fromJson(
-        json['theme_options'] as Map<String, dynamic>? ?? {},
-      ),
-      fonts: FontsConfig.fromJson(json['fonts'] as Map<String, dynamic>? ?? {}),
-      splashScreen: SplashScreenConfig.fromJson(
-        json['splashScreen'] as Map<String, dynamic>? ?? {},
-      ),
-      itemsPerLazyLoad: json['itemsPerLazyLoad'] as int? ?? 20,
-      initialItemsToLoad: json['initialItemsToLoad'] as int? ?? 20,
-      cryptoIconFilter: CryptoIconFilterConfig.fromJson(
-        json['cryptoIconFilter'] as Map<String, dynamic>? ?? {},
-      ),
-      featureFlags: FeatureFlags.fromJson(
-        json['feature_flags'] as Map<String, dynamic>? ?? {},
-      ),
-      updateInfo: UpdateInfoConfig.fromJson(updateMap),
-    );
-  }
-
-  // Default fallback config
-  factory AppConfig.defaultConfig() {
-    return AppConfig.fromJson(const {
-      "app_name": "Riyales",
-      "remote_config_url":
-          "https://raw.githubusercontent.com/aurumco/riyales-api/main/config.json",
-      "api_endpoints": {
-        "currency_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/currency.json",
-        "gold_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/gold.json",
-        "commodity_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/commodity.json",
-        "crypto_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/cryptocurrency.json",
-        "stock_debt_securities_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/debt_securities.json",
-        "stock_futures_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/futures.json",
-        "stock_housing_facilities_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/housing_facilities.json",
-        "stock_tse_ifb_symbols_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/tse_ifb_symbols.json",
-        "priority_assets_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/priority_assets.json",
-        "terms_en_url": "https://example.com/terms_en.json", // Placeholder
-        "terms_fa_url": "https://example.com/terms_fa.json", // Placeholder
-      },
-      "priceUpdateIntervalMinutes": 10,
-      "update_interval_ms": 600000,
-      "supported_locales": ["en", "fa"],
-      "default_locale": "en",
-      "theme_options": {
-        "default_theme": "light",
-        "light": {
-          "brightness": "light",
-          "primaryColor": "#FFFFFF",
-          "backgroundColor": "#F2F2F7",
-          "scaffoldBackgroundColor": "#F2F2F7",
-          "appBarColor": "#F2F2F7",
-          "cardColor": "#FFFFFF",
-          "textColor": "#000000",
-          "secondaryTextColor": "#8E8E93",
-          "accentColorGreen": "#00B894",
-          "accentColorRed": "#FF4444",
-          "cardBorderRadius": 21.0,
-          "shadowColor": "#000000",
-          "cardCornerSmoothness": 0.90,
-        },
-        "dark": {
-          "brightness": "dark",
-          "primaryColor": "#1C1C1E",
-          "backgroundColor": "#1C1C1E",
-          "scaffoldBackgroundColor": "#1C1C1E",
-          "appBarColor": "#1C1C1E",
-          "cardColor": "#2C2C2E",
-          "textColor": "#E5E5EA",
-          "secondaryTextColor": "#8E8E93",
-          "accentColorGreen": "#00B894",
-          "accentColorRed": "#FF5252",
-          "cardBorderRadius": 21.0,
-          "shadowColor": "#000000",
-          "backgroundGradientColors": ["#1C1C1E", "#2C2C2E"],
-          "cardCornerSmoothness": 0.90,
-        },
-      },
-      "fonts": {
-        "persianFontFamily": "Vazirmatn",
-        "englishFontFamily": "SF-Pro",
-      },
-      "splashScreen": {
-        "durationSeconds": 1.5,
-        "iconPath": "assets/images/splash-screen-light.svg",
-        "loadingIndicatorColor": "#FBC02D",
-      },
-      "itemsPerLazyLoad": 20,
-      "initialItemsToLoad": 20,
-      "cryptoIconFilter": {
-        "brightness": 0.0,
-        "contrast": 0.0,
-        "saturation": -0.2,
-      },
-      "feature_flags": {"enable_chat": false, "enable_notifications": true},
-      "update_info": {
-        // New
-        "latest_version": "1.0.0", // Placeholder
-        "update_url": "https://example.com/update", // Placeholder
-        "changelog_en": "Initial release.", // Placeholder
-        "changelog_fa": "نسخه اولیه.", // Placeholder
-      },
-    });
-  }
-
-  @override
-  List<Object?> get props => [
-        appName,
-        remoteConfigUrl,
-        apiEndpoints,
-        priceUpdateIntervalMinutes,
-        updateIntervalMs,
-        supportedLocales,
-        defaultLocale,
-        themeOptions,
-        fonts,
-        splashScreen,
-        itemsPerLazyLoad,
-        initialItemsToLoad,
-        cryptoIconFilter,
-        featureFlags,
-        updateInfo, // New
-      ];
-}
-
-class ApiEndpoints extends Equatable {
-  final String currencyUrl;
-  final String goldUrl;
-  final String commodityUrl;
-  final String cryptoUrl;
-  final String stockDebtSecuritiesUrl;
-  final String stockFuturesUrl;
-  final String stockHousingFacilitiesUrl;
-  final String stockTseIfbSymbolsUrl;
-  final String priorityAssetsUrl;
-  final String termsEnUrl; // New: URL for English terms
-  final String termsFaUrl; // New: URL for Persian terms
-
-  const ApiEndpoints({
-    required this.currencyUrl,
-    required this.goldUrl,
-    required this.commodityUrl,
-    required this.cryptoUrl,
-    required this.stockDebtSecuritiesUrl,
-    required this.stockFuturesUrl,
-    required this.stockHousingFacilitiesUrl,
-    required this.stockTseIfbSymbolsUrl,
-    required this.priorityAssetsUrl,
-    required this.termsEnUrl, // New
-    required this.termsFaUrl, // New
-  });
-
-  factory ApiEndpoints.fromJson(Map<String, dynamic> json) {
-    return ApiEndpoints(
-      currencyUrl: json['currency_url'] as String? ?? '',
-      goldUrl: json['gold_url'] as String? ?? '',
-      commodityUrl: json['commodity_url'] as String? ?? '',
-      cryptoUrl: json['crypto_url'] as String? ?? '',
-      stockDebtSecuritiesUrl:
-          json['stock_debt_securities_url'] as String? ?? '',
-      stockFuturesUrl: json['stock_futures_url'] as String? ?? '',
-      stockHousingFacilitiesUrl:
-          json['stock_housing_facilities_url'] as String? ?? '',
-      stockTseIfbSymbolsUrl: json['stock_tse_ifb_symbols_url'] as String? ?? '',
-      priorityAssetsUrl: json['priority_assets_url'] as String? ?? '',
-      termsEnUrl: json['terms_en_url'] as String? ?? '', // New
-      termsFaUrl: json['terms_fa_url'] as String? ?? '', // New
-    );
-  }
-  @override
-  List<Object?> get props => [
-        currencyUrl,
-        goldUrl,
-        commodityUrl,
-        cryptoUrl,
-        stockDebtSecuritiesUrl,
-        stockFuturesUrl,
-        stockHousingFacilitiesUrl,
-        stockTseIfbSymbolsUrl,
-        priorityAssetsUrl,
-        termsEnUrl, // New
-        termsFaUrl, // New
-      ];
-}
-
-class ThemeOptions extends Equatable {
-  final String defaultTheme;
-  final ThemeConfig light;
-  final ThemeConfig dark;
-
-  const ThemeOptions({
-    required this.defaultTheme,
-    required this.light,
-    required this.dark,
-  });
-
-  factory ThemeOptions.fromJson(Map<String, dynamic> json) {
-    return ThemeOptions(
-      defaultTheme: json['default_theme'] as String? ?? 'dark',
-      light: ThemeConfig.fromJson(json['light'] as Map<String, dynamic>? ?? {}),
-      dark: ThemeConfig.fromJson(json['dark'] as Map<String, dynamic>? ?? {}),
-    );
-  }
-  @override
-  List<Object?> get props => [defaultTheme, light, dark];
-}
-
-class ThemeConfig extends Equatable {
-  final String brightness;
-  final String primaryColor;
-  final String backgroundColor;
-  final String scaffoldBackgroundColor;
-  final String appBarColor;
-  final String cardColor;
-  final String textColor;
-  final String secondaryTextColor;
-  final String accentColorGreen;
-  final String accentColorRed;
-  final double cardBorderRadius;
-  final String shadowColor;
-  final List<String>? backgroundGradientColors;
-  final double
-      cardCornerSmoothness; // New: controls the squircle shape smoothness
-
-  const ThemeConfig({
-    required this.brightness,
-    required this.primaryColor,
-    required this.backgroundColor,
-    required this.scaffoldBackgroundColor,
-    required this.appBarColor,
-    required this.cardColor,
-    required this.textColor,
-    required this.secondaryTextColor,
-    required this.accentColorGreen,
-    required this.accentColorRed,
-    required this.cardBorderRadius,
-    required this.shadowColor,
-    this.backgroundGradientColors,
-    this.cardCornerSmoothness = 0.6, // Default smoothness value
-  });
-
-  factory ThemeConfig.fromJson(Map<String, dynamic> json) {
-    return ThemeConfig(
-      brightness: json['brightness'] as String? ?? 'light',
-      primaryColor: json['primaryColor'] as String? ?? '#FFFFFF',
-      backgroundColor: json['backgroundColor'] as String? ?? '#F5F5F5',
-      scaffoldBackgroundColor:
-          json['scaffoldBackgroundColor'] as String? ?? '#F8F9FA',
-      appBarColor: json['appBarColor'] as String? ?? '#FFFFFF',
-      cardColor: json['cardColor'] as String? ?? '#FFFFFF',
-      textColor: json['textColor'] as String? ?? '#1E1E1E',
-      secondaryTextColor: json['secondaryTextColor'] as String? ?? '#525252',
-      accentColorGreen: json['accentColorGreen'] as String? ?? '#00C851',
-      accentColorRed: json['accentColorRed'] as String? ?? '#FF4444',
-      cardBorderRadius: (json['cardBorderRadius'] as num?)?.toDouble() ?? 21.0,
-      shadowColor: json['shadowColor'] as String? ?? '#000000',
-      backgroundGradientColors:
-          (json['backgroundGradientColors'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList(),
-      cardCornerSmoothness:
-          (json['cardCornerSmoothness'] as num?)?.toDouble() ?? 0.90,
-    );
-  }
-  @override
-  List<Object?> get props => [
-        brightness,
-        primaryColor,
-        backgroundColor,
-        scaffoldBackgroundColor,
-        appBarColor,
-        cardColor,
-        textColor,
-        secondaryTextColor,
-        accentColorGreen,
-        accentColorRed,
-        cardBorderRadius,
-        shadowColor,
-        backgroundGradientColors,
-        cardCornerSmoothness,
-      ];
-}
-
-class FontsConfig extends Equatable {
-  final String persianFontFamily;
-  final String englishFontFamily;
-
-  const FontsConfig({
-    required this.persianFontFamily,
-    required this.englishFontFamily,
-  });
-
-  factory FontsConfig.fromJson(Map<String, dynamic> json) {
-    return FontsConfig(
-      persianFontFamily: json['persianFontFamily'] as String? ?? 'Vazirmatn',
-      englishFontFamily: json['englishFontFamily'] as String? ?? 'SF-Pro',
-    );
-  }
-  @override
-  List<Object?> get props => [persianFontFamily, englishFontFamily];
-}
-
-class SplashScreenConfig extends Equatable {
-  final double durationSeconds;
-  final String iconPath;
-  final String loadingIndicatorColor;
-
-  const SplashScreenConfig({
-    required this.durationSeconds,
-    required this.iconPath,
-    required this.loadingIndicatorColor,
-  });
-
-  factory SplashScreenConfig.fromJson(Map<String, dynamic> json) {
-    return SplashScreenConfig(
-      durationSeconds: (json['durationSeconds'] as num?)?.toDouble() ?? 1.5,
-      iconPath: json['iconPath'] as String? ??
-          'assets/images/splash-screen-light.svg',
-      loadingIndicatorColor:
-          json['loadingIndicatorColor'] as String? ?? '#FBC02D',
-    );
-  }
-  @override
-  List<Object?> get props => [durationSeconds, iconPath, loadingIndicatorColor];
-}
-
-class CryptoIconFilterConfig extends Equatable {
-  final double brightness;
-  final double contrast;
-  final double saturation;
-
-  const CryptoIconFilterConfig({
-    required this.brightness,
-    required this.contrast,
-    required this.saturation,
-  });
-
-  factory CryptoIconFilterConfig.fromJson(Map<String, dynamic> json) {
-    return CryptoIconFilterConfig(
-      brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
-      contrast: (json['contrast'] as num?)?.toDouble() ?? 0.0,
-      saturation: (json['saturation'] as num?)?.toDouble() ?? -0.2,
-    );
-  }
-  @override
-  List<Object?> get props => [brightness, contrast, saturation];
-}
-
-class FeatureFlags extends Equatable {
-  final bool enableChat;
-  final bool enableNotifications;
-
-  const FeatureFlags({
-    required this.enableChat,
-    required this.enableNotifications,
-  });
-
-  factory FeatureFlags.fromJson(Map<String, dynamic> json) {
-    return FeatureFlags(
-      enableChat: json['enable_chat'] as bool? ?? false,
-      enableNotifications: json['enable_notifications'] as bool? ?? true,
-    );
-  }
-  @override
-  List<Object?> get props => [enableChat, enableNotifications];
-}
-
-class UpdateInfoConfig extends Equatable {
-  final String latestVersion;
-  final String updateUrl;
-  final String changelogEn;
-  final String changelogFa;
-  final String updateMode;
-  final String updatePackage;
-  final String updateLink;
-
-  const UpdateInfoConfig({
-    required this.latestVersion,
-    required this.updateUrl,
-    required this.changelogEn,
-    required this.changelogFa,
-    required this.updateMode,
-    required this.updatePackage,
-    required this.updateLink,
-  });
-
-  factory UpdateInfoConfig.fromJson(Map<String, dynamic> json) {
-    return UpdateInfoConfig(
-      latestVersion: json['latest_version'] as String? ?? '0.0.0',
-      updateUrl: json['update_url'] as String? ?? '',
-      changelogEn: json['changelog_en'] as String? ?? 'No new changes.',
-      changelogFa:
-          json['changelog_fa'] as String? ?? 'تغییرات جدیدی وجود ندارد.',
-      updateMode: json['update_mode'] as String? ?? 'url',
-      updatePackage: json['update_package'] as String? ?? '',
-      updateLink: json['update_link'] as String? ?? '',
-    );
-  }
-
-  factory UpdateInfoConfig.defaultConfig() {
-    return const UpdateInfoConfig(
-      latestVersion: '0.0.0',
-      updateUrl: '',
-      changelogEn: 'No new changes.',
-      changelogFa: 'تغییرات جدیدی وجود ندارد.',
-      updateMode: 'url',
-      updatePackage: '',
-      updateLink: '',
-    );
-  }
-
-  @override
-  List<Object?> get props => [
-        latestVersion,
-        updateUrl,
-        changelogEn,
-        changelogFa,
-        updateMode,
-        updatePackage,
-        updateLink,
-      ];
-}
-
-// --- Helper to parse color from hex string ---
-Color _hexToColor(String hexString) {
-  final buffer = StringBuffer();
-  if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-  buffer.write(hexString.replaceFirst('#', ''));
-  try {
-    return Color(int.parse(buffer.toString(), radix: 16));
-  } catch (e) {
-    // print_error("Invalid color string: $hexString. Using default black.");
-    return Colors.black;
-  }
-}
 // endregion
 
 // region 1. Providers (Riverpod State Management)
-
-// --- AppConfig Provider ---
-final appConfigProvider = FutureProvider<AppConfig>((ref) async {
-  final dio = Dio();
-  Map<String, dynamic> localConfigJson;
-  // Load local config
-  try {
-    final localConfigString = await rootBundle.loadString(
-      'assets/config/app_config.json',
-    );
-    localConfigJson = jsonDecode(localConfigString) as Map<String, dynamic>;
-  } catch (e) {
-    return AppConfig.defaultConfig();
-  }
-  // Attempt to fetch remote config
-  try {
-    final remoteUrl = localConfigJson['remote_config_url'] as String?;
-    if (remoteUrl != null && remoteUrl.isNotEmpty) {
-      final response = await dio.get(remoteUrl);
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final remoteJson = data is String
-            ? jsonDecode(data) as Map<String, dynamic>
-            : data as Map<String, dynamic>;
-        return AppConfig.fromJson(remoteJson);
-      }
-    }
-  } catch (_) {
-    // ignore and fallback to local
-  }
-  // Fallback to local config
-  return AppConfig.fromJson(localConfigJson);
-});
-
-// --- ThemeNotifier and Provider ---
-final themeNotifierProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((
-  ref,
-) {
-  final appConfig =
-      ref.watch(appConfigProvider).asData?.value ?? AppConfig.defaultConfig();
-  return ThemeNotifier(
-    appConfig.themeOptions.defaultTheme == 'dark'
-        ? ThemeMode.dark
-        : ThemeMode.light,
-  );
-});
-
-class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier(super.initialMode) {
-    _loadThemePreference();
-  }
-
-  Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDarkMode = prefs.getBool('isDarkMode');
-    if (isDarkMode != null) {
-      state = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    }
-  }
-
-  Future<void> toggleTheme() async {
-    state = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', state == ThemeMode.dark);
-  }
-
-  void setThemeMode(ThemeMode mode) {
-    state = mode;
-    _saveThemePreference();
-  }
-
-  Future<void> _saveThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', state == ThemeMode.dark);
-  }
-}
-
-// --- LocaleNotifier and Provider ---
-final localeNotifierProvider = StateNotifierProvider<LocaleNotifier, Locale>((
-  ref,
-) {
-  final appConfig =
-      ref.watch(appConfigProvider).asData?.value ?? AppConfig.defaultConfig();
-  return LocaleNotifier(Locale(appConfig.defaultLocale));
-});
-
-class LocaleNotifier extends StateNotifier<Locale> {
-  LocaleNotifier(super.initialLocale) {
-    _loadLocalePreference();
-  }
-
-  Future<void> _loadLocalePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    final languageCode = prefs.getString('languageCode');
-    if (languageCode != null) {
-      state = Locale(languageCode);
-    }
-  }
-
-  Future<void> setLocale(Locale newLocale) async {
-    state = newLocale;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('languageCode', newLocale.languageCode);
-  }
-}
 
 // --- Currency Unit Provider ---
 enum CurrencyUnit { toman, usd, eur }
@@ -756,256 +118,13 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 });
 
 // --- Data Providers for each asset type ---
-// Base class for asset items to share common properties like ID for favorites
-abstract class Asset extends Equatable {
-  final String
-      id; // Unique identifier for the asset (e.g., symbol or a combination)
-  final String name;
-  final String symbol;
-  final num price;
-  final num? changePercent;
-  final num? changeValue; // For currencies/gold that have it
-
-  const Asset({
-    required this.id,
-    required this.name,
-    required this.symbol,
-    required this.price,
-    this.changePercent,
-    this.changeValue,
-  });
-}
-
-// Currency Model
-class CurrencyAsset extends Asset {
-  final String nameEn;
-  final String unit; // e.g., "تومان"
-  final String? iconEmoji; // For flag emoji
-
-  const CurrencyAsset({
-    required super.id, // Use symbol as ID
-    required super.name, // Persian name
-    required this.nameEn,
-    required super.symbol,
-    required super.price,
-    super.changeValue,
-    super.changePercent,
-    required this.unit,
-    this.iconEmoji,
-  });
-
-  factory CurrencyAsset.fromJson(Map<String, dynamic> json) {
-    return CurrencyAsset(
-      id: json['symbol'] as String? ?? 'UNKNOWN',
-      name: json['name'] as String? ?? 'نامشخص',
-      nameEn: json['name_en'] as String? ?? 'Unknown',
-      symbol: json['symbol'] as String? ?? '---',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      changeValue: (json['change_value'] as num?)?.toDouble(),
-      changePercent: (json['change_percent'] as num?)?.toDouble(),
-      unit: json['unit'] as String? ?? 'تومان',
-    );
-  }
-
-  @override
-  List<Object?> get props => [
-        id,
-        name,
-        nameEn,
-        symbol,
-        price,
-        changeValue,
-        changePercent,
-        unit,
-        iconEmoji,
-      ];
-}
-
-// Gold Model (includes precious metals from commodity)
-class GoldAsset extends Asset {
-  final String nameEn;
-  final String unit;
-  final String? customIconPath; // For specific gold icons
-
-  const GoldAsset({
-    required super.id,
-    required super.name,
-    required this.nameEn,
-    required super.symbol,
-    required super.price,
-    super.changeValue,
-    super.changePercent,
-    required this.unit,
-    this.customIconPath,
-  });
-
-  factory GoldAsset.fromJson(
-    Map<String, dynamic> json, {
-    bool isCommodity = false,
-  }) {
-    if (isCommodity) {
-      return GoldAsset(
-        id: json['symbol'] as String? ?? 'UNKNOWN_COMM',
-        name: json['nameFa'] as String? ?? json['name'] as String? ?? 'نامشخص',
-        nameEn: json['nameEn'] as String? ??
-            json['symbol'] as String? ??
-            'Unknown Commodity',
-        symbol: json['symbol'] as String? ?? '---',
-        price: (json['price'] as num?)?.toDouble() ?? 0.0,
-        changePercent: (json['change_percent'] as num?)?.toDouble(),
-        unit: json['unit'] as String? ?? 'دلار', // Commodity unit might be USD
-        customIconPath: _getGoldIconPath(json['symbol'] as String? ?? ''),
-      );
-    }
-    return GoldAsset(
-      id: json['symbol'] as String? ?? 'UNKNOWN_GOLD',
-      name: json['nameFa'] as String? ?? json['name'] as String? ?? 'نامشخص',
-      nameEn: json['nameEn'] as String? ??
-          json['name_en'] as String? ??
-          'Unknown Gold',
-      symbol: json['symbol'] as String? ?? '---',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      changeValue: (json['change_value'] as num?)?.toDouble(),
-      changePercent: (json['change_percent'] as num?)?.toDouble(),
-      unit: json['unit'] as String? ?? 'تومان',
-      customIconPath: _getGoldIconPath(json['symbol'] as String? ?? ''),
-    );
-  }
-  @override
-  List<Object?> get props => [
-        id,
-        name,
-        nameEn,
-        symbol,
-        price,
-        changeValue,
-        changePercent,
-        unit,
-        customIconPath,
-      ];
-}
-
-// Crypto Model
-class CryptoAsset extends Asset {
-  final String nameFa;
-  final String priceToman; // String because API provides it as string
-  final String? iconUrl;
-  final num? marketCap;
-
-  const CryptoAsset({
-    required super.id, // Use name as ID for crypto as symbols might not be unique across exchanges
-    required super.name, // English name
-    required this.nameFa,
-    required super.symbol, // This is often the ticker like BTC, ETH
-    required super.price, // USD Price
-    required this.priceToman,
-    super.changePercent,
-    this.iconUrl,
-    this.marketCap,
-  });
-
-  factory CryptoAsset.fromJson(Map<String, dynamic> json) {
-    String name = json['name'] as String? ?? 'Unknown';
-    // API returns price as string for crypto, need to parse it
-    num usdPrice = 0;
-    if (json['price'] is String) {
-      usdPrice = num.tryParse(json['price'] as String) ?? 0;
-    } else if (json['price'] is num) {
-      usdPrice = json['price'] as num;
-    }
-
-    return CryptoAsset(
-      id: name.toLowerCase().replaceAll(' ', '-'), // Create a slug-like ID
-      name: name,
-      nameFa: json['nameFa'] as String? ?? 'نامشخص',
-      symbol: json['symbol'] as String? ??
-          (json['name'] as String? ?? '---')
-              .substring(0, math.min(3, (json['name'] as String? ?? '').length))
-              .toUpperCase(), // Fallback symbol
-      price: usdPrice,
-      priceToman: json['price_toman'] as String? ?? '0',
-      changePercent: (json['change_percent'] as num?)?.toDouble(),
-      iconUrl: json['link_icon'] as String?,
-      marketCap: json['market_cap'] as num?,
-    );
-  }
-  @override
-  List<Object?> get props => [
-        id,
-        name,
-        nameFa,
-        symbol,
-        price,
-        priceToman,
-        changePercent,
-        iconUrl,
-        marketCap,
-      ];
-}
-
-// Stock Model
-class StockAsset extends Asset {
-  final String l30; // Full name
-  final String isin;
-  final num? pc; // Closing price
-  final num? pcp; // Closing price change percentage
-  final num? pl; // Last trade price
-  final num? plp; // Last trade price change percentage
-
-  const StockAsset(
-    this.isin,
-    this.pl, {
-    required super.id, // Use ISIN as ID
-    required super.name, // Use l18 (short name) as name
-    required this.l30,
-    required super.symbol, // Same as l18 or a derived symbol
-    required super.price, // Use 'pl' (last trade price) as primary display price
-    this.pc,
-    this.pcp,
-    this.plp,
-    super.changePercent,
-  });
-
-  factory StockAsset.fromJson(Map<String, dynamic> json) {
-    final isin = json['isin'] as String? ?? 'UNKNOWN_STOCK_${json['l18']}';
-    final pl = (json['pl'] as num?)?.toDouble() ?? 0.0;
-
-    return StockAsset(
-      isin,
-      pl,
-      id: isin,
-      name: json['l18'] as String? ?? 'نامشخص',
-      l30: json['l30'] as String? ?? 'نام کامل نامشخص',
-      symbol: json['l18'] as String? ?? '---',
-      price: pl, // Last trade price
-      pc: (json['pc'] as num?)?.toDouble(), // Closing price
-      pcp: (json['pcp'] as num?)?.toDouble(), // Closing price change percent
-      plp: (json['plp'] as num?)?.toDouble(), // Last trade price change percent
-      changePercent: (json['plp'] as num?)
-          ?.toDouble(), // Use last trade % change for consistency with Asset.changePercent
-    );
-  }
-  @override
-  List<Object?> get props => [
-        id,
-        name,
-        l30,
-        symbol,
-        price,
-        pc,
-        pcp,
-        plp,
-        changePercent,
-      ];
-}
-
 // --- Data Fetching Notifiers ---
 // Generic Data Fetcher Notifier
-abstract class DataFetcherNotifier<T extends Asset>
+abstract class DataFetcherNotifier<T extends models.Asset>
     extends StateNotifier<AsyncValue<List<T>>> {
   final ApiService _apiService;
   final String _cacheKey;
-  final AppConfig _appConfig;
+  final config.AppConfig _appConfig;
   final String _initialUrl;
   bool _initialized = false;
   List<T> _fullDataList = [];
@@ -1275,8 +394,8 @@ abstract class DataFetcherNotifier<T extends Asset>
 }
 
 // Specific Notifiers
-class CurrencyNotifier extends DataFetcherNotifier<CurrencyAsset> {
-  CurrencyNotifier(ApiService apiService, AppConfig appConfig)
+class CurrencyNotifier extends DataFetcherNotifier<models.CurrencyAsset> {
+  CurrencyNotifier(ApiService apiService, config.AppConfig appConfig)
       : super(
           apiService,
           'currency_cache',
@@ -1285,13 +404,14 @@ class CurrencyNotifier extends DataFetcherNotifier<CurrencyAsset> {
         );
 
   @override
-  Future<List<CurrencyAsset>> _fetchAndParse(String url) async {
+  Future<List<models.CurrencyAsset>> _fetchAndParse(String url) async {
     final responseData = await _apiService.fetchData(url);
-    List<CurrencyAsset> assets = [];
+    List<models.CurrencyAsset> assets = [];
     if (responseData is Map && responseData.containsKey('currency')) {
       assets = (responseData['currency'] as List)
           .map(
-            (item) => CurrencyAsset.fromJson(item as Map<String, dynamic>),
+            (item) =>
+                models.CurrencyAsset.fromJson(item as Map<String, dynamic>),
           )
           .toList();
     }
@@ -1308,8 +428,8 @@ class CurrencyNotifier extends DataFetcherNotifier<CurrencyAsset> {
       }
     } catch (_) {}
     // Apply priority: items in priorityList first, then others
-    final priorityAssets = <CurrencyAsset>[];
-    final otherAssets = <CurrencyAsset>[];
+    final priorityAssets = <models.CurrencyAsset>[];
+    final otherAssets = <models.CurrencyAsset>[];
     for (final symbol in priorityList) {
       priorityAssets.addAll(assets.where((a) => a.symbol == symbol));
     }
@@ -1322,8 +442,8 @@ class CurrencyNotifier extends DataFetcherNotifier<CurrencyAsset> {
   }
 }
 
-final currencyProvider =
-    StateNotifierProvider<CurrencyNotifier, AsyncValue<List<CurrencyAsset>>>((
+final currencyProvider = StateNotifierProvider<CurrencyNotifier,
+    AsyncValue<List<models.CurrencyAsset>>>((
   ref,
 ) {
   final apiService = ref.watch(apiServiceProvider);
@@ -1331,8 +451,8 @@ final currencyProvider =
   return CurrencyNotifier(apiService, appConfig);
 });
 
-class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
-  GoldNotifier(ApiService apiService, AppConfig appConfig)
+class GoldNotifier extends DataFetcherNotifier<models.GoldAsset> {
+  GoldNotifier(ApiService apiService, config.AppConfig appConfig)
       : super(
           apiService,
           'gold_cache',
@@ -1341,19 +461,20 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
         );
 
   @override
-  Future<List<GoldAsset>> _fetchAndParse(String url) async {
+  Future<List<models.GoldAsset>> _fetchAndParse(String url) async {
     // Fetch local gold prices
-    final List<GoldAsset> goldAssets = [];
+    final List<models.GoldAsset> goldAssets = [];
     final goldResponseData = await _apiService.fetchData(url);
     if (goldResponseData is Map && goldResponseData.containsKey('gold')) {
       goldAssets.addAll(
         (goldResponseData['gold'] as List)
-            .map((item) => GoldAsset.fromJson(item as Map<String, dynamic>))
+            .map((item) =>
+                models.GoldAsset.fromJson(item as Map<String, dynamic>))
             .toList(),
       );
     }
     // Fetch commodity data: precious metals, base metals, and energy
-    final List<GoldAsset> commodityAssets = [];
+    final List<models.GoldAsset> commodityAssets = [];
     final commodityUrl = _appConfig.apiEndpoints.commodityUrl;
     if (commodityUrl.isNotEmpty) {
       final commodityResponseData = await _apiService.fetchData(commodityUrl);
@@ -1367,7 +488,7 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
         commodityAssets.addAll(
           preciousList
               .map(
-                (item) => GoldAsset.fromJson(
+                (item) => models.GoldAsset.fromJson(
                   item as Map<String, dynamic>,
                   isCommodity: true,
                 ),
@@ -1377,7 +498,7 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
         commodityAssets.addAll(
           baseList
               .map(
-                (item) => GoldAsset.fromJson(
+                (item) => models.GoldAsset.fromJson(
                   item as Map<String, dynamic>,
                   isCommodity: true,
                 ),
@@ -1387,7 +508,7 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
         commodityAssets.addAll(
           energyList
               .map(
-                (item) => GoldAsset.fromJson(
+                (item) => models.GoldAsset.fromJson(
                   item as Map<String, dynamic>,
                   isCommodity: true,
                 ),
@@ -1397,7 +518,7 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
       }
     }
     // Combine gold and commodity assets, avoiding duplicates by symbol
-    final List<GoldAsset> combinedAssets = [];
+    final List<models.GoldAsset> combinedAssets = [];
     final Set<String> seen = {};
     for (final asset in goldAssets) {
       if (seen.add(asset.id)) {
@@ -1426,8 +547,8 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
       }
     } catch (_) {}
     // Apply priority: gold first, then commodity, then others
-    final goldPriorityAssets = <GoldAsset>[];
-    final remainingAssets = <GoldAsset>[];
+    final goldPriorityAssets = <models.GoldAsset>[];
+    final remainingAssets = <models.GoldAsset>[];
     for (final symbol in goldPriorityList) {
       goldPriorityAssets.addAll(
         combinedAssets.where((a) => a.symbol == symbol),
@@ -1438,8 +559,8 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
         remainingAssets.add(asset);
       }
     }
-    final commodityPriorityAssets = <GoldAsset>[];
-    final otherAssets = <GoldAsset>[];
+    final commodityPriorityAssets = <models.GoldAsset>[];
+    final otherAssets = <models.GoldAsset>[];
     for (final symbol in commodityPriorityList) {
       commodityPriorityAssets.addAll(
         remainingAssets.where(
@@ -1457,14 +578,16 @@ class GoldNotifier extends DataFetcherNotifier<GoldAsset> {
 }
 
 final goldProvider =
-    StateNotifierProvider<GoldNotifier, AsyncValue<List<GoldAsset>>>((ref) {
+    StateNotifierProvider<GoldNotifier, AsyncValue<List<models.GoldAsset>>>((
+  ref,
+) {
   final apiService = ref.watch(apiServiceProvider);
   final appConfig = ref.watch(appConfigProvider).asData!.value;
   return GoldNotifier(apiService, appConfig);
 });
 
-class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
-  CryptoNotifier(ApiService apiService, AppConfig appConfig)
+class CryptoNotifier extends DataFetcherNotifier<models.CryptoAsset> {
+  CryptoNotifier(ApiService apiService, config.AppConfig appConfig)
       : super(
           apiService,
           'crypto_cache',
@@ -1473,12 +596,13 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
         );
 
   @override
-  Future<List<CryptoAsset>> _fetchAndParse(String url) async {
+  Future<List<models.CryptoAsset>> _fetchAndParse(String url) async {
     final responseData = await _apiService.fetchData(url);
     if (responseData is List) {
       // Parse all crypto assets
       final assets = responseData
-          .map((item) => CryptoAsset.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              models.CryptoAsset.fromJson(item as Map<String, dynamic>))
           .toList();
       // Load priority list for crypto
       List<String> priorityList = [];
@@ -1493,8 +617,8 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
         }
       } catch (_) {}
       // Partition assets into iconed (custom icons) and non-iconed
-      final iconed = <CryptoAsset>[];
-      final nonIconed = <CryptoAsset>[];
+      final iconed = <models.CryptoAsset>[];
+      final nonIconed = <models.CryptoAsset>[];
       for (final asset in assets) {
         if (_cryptoIconMap.containsKey(asset.name.toLowerCase())) {
           iconed.add(asset);
@@ -1503,8 +627,8 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
         }
       }
       // Within iconed, order by priorityList, then others
-      final iconedPriority = <CryptoAsset>[];
-      final iconedOthers = <CryptoAsset>[];
+      final iconedPriority = <models.CryptoAsset>[];
+      final iconedOthers = <models.CryptoAsset>[];
       for (final name in priorityList) {
         final matches = iconed.where((a) => a.name == name);
         iconedPriority.addAll(matches);
@@ -1513,8 +637,8 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
         if (!iconedPriority.contains(a)) iconedOthers.add(a);
       }
       // Within non-iconed, order priorityList, then others
-      final nonIconedPriority = <CryptoAsset>[];
-      final nonIconedOthers = <CryptoAsset>[];
+      final nonIconedPriority = <models.CryptoAsset>[];
+      final nonIconedOthers = <models.CryptoAsset>[];
       for (final name in priorityList) {
         final matches = nonIconed.where((a) => a.name == name);
         nonIconedPriority.addAll(matches);
@@ -1523,27 +647,27 @@ class CryptoNotifier extends DataFetcherNotifier<CryptoAsset> {
         if (!nonIconedPriority.contains(a)) nonIconedOthers.add(a);
       }
       // Combine lists: iconed priority, iconed others, non-iconed priority, non-iconed others
-      return <CryptoAsset>[
+      return <models.CryptoAsset>[
         ...iconedPriority,
         ...iconedOthers,
         ...nonIconedPriority,
         ...nonIconedOthers,
       ];
     }
-    return <CryptoAsset>[];
+    return <models.CryptoAsset>[];
   }
 }
 
-final cryptoProvider =
-    StateNotifierProvider<CryptoNotifier, AsyncValue<List<CryptoAsset>>>((ref) {
+final cryptoProvider = StateNotifierProvider<CryptoNotifier,
+    AsyncValue<List<models.CryptoAsset>>>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   final appConfig = ref.watch(appConfigProvider).asData!.value;
   return CryptoNotifier(apiService, appConfig);
 });
 
 // Stock Notifiers (one for each sub-category)
-class StockTseIfbNotifier extends DataFetcherNotifier<StockAsset> {
-  StockTseIfbNotifier(ApiService apiService, AppConfig appConfig)
+class StockTseIfbNotifier extends DataFetcherNotifier<models.StockAsset> {
+  StockTseIfbNotifier(ApiService apiService, config.AppConfig appConfig)
       : super(
           apiService,
           'stock_tse_ifb_cache',
@@ -1551,11 +675,12 @@ class StockTseIfbNotifier extends DataFetcherNotifier<StockAsset> {
           appConfig.apiEndpoints.stockTseIfbSymbolsUrl,
         );
   @override
-  Future<List<StockAsset>> _fetchAndParse(String url) async {
+  Future<List<models.StockAsset>> _fetchAndParse(String url) async {
     final responseData = await _apiService.fetchData(url);
     if (responseData is List) {
       final assets = responseData
-          .map((item) => StockAsset.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              models.StockAsset.fromJson(item as Map<String, dynamic>))
           .toList();
       // Load priority list for TSE/IFB symbols
       List<String> priorityList = [];
@@ -1570,8 +695,8 @@ class StockTseIfbNotifier extends DataFetcherNotifier<StockAsset> {
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
-      final priorityAssets = <StockAsset>[];
-      final otherAssets = <StockAsset>[];
+      final priorityAssets = <models.StockAsset>[];
+      final otherAssets = <models.StockAsset>[];
       for (final symbol in priorityList) {
         priorityAssets.addAll(assets.where((a) => a.symbol == symbol));
       }
@@ -1586,8 +711,8 @@ class StockTseIfbNotifier extends DataFetcherNotifier<StockAsset> {
   }
 }
 
-final stockTseIfbProvider =
-    StateNotifierProvider<StockTseIfbNotifier, AsyncValue<List<StockAsset>>>((
+final stockTseIfbProvider = StateNotifierProvider<StockTseIfbNotifier,
+    AsyncValue<List<models.StockAsset>>>((
   ref,
 ) {
   final apiService = ref.watch(apiServiceProvider);
@@ -1595,20 +720,24 @@ final stockTseIfbProvider =
   return StockTseIfbNotifier(apiService, appConfig);
 });
 
-class StockDebtSecuritiesNotifier extends DataFetcherNotifier<StockAsset> {
-  StockDebtSecuritiesNotifier(ApiService apiService, AppConfig appConfig)
-      : super(
+class StockDebtSecuritiesNotifier
+    extends DataFetcherNotifier<models.StockAsset> {
+  StockDebtSecuritiesNotifier(
+    ApiService apiService,
+    config.AppConfig appConfig,
+  ) : super(
           apiService,
           'stock_debt_cache',
           appConfig,
           appConfig.apiEndpoints.stockDebtSecuritiesUrl,
         );
   @override
-  Future<List<StockAsset>> _fetchAndParse(String url) async {
+  Future<List<models.StockAsset>> _fetchAndParse(String url) async {
     final responseData = await _apiService.fetchData(url);
     if (responseData is List) {
       final assets = responseData
-          .map((item) => StockAsset.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              models.StockAsset.fromJson(item as Map<String, dynamic>))
           .toList();
       // Load priority list for debt securities
       List<String> priorityList = [];
@@ -1623,8 +752,8 @@ class StockDebtSecuritiesNotifier extends DataFetcherNotifier<StockAsset> {
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
-      final priorityAssets = <StockAsset>[];
-      final otherAssets = <StockAsset>[];
+      final priorityAssets = <models.StockAsset>[];
+      final otherAssets = <models.StockAsset>[];
       for (final symbol in priorityList) {
         priorityAssets.addAll(assets.where((a) => a.symbol == symbol));
       }
@@ -1640,14 +769,14 @@ class StockDebtSecuritiesNotifier extends DataFetcherNotifier<StockAsset> {
 }
 
 final stockDebtSecuritiesProvider = StateNotifierProvider<
-    StockDebtSecuritiesNotifier, AsyncValue<List<StockAsset>>>((ref) {
+    StockDebtSecuritiesNotifier, AsyncValue<List<models.StockAsset>>>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   final appConfig = ref.watch(appConfigProvider).asData!.value;
   return StockDebtSecuritiesNotifier(apiService, appConfig);
 });
 
-class StockFuturesNotifier extends DataFetcherNotifier<StockAsset> {
-  StockFuturesNotifier(ApiService apiService, AppConfig appConfig)
+class StockFuturesNotifier extends DataFetcherNotifier<models.StockAsset> {
+  StockFuturesNotifier(ApiService apiService, config.AppConfig appConfig)
       : super(
           apiService,
           'stock_futures_cache',
@@ -1655,11 +784,12 @@ class StockFuturesNotifier extends DataFetcherNotifier<StockAsset> {
           appConfig.apiEndpoints.stockFuturesUrl,
         );
   @override
-  Future<List<StockAsset>> _fetchAndParse(String url) async {
+  Future<List<models.StockAsset>> _fetchAndParse(String url) async {
     final responseData = await _apiService.fetchData(url);
     if (responseData is List) {
       final assets = responseData
-          .map((item) => StockAsset.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              models.StockAsset.fromJson(item as Map<String, dynamic>))
           .toList();
       // Load priority list for futures
       List<String> priorityList = [];
@@ -1674,8 +804,8 @@ class StockFuturesNotifier extends DataFetcherNotifier<StockAsset> {
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
-      final priorityAssets = <StockAsset>[];
-      final otherAssets = <StockAsset>[];
+      final priorityAssets = <models.StockAsset>[];
+      final otherAssets = <models.StockAsset>[];
       for (final symbol in priorityList) {
         priorityAssets.addAll(assets.where((a) => a.symbol == symbol));
       }
@@ -1690,8 +820,8 @@ class StockFuturesNotifier extends DataFetcherNotifier<StockAsset> {
   }
 }
 
-final stockFuturesProvider =
-    StateNotifierProvider<StockFuturesNotifier, AsyncValue<List<StockAsset>>>((
+final stockFuturesProvider = StateNotifierProvider<StockFuturesNotifier,
+    AsyncValue<List<models.StockAsset>>>((
   ref,
 ) {
   final apiService = ref.watch(apiServiceProvider);
@@ -1699,20 +829,24 @@ final stockFuturesProvider =
   return StockFuturesNotifier(apiService, appConfig);
 });
 
-class StockHousingFacilitiesNotifier extends DataFetcherNotifier<StockAsset> {
-  StockHousingFacilitiesNotifier(ApiService apiService, AppConfig appConfig)
-      : super(
+class StockHousingFacilitiesNotifier
+    extends DataFetcherNotifier<models.StockAsset> {
+  StockHousingFacilitiesNotifier(
+    ApiService apiService,
+    config.AppConfig appConfig,
+  ) : super(
           apiService,
           'stock_housing_cache',
           appConfig,
           appConfig.apiEndpoints.stockHousingFacilitiesUrl,
         );
   @override
-  Future<List<StockAsset>> _fetchAndParse(String url) async {
+  Future<List<models.StockAsset>> _fetchAndParse(String url) async {
     final responseData = await _apiService.fetchData(url);
     if (responseData is List) {
       final assets = responseData
-          .map((item) => StockAsset.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              models.StockAsset.fromJson(item as Map<String, dynamic>))
           .toList();
       // Load priority list for housing facilities
       List<String> priorityList = [];
@@ -1727,8 +861,8 @@ class StockHousingFacilitiesNotifier extends DataFetcherNotifier<StockAsset> {
         }
       } catch (_) {}
       // Apply priority: items in priorityList first, then others
-      final priorityAssets = <StockAsset>[];
-      final otherAssets = <StockAsset>[];
+      final priorityAssets = <models.StockAsset>[];
+      final otherAssets = <models.StockAsset>[];
       for (final symbol in priorityList) {
         priorityAssets.addAll(assets.where((a) => a.symbol == symbol));
       }
@@ -1744,7 +878,7 @@ class StockHousingFacilitiesNotifier extends DataFetcherNotifier<StockAsset> {
 }
 
 final stockHousingFacilitiesProvider = StateNotifierProvider<
-    StockHousingFacilitiesNotifier, AsyncValue<List<StockAsset>>>((ref) {
+    StockHousingFacilitiesNotifier, AsyncValue<List<models.StockAsset>>>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   final appConfig = ref.watch(appConfigProvider).asData!.value;
   return StockHousingFacilitiesNotifier(apiService, appConfig);
@@ -1769,19 +903,20 @@ class CardCornerSettings {
 }
 
 final cardCornerSettingsProvider =
-    StateNotifierProvider<CardCornerSettingsNotifier, CardCornerSettings>(
+    StateNotifierProvider<CardCornerSettingsNotifier, config.CardCornerSettings>(
         (ref) {
-  final appConfig =
-      ref.watch(appConfigProvider).asData?.value ?? AppConfig.defaultConfig();
+  final appConfig = ref.watch(appConfigProvider).asData?.value ??
+      config.AppConfig.defaultConfig();
   return CardCornerSettingsNotifier(
-    CardCornerSettings(
+    config.CardCornerSettings(
       radius: appConfig.themeOptions.light.cardBorderRadius,
       smoothness: appConfig.themeOptions.light.cardCornerSmoothness,
     ),
   );
 });
 
-class CardCornerSettingsNotifier extends StateNotifier<CardCornerSettings> {
+class CardCornerSettingsNotifier
+    extends StateNotifier<config.CardCornerSettings> {
   CardCornerSettingsNotifier(super.initial) {
     _loadSettings();
   }
@@ -1796,7 +931,8 @@ class CardCornerSettingsNotifier extends StateNotifier<CardCornerSettings> {
       final smoothness = prefs.getDouble(_smoothnessKey);
 
       if (radius != null && smoothness != null) {
-        state = CardCornerSettings(radius: radius, smoothness: smoothness);
+        state =
+            config.CardCornerSettings(radius: radius, smoothness: smoothness);
       }
     } catch (e) {
       // Fallback to default if loading fails
@@ -1828,7 +964,7 @@ class CardCornerSettingsNotifier extends StateNotifier<CardCornerSettings> {
 // region 2. API Service
 class ApiService {
   final Dio _dio;
-  final ApiEndpoints
+  final config.ApiEndpoints
       _apiEndpoints; // Not used directly here, but good for context
 
   ApiService(this._dio, this._apiEndpoints);
@@ -1892,7 +1028,7 @@ void main() async {
           ),
       ],
       child: ScrollConfiguration(
-        behavior: SmoothScrollBehavior(),
+        behavior: ui_theme.SmoothScrollBehavior(),
         child: const RiyalesApp(),
       ),
     ),
@@ -1940,253 +1076,28 @@ class _RiyalesAppState extends ConsumerState<RiyalesApp> {
       data: themeData,
       child: appConfigAsync.when(
         data: (config) {
-          final lightThemeConfig = config.themeOptions.light;
-          final darkThemeConfig = config.themeOptions.dark;
+          final String lightFontFamily = currentLocale.languageCode == 'fa'
+              ? config.fonts.persianFontFamily
+              : config.fonts.englishFontFamily;
+          final String darkFontFamily = currentLocale.languageCode == 'fa'
+              ? config.fonts.persianFontFamily
+              : config.fonts.englishFontFamily;
 
-          // Define text theme using local fonts
-          TextTheme createTextTheme(String fontFamily, Color textColor) {
-            return TextTheme(
-              displayLarge: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 57,
-                fontWeight: FontWeight.w400,
-              ),
-              displayMedium: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 45,
-                fontWeight: FontWeight.w400,
-              ),
-              displaySmall: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 36,
-                fontWeight: FontWeight.w400,
-              ),
-              headlineLarge: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 32,
-                fontWeight: FontWeight.w400,
-              ),
-              headlineMedium: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 28,
-                fontWeight: FontWeight.w400,
-              ),
-              headlineSmall: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-              titleLarge: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w500,
-              ),
-              titleMedium: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-              titleSmall: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              bodyLarge: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-              ),
-              bodyMedium: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-              bodySmall: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
-              labelLarge: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              labelMedium: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              labelSmall: TextStyle(
-                fontFamily: fontFamily,
-                color: textColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-              ),
-            );
-          }
+          // Determine the font for AppBar titles based on locale (Vazirmatn for FA, Onest otherwise)
+          final String titleFontFamily =
+              currentLocale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest';
 
-          final lightTextTheme = createTextTheme(
-            currentLocale.languageCode == 'fa'
-                ? config.fonts.persianFontFamily
-                : config.fonts.englishFontFamily,
-            _hexToColor(lightThemeConfig.textColor),
+          final ThemeData lightTheme = ui_theme.AppTheme.getThemeData(
+            config.themeOptions.light,
+            lightFontFamily,
+            titleFontFamily, // Pass the specific title font
+            false, // isDarkMode
           );
-          final darkTextTheme = createTextTheme(
-            currentLocale.languageCode == 'fa'
-                ? config.fonts.persianFontFamily
-                : config.fonts.englishFontFamily,
-            _hexToColor(darkThemeConfig.textColor),
-          );
-
-          // Make dark theme slightly darker for a more modern look
-          final darkBackgroundColor = _hexToColor(
-            darkThemeConfig.backgroundColor,
-          ).darken(10);
-          final darkCardColor = _hexToColor(
-            darkThemeConfig.cardColor,
-          ).darken(5);
-          final darkScaffoldBackgroundColor = _hexToColor(
-            darkThemeConfig.scaffoldBackgroundColor,
-          ).darken(10);
-
-          final lightTheme = ThemeData(
-            brightness: Brightness.light,
-            primaryColor: _hexToColor(lightThemeConfig.primaryColor),
-            scaffoldBackgroundColor: _hexToColor(
-              lightThemeConfig.scaffoldBackgroundColor,
-            ),
-            appBarTheme: AppBarTheme(
-              backgroundColor: _hexToColor(
-                lightThemeConfig.scaffoldBackgroundColor,
-              ), // Use scaffold background for uniformity
-              elevation: 0, // Flat design
-              iconTheme: IconThemeData(
-                color: _hexToColor(lightThemeConfig.textColor),
-              ),
-              titleTextStyle: TextStyle(
-                fontFamily:
-                    currentLocale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest',
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                color: _hexToColor(lightThemeConfig.textColor),
-              ),
-              systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarColor: _hexToColor(
-                  lightThemeConfig.scaffoldBackgroundColor,
-                ),
-                statusBarIconBrightness: Brightness.dark,
-                systemNavigationBarColor: _hexToColor(
-                  lightThemeConfig.scaffoldBackgroundColor,
-                ),
-                systemNavigationBarIconBrightness: Brightness.dark,
-              ),
-            ),
-            cardTheme: CardTheme(
-              elevation: 0, // Flat design
-              color: _hexToColor(lightThemeConfig.cardColor),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  lightThemeConfig.cardBorderRadius,
-                ),
-              ),
-            ),
-            textTheme: lightTextTheme,
-            colorScheme: ColorScheme.light(
-              primary: _hexToColor(lightThemeConfig.primaryColor),
-              secondary: _hexToColor(lightThemeConfig.accentColorGreen),
-              surface: _hexToColor(lightThemeConfig.cardColor),
-              onPrimary: _hexToColor(lightThemeConfig.textColor),
-              onSecondary: Colors.white,
-              onSurface: _hexToColor(lightThemeConfig.textColor),
-              error: _hexToColor(lightThemeConfig.accentColorRed),
-              onError: Colors.white,
-            ),
-            iconTheme: IconThemeData(
-              color: _hexToColor(lightThemeConfig.secondaryTextColor),
-            ),
-            dividerColor: Colors.transparent, // No separator lines
-            dropdownMenuTheme: DropdownMenuThemeData(
-              menuStyle: MenuStyle(
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
-          );
-
-          final darkTheme = ThemeData(
-            brightness: Brightness.dark,
-            primaryColor: _hexToColor(darkThemeConfig.primaryColor),
-            scaffoldBackgroundColor: darkScaffoldBackgroundColor,
-            appBarTheme: AppBarTheme(
-              backgroundColor: darkScaffoldBackgroundColor,
-              elevation: 0,
-              iconTheme: IconThemeData(
-                color: _hexToColor(darkThemeConfig.textColor),
-              ),
-              titleTextStyle: TextStyle(
-                fontFamily:
-                    currentLocale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest',
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                color: _hexToColor(darkThemeConfig.textColor),
-              ),
-              systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarColor: darkScaffoldBackgroundColor,
-                statusBarIconBrightness: Brightness.light,
-                systemNavigationBarColor: darkScaffoldBackgroundColor,
-                systemNavigationBarIconBrightness: Brightness.light,
-              ),
-            ),
-            cardTheme: CardTheme(
-              elevation: 0,
-              color: darkCardColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  darkThemeConfig.cardBorderRadius,
-                ),
-              ),
-            ),
-            textTheme: darkTextTheme,
-            colorScheme: ColorScheme.dark(
-              primary: _hexToColor(darkThemeConfig.primaryColor),
-              secondary: _hexToColor(darkThemeConfig.accentColorGreen),
-              surface: darkCardColor,
-              onPrimary: _hexToColor(darkThemeConfig.textColor),
-              onSecondary: _hexToColor(darkThemeConfig.textColor),
-              onSurface: _hexToColor(darkThemeConfig.textColor),
-              error: _hexToColor(darkThemeConfig.accentColorRed),
-              onError: _hexToColor(darkThemeConfig.textColor), // Check contrast
-            ),
-            iconTheme: IconThemeData(
-              color: _hexToColor(darkThemeConfig.secondaryTextColor),
-            ),
-            dividerColor: Colors.transparent,
-            dropdownMenuTheme: DropdownMenuThemeData(
-              menuStyle: MenuStyle(
-                shape: WidgetStatePropertyAll(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
+          final ThemeData darkTheme = ui_theme.AppTheme.getThemeData(
+            config.themeOptions.dark,
+            darkFontFamily,
+            titleFontFamily, // Pass the specific title font
+            true, // isDarkMode
           );
 
           return MaterialApp(
@@ -2238,7 +1149,7 @@ class _RiyalesAppState extends ConsumerState<RiyalesApp> {
 
 // region 4. Splash Screen
 class SplashScreen extends StatefulWidget {
-  final SplashScreenConfig config;
+  final config.SplashScreenConfig config;
   const SplashScreen({super.key, required this.config});
 
   @override
@@ -2331,9 +1242,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // Map to store scroll listeners for each tab
   final Map<int, void Function()> _tabScrollListeners = {};
   // Global keys for tab pages
-  final currencyTabKey = GlobalKey<_AssetListPageState<CurrencyAsset>>();
-  final goldTabKey = GlobalKey<_AssetListPageState<GoldAsset>>();
-  final cryptoTabKey = GlobalKey<_AssetListPageState<CryptoAsset>>();
+  final currencyTabKey = GlobalKey<_AssetListPageState<models.CurrencyAsset>>();
+  final goldTabKey = GlobalKey<_AssetListPageState<models.GoldAsset>>();
+  final cryptoTabKey = GlobalKey<_AssetListPageState<models.CryptoAsset>>();
   final stockTabKey = GlobalKey<_StockPageState>();
 
   // Method to set up scroll listener for auto-hiding search bar
@@ -2498,17 +1409,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ]);
 
     _mainTabViews.addAll([
-      AssetListPage<CurrencyAsset>(
+      AssetListPage<models.CurrencyAsset>(
         key: currencyTabKey,
         provider: currencyProvider,
         assetType: AssetType.currency,
       ),
-      AssetListPage<GoldAsset>(
+      AssetListPage<models.GoldAsset>(
         key: goldTabKey,
         provider: goldProvider,
         assetType: AssetType.gold,
       ),
-      AssetListPage<CryptoAsset>(
+      AssetListPage<models.CryptoAsset>(
         key: cryptoTabKey,
         provider: cryptoProvider,
         assetType: AssetType.crypto,
@@ -4128,7 +3039,7 @@ enum AssetType { currency, gold, crypto, stock }
 // Insert SortMode enum for long-press sorting
 enum SortMode { defaultOrder, highestPrice, lowestPrice }
 
-class AssetListPage<T extends Asset> extends ConsumerStatefulWidget {
+class AssetListPage<T extends models.Asset> extends ConsumerStatefulWidget {
   final StateNotifierProvider<DataFetcherNotifier<T>, AsyncValue<List<T>>>
       provider;
   final AssetType assetType;
@@ -4143,7 +3054,7 @@ class AssetListPage<T extends Asset> extends ConsumerStatefulWidget {
   _AssetListPageState<T> createState() => _AssetListPageState<T>();
 }
 
-class _AssetListPageState<T extends Asset>
+class _AssetListPageState<T extends models.Asset>
     extends ConsumerState<AssetListPage<T>> {
   // Pull-to-refresh corner animation config: maximum changes
   static const double _maxRadiusDelta = 13.5;
@@ -4538,7 +3449,7 @@ class _AssetListPageState<T extends Asset>
 }
 
 class AssetCard extends ConsumerWidget {
-  final Asset asset;
+  final models.Asset asset;
   final AssetType assetType;
   // final double? height;
 
@@ -4577,32 +3488,32 @@ class AssetCard extends ConsumerWidget {
     String originalUnitSymbol =
         ''; // e.g., "USD" or "تومان" for the asset's original price
 
-    if (asset is CurrencyAsset) {
-      originalUnitSymbol = (asset as CurrencyAsset).unit;
-    } else if (asset is GoldAsset) {
-      originalUnitSymbol = (asset as GoldAsset).unit;
+    if (asset is models.CurrencyAsset) {
+      originalUnitSymbol = (asset as models.CurrencyAsset).unit;
+    } else if (asset is models.GoldAsset) {
+      originalUnitSymbol = (asset as models.GoldAsset).unit;
       // If gold is in USD (like XAUUSD) and user wants Toman, we need USD->Toman rate
-    } else if (asset is CryptoAsset) {
+    } else if (asset is models.CryptoAsset) {
       originalUnitSymbol = "USD"; // Crypto prices are in USD from API
       // If user wants Toman, use price_toman field or convert USD->Toman
       if (currencyUnit == CurrencyUnit.toman) {
         priceToConvert = num.tryParse(
-              (asset as CryptoAsset).priceToman.replaceAll(',', ''),
+              (asset as models.CryptoAsset).priceToman.replaceAll(',', ''),
             ) ??
             asset.price;
         originalUnitSymbol = "تومان";
       }
-    } else if (asset is StockAsset) {
+    } else if (asset is models.StockAsset) {
       originalUnitSymbol =
           "ریال"; // Assuming TSE stocks are in Rial, then convert to Toman
       priceToConvert = asset.price / 10; // Rial to Toman
     }
 
-    if (allCurrencies is AsyncData<List<CurrencyAsset>>) {
+    if (allCurrencies is AsyncData<List<models.CurrencyAsset>>) {
       final usdToTomanRate = allCurrencies.value
           .firstWhere(
             (c) => c.symbol == 'USD',
-            orElse: () => const CurrencyAsset(
+            orElse: () => const models.CurrencyAsset(
               id: 'USD',
               name: 'Dollar',
               nameEn: 'US Dollar',
@@ -4615,7 +3526,7 @@ class AssetCard extends ConsumerWidget {
       final eurToTomanRate = allCurrencies.value
           .firstWhere(
             (c) => c.symbol == 'EUR',
-            orElse: () => const CurrencyAsset(
+            orElse: () => const models.CurrencyAsset(
               id: 'EUR',
               name: 'Euro',
               nameEn: 'Euro',
@@ -4669,14 +3580,16 @@ class AssetCard extends ConsumerWidget {
     } else {
       // Fallback if currency rates not loaded
       numericPrice = priceToConvert.toDouble();
-      displayUnit = (asset is StockAsset)
+      displayUnit = (asset is models.StockAsset)
           ? l10n.currencyUnitToman
-          : (asset is CryptoAsset ? "USD" : (asset as dynamic).unit ?? '');
+          : (asset is models.CryptoAsset
+              ? "USD"
+              : (asset as dynamic).unit ?? '');
     }
 
     Widget iconWidget;
     if (assetType == AssetType.crypto &&
-        (asset as CryptoAsset).iconUrl != null) {
+        (asset as models.CryptoAsset).iconUrl != null) {
       final cryptoConfig = appConfig.cryptoIconFilter;
       final double contrastValue = (1 + cryptoConfig.contrast + 0.2);
       final matrix = <double>[
@@ -4707,7 +3620,7 @@ class AssetCard extends ConsumerWidget {
           : const ui.Color.fromARGB(255, 94, 150, 255);
 
       // Check if we have a local SVG for this crypto
-      final String cryptoName = (asset as CryptoAsset).name.toLowerCase();
+      final String cryptoName = (asset as models.CryptoAsset).name.toLowerCase();
       final CryptoIconInfo? cryptoIconInfo = _cryptoIconMap[cryptoName];
 
       if (cryptoIconInfo != null) {
@@ -4743,7 +3656,7 @@ class AssetCard extends ConsumerWidget {
         iconWidget = _DynamicGlow(
           key: ValueKey(asset.id),
           imageProvider: CachedNetworkImageProvider(
-            (asset as CryptoAsset).iconUrl!,
+            (asset as models.CryptoAsset).iconUrl!,
           ),
           // preferredGlowColor is null, so PaletteGenerator will attempt generation
           defaultGlowColor: defaultGlow, // Fallback if PaletteGenerator fails
@@ -4757,7 +3670,7 @@ class AssetCard extends ConsumerWidget {
               cacheManager: CacheManager(
                 Config('cryptoCache', stalePeriod: const Duration(days: 30)),
               ),
-              imageUrl: (asset as CryptoAsset).iconUrl!,
+              imageUrl: (asset as models.CryptoAsset).iconUrl!,
               width: 32,
               height: 32,
               imageBuilder: (context, imageProvider) => Container(
@@ -4796,8 +3709,9 @@ class AssetCard extends ConsumerWidget {
           ),
         );
       }
-    } else if (assetType == AssetType.currency && asset is CurrencyAsset) {
-      String currencyCode = (asset as CurrencyAsset).symbol.toLowerCase();
+    } else if (assetType == AssetType.currency &&
+        asset is models.CurrencyAsset) {
+      String currencyCode = (asset as models.CurrencyAsset).symbol.toLowerCase();
       String countryCode = _getCurrencyCountryCode(currencyCode);
 
       String flagPath = 'assets/icons/flags/$countryCode.svg';
@@ -4866,7 +3780,7 @@ class AssetCard extends ConsumerWidget {
               placeholderBuilder: (BuildContext context) => CircleAvatar(
                 backgroundColor: Colors.grey[300],
                 child: Text(
-                  (asset as CurrencyAsset).symbol.substring(0, 1),
+                  (asset as models.CurrencyAsset).symbol.substring(0, 1),
                   style: TextStyle(color: Colors.grey[700], fontSize: 12),
                 ),
               ),
@@ -4950,17 +3864,17 @@ class AssetCard extends ConsumerWidget {
     }
 
     String assetName =
-        currentLocale.languageCode == 'fa' && asset is CryptoAsset
-            ? (asset as CryptoAsset).nameFa
+        currentLocale.languageCode == 'fa' && asset is models.CryptoAsset
+            ? (asset as models.CryptoAsset).nameFa
             : asset.name;
-    if (currentLocale.languageCode == 'fa' && asset is CurrencyAsset) {
+    if (currentLocale.languageCode == 'fa' && asset is models.CurrencyAsset) {
       assetName = asset.name;
     }
-    if (currentLocale.languageCode == 'en' && asset is CurrencyAsset) {
-      assetName = (asset as CurrencyAsset).nameEn;
+    if (currentLocale.languageCode == 'en' && asset is models.CurrencyAsset) {
+      assetName = (asset as models.CurrencyAsset).nameEn;
     }
-    if (currentLocale.languageCode == 'en' && asset is GoldAsset) {
-      assetName = (asset as GoldAsset).nameEn;
+    if (currentLocale.languageCode == 'en' && asset is models.GoldAsset) {
+      assetName = (asset as models.GoldAsset).nameEn;
     }
 
     // Detect if the text has Persian/Arabic characters for consistent font selection
@@ -5393,19 +4307,19 @@ class AssetSearchDelegate extends SearchDelegate<String> {
     Widget listToShow;
     switch (currentTabIndex) {
       case 0: // Currency
-        listToShow = AssetListPage<CurrencyAsset>(
+        listToShow = AssetListPage<models.CurrencyAsset>(
           provider: currencyProvider,
           assetType: AssetType.currency,
         );
         break;
       case 1: // Gold
-        listToShow = AssetListPage<GoldAsset>(
+        listToShow = AssetListPage<models.GoldAsset>(
           provider: goldProvider,
           assetType: AssetType.gold,
         );
         break;
       case 2: // Crypto
-        listToShow = AssetListPage<CryptoAsset>(
+        listToShow = AssetListPage<models.CryptoAsset>(
           provider: cryptoProvider,
           assetType: AssetType.crypto,
         );
@@ -5414,7 +4328,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
         // For simplicity, search across all stock types or just the primary (TSE/IFB)
         // This part requires more complex state management for search within nested tabs.
         // As a placeholder, show TSE/IFB results.
-        listToShow = AssetListPage<StockAsset>(
+        listToShow = AssetListPage<models.StockAsset>(
           provider: stockTseIfbProvider,
           assetType: AssetType.stock,
         );
@@ -5592,285 +4506,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
 // This will be generated by `flutter gen-l10n` if you use ARB files.
 // For a single file, we define it manually.
 
-class AppLocalizations {
-  final Locale locale;
-
-  AppLocalizations(this.locale);
-
-  static AppLocalizations? of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations);
-  }
-
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
-
-  Map<String, String> _localizedStrings = {};
-
-  Future<bool> load() async {
-    // In a real app with ARB files, this would load the ARB file.
-    // Here, we define strings directly.
-    if (locale.languageCode == 'fa') {
-      _localizedStrings = {
-        'riyalesAppTitle': 'ریالِس',
-        'tabCurrency': 'ارز',
-        'tabGold': 'طلا',
-        'tabCrypto': 'کریپتو',
-        'tabStock': 'بورس',
-        'stockTabSymbols': 'نمادها',
-        'stockTabDebtSecurities': 'اوراق', //'اوراق بدهی'
-        'stockTabFutures': 'آتی',
-        'stockTabHousingFacilities': 'تسهیلات', //'تسهیلات مسکن'
-        'searchPlaceholder': 'جستجو...',
-        'listNoData': 'داده‌ای برای نمایش وجود ندارد.',
-        'searchNoResults': 'نتیجه‌ای یافت نشد.',
-        'searchStartTyping': 'برای جستجو تایپ کنید.',
-        'errorFetchingData': 'خطا در دریافت اطلاعات',
-        'retryButton': 'تلاش مجدد',
-        'cardTapped': 'کارت لمس شد',
-        'settingsTitle': 'تنظیمات',
-        'settingsTheme': 'پوسته برنامه',
-        'themeLight': 'روشن',
-        'themeDark': 'تاریک',
-        'settingsLanguage': 'زبان برنامه',
-        'dialogClose': 'بستن',
-        'settingsCurrencyUnit': 'واحد پول نمایش',
-        'currencyUnitToman': 'تومان',
-        'currencyUnitUSD': 'دلار',
-        'currencyUnitEUR': 'یورو',
-        'errorNoInternet': 'اتصال اینترنت برقرار نیست',
-        'errorCheckConnection': 'لطفاً اتصال اینترنت خود را بررسی کنید.',
-        'errorServerUnavailable': 'سرور در دسترس نیست.',
-        'errorServerMessage': 'لطفاً کمی بعد امتحان کنید.',
-        'errorGeneric': 'خطا در نمایش اطلاعات',
-        'retrying': 'در حال تلاش مجدد...',
-        'youreOffline': 'اتصال اینترنت قطع است.',
-        'youreBackOnline': 'اتصال به اینترنت برقرار شد.',
-        'settingsUpdateAvailable': 'برنامه جدید',
-        'settingsTerms': 'شرایط و ضوابط',
-        'settingsAppVersion': 'ورژن برنامه',
-        'settingsCardCorner': 'زاویه گرد کردن کارت',
-        'settingsCardRadius': 'شعاع کارت',
-        'settingsCardSmoothness': 'صافی کارت',
-        'settingsCardPreview': 'پیش نمایش کارت',
-        'settingsTerms': 'قوانین و مقررات',
-        'settingsAppVersion': 'نسخه برنامه',
-        'settingsUpdateAvailable': 'بروزرسانی موجود است',
-      };
-    } else {
-      // English fallback
-      _localizedStrings = {
-        'riyalesAppTitle': 'Riyales',
-        'tabCurrency': 'Currency',
-        'tabGold': 'Gold',
-        'tabCrypto': 'Crypto',
-        'tabStock': 'Stocks',
-        'stockTabSymbols': 'Symbols',
-        'stockTabDebtSecurities': 'Securities', //'Debt Securities'
-        'stockTabFutures': 'Futures',
-        'stockTabHousingFacilities': 'Facilities', //'Housing Facilities'
-        'searchPlaceholder': 'Search...',
-        'listNoData': 'No data to display.',
-        'searchNoResults': 'No results found.',
-        'searchStartTyping': 'Start typing to search.',
-        'errorFetchingData': 'Error fetching data',
-        'retryButton': 'Retry',
-        'cardTapped': 'Card tapped',
-        'settingsTitle': 'Settings',
-        'settingsTheme': 'App Theme',
-        'themeLight': 'Light',
-        'themeDark': 'Dark',
-        'settingsLanguage': 'App Language',
-        'dialogClose': 'Close',
-        'settingsCurrencyUnit': 'Display Currency Unit',
-        'currencyUnitToman': 'Toman',
-        'currencyUnitUSD': 'Dollar',
-        'currencyUnitEUR': 'Euro',
-        'errorNoInternet': 'No Internet Connection',
-        'errorCheckConnection': 'Please check your internet connection.',
-        'errorServerUnavailable': 'Server Unavailable',
-        'errorServerMessage': 'Please try again later.',
-        'errorGeneric': 'Could not display data',
-        'retrying': 'Retrying automatically...',
-        'youreOffline': 'You\'re offline.',
-        'youreBackOnline': 'You\'re back online.',
-        'settingsTerms': 'Terms & Conditions',
-        'settingsAppVersion': 'App Version',
-        'settingsUpdateAvailable': 'Update Available',
-      };
-    }
-    return true;
-  }
-
-  String get riyalesAppTitle => _localizedStrings['riyalesAppTitle']!;
-  String get tabCurrency => _localizedStrings['tabCurrency']!;
-  String get tabGold => _localizedStrings['tabGold']!;
-  String get tabCrypto => _localizedStrings['tabCrypto']!;
-  String get tabStock => _localizedStrings['tabStock']!;
-  String get stockTabSymbols => _localizedStrings['stockTabSymbols']!;
-  String get stockTabDebtSecurities =>
-      _localizedStrings['stockTabDebtSecurities']!;
-  String get stockTabFutures => _localizedStrings['stockTabFutures']!;
-  String get stockTabHousingFacilities =>
-      _localizedStrings['stockTabHousingFacilities']!;
-  String get searchPlaceholder => _localizedStrings['searchPlaceholder']!;
-  String get listNoData => _localizedStrings['listNoData']!;
-  String get searchNoResults => _localizedStrings['searchNoResults']!;
-  String get searchStartTyping => _localizedStrings['searchStartTyping']!;
-  String get errorFetchingData => _localizedStrings['errorFetchingData']!;
-  String get retryButton => _localizedStrings['retryButton']!;
-  String get cardTapped => _localizedStrings['cardTapped']!;
-  String get settingsTitle => _localizedStrings['settingsTitle']!;
-  String get settingsTheme => _localizedStrings['settingsTheme']!;
-  String get themeLight => _localizedStrings['themeLight']!;
-  String get themeDark => _localizedStrings['themeDark']!;
-  String get settingsLanguage => _localizedStrings['settingsLanguage']!;
-  String get dialogClose => _localizedStrings['dialogClose']!;
-  String get settingsCurrencyUnit => _localizedStrings['settingsCurrencyUnit']!;
-  String get currencyUnitToman => _localizedStrings['currencyUnitToman']!;
-  String get currencyUnitUSD => _localizedStrings['currencyUnitUSD']!;
-  String get currencyUnitEUR => _localizedStrings['currencyUnitEUR']!;
-  String get settingsCardCorner => _localizedStrings['settingsCardCorner']!;
-  String get settingsCardRadius => _localizedStrings['settingsCardRadius']!;
-  String get settingsCardSmoothness =>
-      _localizedStrings['settingsCardSmoothness']!;
-  String get settingsCardPreview => _localizedStrings['settingsCardPreview']!;
-  String get settingsTerms => _localizedStrings['settingsTerms']!;
-  String get settingsAppVersion => _localizedStrings['settingsAppVersion']!;
-  String get settingsUpdateAvailable =>
-      _localizedStrings['settingsUpdateAvailable']!;
-
-  // Error handling messages
-  String get errorNoInternet => _localizedStrings['errorNoInternet']!;
-  String get errorCheckConnection => _localizedStrings['errorCheckConnection']!;
-  String get errorServerUnavailable =>
-      _localizedStrings['errorServerUnavailable']!;
-  String get errorServerMessage => _localizedStrings['errorServerMessage']!;
-  String get errorGeneric => _localizedStrings['errorGeneric']!;
-  String get retrying => _localizedStrings['retrying']!;
-  String get youreOffline => _localizedStrings['youreOffline']!;
-  String get youreBackOnline => _localizedStrings['youreBackOnline']!;
-}
-
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-  const _AppLocalizationsDelegate();
-
-  @override
-  bool isSupported(Locale locale) {
-    // Include all supported languages here
-    return ['en', 'fa'].contains(locale.languageCode);
-  }
-
-  @override
-  Future<AppLocalizations> load(Locale locale) async {
-    AppLocalizations localizations = AppLocalizations(locale);
-    await localizations.load();
-    return localizations;
-  }
-
-  @override
-  bool shouldReload(_AppLocalizationsDelegate old) => false;
-}
-
 // endregion
-
-// region 9. Utility Functions
-String _getGoldIconPath(String symbol) {
-  // Map gold symbols to specific SVG icons in assets/icons/
-  // Example:
-  // if (symbol == 'IR_GOLD_18K') return 'assets/icons/gold_18k.svg';
-  // if (symbol == 'XAUUSD') return 'assets/icons/gold_ounce.svg';
-  return 'assets/icons/gold_generic.svg'; // Fallback generic gold icon
-}
-
-String _formatPrice(num price, String locale, {bool showSign = false}) {
-  // Use NumberFormat for locale-aware formatting
-  final format = NumberFormat.currency(
-    locale: locale == 'fa'
-        ? 'fa_IR'
-        : 'en_US', // fa_IR for Persian numerals and grouping
-    symbol: '', // No currency symbol, unit is separate
-    decimalDigits: (price < 10 && price != 0 && price.remainder(1) != 0)
-        ? 4
-        : (price < 1000 ? 2 : 0), // More decimals for small prices
-  );
-  String formattedPrice = format.format(price);
-  if (showSign && price > 0) {
-    formattedPrice = '+$formattedPrice';
-  }
-  return formattedPrice;
-}
-
-String _formatPercentage(num percentage, String locale) {
-  final format = NumberFormat("#,##0.##", locale == 'fa' ? 'fa_IR' : 'en_US');
-  return format.format(percentage);
-}
-
-// Add new helper functions
-// Helper for mapping currency codes to country codes
-String _getCurrencyCountryCode(String currencyCode) {
-  // Map of currency codes to ISO country codes
-  Map<String, String> currencyToCountry = {
-    'usd': 'us',
-    'eur': 'eu', // European Union
-    'gbp': 'gb',
-    'jpy': 'jp',
-    'cad': 'ca',
-    'aud': 'au',
-    'chf': 'ch',
-    'cny': 'cn',
-    'aed': 'ae',
-    'try': 'tr',
-    'rub': 'ru',
-    'inr': 'in',
-    'brl': 'br',
-    'myr': 'my',
-    'sgd': 'sg',
-    'nzd': 'nz',
-    'hkd': 'hk',
-    'sek': 'se',
-    'nok': 'no',
-    'dkk': 'dk',
-    'mxn': 'mx',
-    'zar': 'za',
-    'thb': 'th',
-    'krw': 'kr',
-    'pkr': 'pk',
-    'pln': 'pl',
-    'czk': 'cz',
-    'ils': 'il',
-    'twd': 'tw',
-    'idr': 'id',
-    'php': 'ph',
-    'rsd': 'rs',
-    'egp': 'eg',
-    'sar': 'sa',
-    'qar': 'qa',
-    'bhd': 'bh',
-    'omr': 'om',
-    'kwd': 'kw',
-    'irr': 'ir',
-    'afn': 'af',
-    'dzd': 'dz',
-    'jod': 'jo',
-    'lbp': 'lb',
-    'mad': 'ma',
-    'tnd': 'tn',
-    'azn': 'az',
-  };
-
-  return currencyToCountry[currencyCode] ??
-      currencyCode.substring(0, math.min(currencyCode.length, 2));
-}
-
-// Helper to detect Persian text
-bool _containsPersian(String text) {
-  // Unicode range for Arabic and Persian characters
-  final RegExp persianChars = RegExp(
-    r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]',
-  );
-  return persianChars.hasMatch(text);
-}
 
 // region 2.5 Connection Service and Error UI
 class ConnectionService {
@@ -6296,57 +4932,6 @@ class _AnimatedCardBuilderState extends State<AnimatedCardBuilder>
 
 // Add this class before the NetworkAwareWidget class
 // Smooth scroll behavior for better scrolling experience
-class SmoothScrollBehavior extends ScrollBehavior {
-  @override
-  Widget buildOverscrollIndicator(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    return child;
-  }
-
-  @override
-  ScrollPhysics getScrollPhysics(BuildContext context) {
-    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
-  }
-
-  @override
-  Widget buildScrollbar(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    // Only show scrollbars on web platform
-    if (kIsWeb) {
-      switch (axisDirectionToAxis(details.direction)) {
-        case Axis.vertical:
-          // Use a container with the flutter-scrollbar class for styling via CSS
-          return Container(
-            // Apply CSS class for web styling
-            decoration: const BoxDecoration(),
-            // This key is used by web renderer to apply the CSS class
-            key: const ValueKey<String>('flutter-scrollbar'),
-            child: RawScrollbar(
-              // Hide thumbVisibility since we'll use CSS for showing/hiding
-              thumbVisibility: false,
-              // Make scrollbar appear only during scrolling on mobile
-              interactive: true,
-              thickness: 6.0,
-              radius: const Radius.circular(3.0),
-              child: child,
-            ),
-          );
-        default:
-          return child;
-      }
-    } else {
-      // Don't show scrollbars on mobile/desktop
-      return child;
-    }
-  }
-}
-
 // Dynamic glow effect widget using palette_generator
 class _DynamicGlow extends StatefulWidget {
   final ImageProvider imageProvider;
@@ -6908,24 +5493,25 @@ final termsProvider = FutureProvider.autoDispose.family<TermsData, String>((
     if (remoteUrl.isNotEmpty) {
       final response = await dio.get(remoteUrl);
       if (response.statusCode == 200 && response.data is Map) {
-        return TermsData.fromJson(response.data as Map<String, dynamic>);
+          return models.TermsData.fromJson(
+              response.data as Map<String, dynamic>);
       }
     }
     // Fallback to local if remote fails or URL is empty
     final localConfigString = await rootBundle.loadString(localAssetPath);
     final localConfigJson = jsonDecode(localConfigString)
         as Map<String, dynamic>; // Fixed typo here
-    return TermsData.fromJson(localConfigJson);
+      return models.TermsData.fromJson(localConfigJson);
   } catch (e) {
     // Fallback to local if any error occurs
     try {
       final localConfigString = await rootBundle.loadString(localAssetPath);
       final localConfigJson =
           jsonDecode(localConfigString) as Map<String, dynamic>;
-      return TermsData.fromJson(localConfigJson);
+        return models.TermsData.fromJson(localConfigJson);
     } catch (localError) {
       // If local also fails, provide a default error message
-      return TermsData(
+        return models.TermsData(
         title: isPersian ? 'خطا' : 'Error',
         content: isPersian
             ? 'قادر به بارگیری قوانین و مقررات نیستیم.'
