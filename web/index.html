@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- Theme colors for browser and PWA status bars -->
+  <meta name="theme-color" content="#090909" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="msapplication-navbutton-color" content="#090909" media="(prefers-color-scheme: dark)">
+  <meta name="msapplication-navbutton-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Aurum">
+
+  <meta name="description" content="Riyales – Currency, Gold, Crypto & Stock Prices">
+
+  <!-- PWA & status bar styles -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Riyales">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Riyales</title>
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="Riyales">
+  <meta property="og:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta property="og:image" content="icons/Icon-maskable-192.png">
+  <meta property="og:url" content="https://ryls.ir">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Riyales">
+  <meta name="twitter:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta name="twitter:image" content="icons/Icon-maskable-192.png">
+
+  <!-- Disable right-click, text selection, drag/drop, copy/paste -->
+  <style>
+    :root {
+      --scrollbar-track-light: #f1f1f1;
+      --scrollbar-thumb-light: rgba(0,0,0,0.4);
+      --scrollbar-track-dark: #161616;
+      --scrollbar-thumb-dark: rgba(255,255,255,0.4);
+    }
+    html, body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      scroll-behavior: smooth;
+      overflow: hidden; /* Prevent body scrolling */
+    }
+    /* Scrollbar styling for WebKit browsers */
+    /* Only show scrollbar on desktop and make auto-hide */
+    .flutter-scrollbar::-webkit-scrollbar {
+      width: 10px;
+      display: none; /* Hide by default */
+    }
+    .flutter-scrollbar:hover::-webkit-scrollbar, 
+    .flutter-scrollbar:active::-webkit-scrollbar, 
+    .flutter-scrollbar:focus::-webkit-scrollbar {
+      display: block; /* Show on interaction */
+    }
+    .flutter-scrollbar::-webkit-scrollbar-track {
+      background: var(--scrollbar-track-light);
+      border-radius: 10px;
+    }
+    .flutter-scrollbar::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbar-thumb-light);
+      border-radius: 5px;
+      border: 2px solid var(--scrollbar-track-light);
+    }
+    /* Firefox scrollbar */
+    .flutter-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb-light) var(--scrollbar-track-light);
+    }
+    @media (prefers-color-scheme: dark) {
+      .flutter-scrollbar::-webkit-scrollbar-track {
+        background: var(--scrollbar-track-dark);
+      }
+      .flutter-scrollbar::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb-dark);
+        border: 2px solid var(--scrollbar-track-dark);
+      }
+      .flutter-scrollbar {
+        scrollbar-color: var(--scrollbar-thumb-dark) var(--scrollbar-track-dark);
+      }
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.body.style.userSelect='none';
+      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+      document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+      document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+      document.addEventListener('dragover', function(e) { e.preventDefault(); });
+      document.addEventListener('drop', function(e) { e.preventDefault(); });
+      document.addEventListener('copy', function(e) { e.preventDefault(); });
+      document.addEventListener('paste', function(e) { e.preventDefault(); });
+    });
+  </script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+  <!-- Script to apply flutter-scrollbar class to the right container -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Apply class initially
+      applyScrollbarClass();
+      // Watch for DOM changes to apply class to dynamically created elements
+      const observer = new MutationObserver(function(mutations) {
+        applyScrollbarClass();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      
+      function applyScrollbarClass() {
+        // First try to find elements with the flutter-scrollbar key
+        const scrollElem = document.querySelector('[data-key="flutter-scrollbar"]');
+        if (scrollElem) {
+          scrollElem.classList.add('flutter-scrollbar');
+        }
+        
+        // Also apply to primary scrollable container in Flutter web
+        const scrollContainer = document.querySelector('.flutter-view, flt-glass-pane');
+        if (scrollContainer) {
+          const scrollableChildren = scrollContainer.querySelectorAll('[class*="scrollable"]');
+          scrollableChildren.forEach(function(elem) {
+            elem.classList.add('flutter-scrollbar');
+          });
+        }
+      }
+    });
+  </script>
+  <!-- Script to handle theme changes for status bar -->
+  <script>
+    (function() {
+      // Theme colors from the app's theme configuration
+      const themeColors = {
+        light: {
+          background: '#F2F2F7',
+          statusBar: '#F2F2F7'
+        },
+        dark: {
+          background: '#090909',
+          statusBar: '#090909'
+        }
+      };
+      
+      // Function to update theme colors based on current mode
+      function updateThemeColors() {
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const themeColor = isDarkMode ? themeColors.dark.statusBar : themeColors.light.statusBar;
+        
+        // Update theme-color meta tag
+        let themeColorMeta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (!themeColorMeta) {
+          themeColorMeta = document.createElement('meta');
+          themeColorMeta.name = 'theme-color';
+          document.head.appendChild(themeColorMeta);
+        }
+        themeColorMeta.content = themeColor;
+        
+        // Update manifest dynamically if needed
+        try {
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            // Notify the service worker about the theme change
+            navigator.serviceWorker.controller.postMessage({
+              type: 'THEME_CHANGE',
+              theme: isDarkMode ? 'dark' : 'light',
+              color: themeColor
+            });
+          }
+        } catch (e) {
+          console.error('Error notifying service worker:', e);
+        }
+      }
+      
+      // Initial update
+      document.addEventListener('DOMContentLoaded', updateThemeColors);
+      
+      // Listen for theme changes
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateThemeColors);
+      
+      // If this is a PWA, handle display mode changes
+      window.addEventListener('appinstalled', function() {
+        updateThemeColors();
+      });
+      
+      // Force update on page visibility change (helps with some mobile browsers)
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          updateThemeColors();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
