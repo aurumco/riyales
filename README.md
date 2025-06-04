@@ -11,7 +11,7 @@
 
 - **Frontend:** Flutter (Cross-platform)
 - **Backend:** Python
-- **APIs:** Realtime financial data APIs (e.g., CoinGecko, Forex APIs, etc.)
+- **APIs:** Realtime financial data APIs
 
 ## 🚀 Features
 
