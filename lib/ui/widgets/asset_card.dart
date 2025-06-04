@@ -376,10 +376,10 @@ class AssetCard extends StatelessWidget { // Changed to StatelessWidget
     // Use the data from CurrencyDataNotifier's items getter
     if (allCurrenciesList.isNotEmpty) {
       final usdToTomanRate = allCurrenciesList
-          .firstWhere((c) => c.symbol == 'USD', orElse: () => models.CurrencyAsset.defaultUsd())
+          .firstWhere((c) => c.symbol == 'USD', /* orElse: () => models.CurrencyAsset.defaultUsd() */)
           .price;
       final eurToTomanRate = allCurrenciesList
-          .firstWhere((c) => c.symbol == 'EUR', orElse: () => models.CurrencyAsset.defaultEur())
+          .firstWhere((c) => c.symbol == 'EUR', /* orElse: () => models.CurrencyAsset.defaultEur() */)
           .price;
 
       num finalPrice = priceToConvert;

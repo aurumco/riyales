@@ -51,8 +51,8 @@ class SettingsSheet extends StatelessWidget { // Changed to StatelessWidget
     // Get teal green color for all accent elements
     final tealGreen = hexToColor( // from utils/color_utils.dart
       isDarkMode
-          ? appConfig?.themeOptions.dark.accentColorGreen ?? "#00B894"
-          : appConfig?.themeOptions.light.accentColorGreen ?? "#00B894",
+          ? appConfig.themeOptions.dark.accentColorGreen
+          : appConfig.themeOptions.light.accentColorGreen,
     );
 
     // Chevron color and size for all dropdowns and terms row

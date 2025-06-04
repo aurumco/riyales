@@ -1,22 +1,18 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Added Provider import
 import 'package:vibration/vibration.dart';
+import 'package:smooth_corner/smooth_corner.dart'; // Added import
 
 // Config
-import '../../config/app_config.dart' as config; // For AppConfig type
-import '../../providers/app_config_provider.dart'; // For AppConfig access
+import '../../config/app_config.dart'; // Added import
 
 // Models
 import '../../models/asset_models.dart' as models;
 
 // Providers (new paths)
-import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
-import '../../providers/currency_unit_provider.dart';
-import '../../providers/favorites_provider.dart';
 import '../../providers/search_provider.dart';
 import '../../providers/data_providers/currency_data_provider.dart';
 import '../../providers/data_providers/gold_data_provider.dart';
@@ -26,8 +22,6 @@ import '../../providers/data_providers/stock_debt_securities_data_provider.dart'
 import '../../providers/data_providers/stock_futures_data_provider.dart';
 import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
 
-// Services
-import '../../services/connection_service.dart';
 // import '../../services/api_service.dart'; // ApiService might not be directly used in HomeScreen UI
 
 // UI Widgets
@@ -86,11 +80,11 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         if (_isSearchActive) {
           if (controller.offset <= 0) {
             if (!_showSearchBar) {
-              if (mounted) setState(() => _showSearchBar = true);
+              if (mounted) { setState(() => _showSearchBar = true); }
             }
           } else {
             if (_showSearchBar) {
-              if (mounted) setState(() => _showSearchBar = false);
+              if (mounted) { setState(() => _showSearchBar = false); }
             }
           }
         }

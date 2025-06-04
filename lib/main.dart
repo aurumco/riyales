@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +15,6 @@ import './ui/theme/smooth_scroll_behavior.dart'; // Direct import for SmoothScro
 
 // Screens
 import './ui/screens/splash_screen.dart';
-import './ui/screens/home_screen.dart';
 
 // Providers
 import './providers/theme_provider.dart';

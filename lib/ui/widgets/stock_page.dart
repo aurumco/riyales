@@ -152,8 +152,8 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final tealGreen = hexToColor(
       isDarkMode
-          ? appConfig?.themeOptions.dark.accentColorGreen ?? "#00B894"
-          : appConfig?.themeOptions.light.accentColorGreen ?? "#00B894",
+          ? appConfig.themeOptions.dark.accentColorGreen
+          : appConfig.themeOptions.light.accentColorGreen,
     );
 
     return Column(

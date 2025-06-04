@@ -69,10 +69,10 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     for (int i = 0; i < assets.length; i++) {
       final asset = assets[i];
       String text = '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
-      if (asset is models.CurrencyAsset) text += ' ${asset.nameEn.toLowerCase()}';
-      else if (asset is models.GoldAsset) text += ' ${asset.nameEn.toLowerCase()}';
-      else if (asset is models.CryptoAsset) text += ' ${asset.nameFa.toLowerCase()}';
-      else if (asset is models.StockAsset) text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
+      if (asset is models.CurrencyAsset) { text += ' ${asset.nameEn.toLowerCase()}'; }
+      else if (asset is models.GoldAsset) { text += ' ${asset.nameEn.toLowerCase()}'; }
+      else if (asset is models.CryptoAsset) { text += ' ${asset.nameFa.toLowerCase()}'; }
+      else if (asset is models.StockAsset) { text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}'; }
       text = text.replaceAll(RegExp(r'\s+'), ' ');
       for (int j = 0; j <= text.length - 2; j++) {
         _bigramIndex.putIfAbsent(text.substring(j, j + 2), () => <int>{}).add(i);
@@ -229,9 +229,9 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
         for (int k = 0; k <= queryLower.length - 3; k++) {
           final gram = queryLower.substring(k, k + 3);
           final gramSet = _trigramIndex[gram] ?? <int>{};
-          if (resultSet == null) resultSet = gramSet.toSet();
-          else resultSet = resultSet.intersection(gramSet);
-          if (resultSet.isEmpty) break;
+          if (resultSet == null) { resultSet = gramSet.toSet(); }
+          else { resultSet = resultSet.intersection(gramSet); }
+          if (resultSet.isEmpty) { break; }
         }
         if (resultSet != null && resultSet.isNotEmpty && widget.fullItemsListForSearch.isNotEmpty) {
           final sortedIdx = resultSet.toList()..sort();

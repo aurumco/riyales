@@ -16,7 +16,6 @@ import '../../../providers/data_providers/stock_tse_ifb_data_provider.dart';
 
 import '../../../models/asset_models.dart' as models;
 import '../../../utils/helpers.dart'; // For containsPersian
-import '../../../providers/app_config_provider.dart';
 // import '../../../providers/locale_provider.dart';
 import 'package:provider/provider.dart'; // Added Provider
 
