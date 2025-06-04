@@ -11,6 +11,7 @@ import '../../providers/data_providers/stock_debt_securities_data_provider.dart'
 import '../../providers/data_providers/stock_futures_data_provider.dart';
 import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
 import '../../providers/search_provider.dart';
+import '../../providers/locale_provider.dart'; // Added import
 import '../../localization/app_localizations.dart';
 import '../../utils/color_utils.dart';
 import '../../utils/helpers.dart';
@@ -265,7 +266,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                   return isMobile
                       ? Expanded(child: wrapped)
                       : Padding(
-                          padding: EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric( // Made const
                             horizontal: horizontalMargin,
                           ),
                           child: wrapped,

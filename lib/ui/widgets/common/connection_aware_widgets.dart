@@ -67,7 +67,7 @@ class OfflineIndicator extends StatelessWidget {
       child: Icon(
         CupertinoIcons.wifi_slash,
         size: 80,
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withAlpha((255 * 0.2).round()),
       ),
     );
   }

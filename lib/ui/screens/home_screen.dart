@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Added Provider import
@@ -591,13 +590,15 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 padding: const EdgeInsets.all(8.0),
                 child: GestureDetector(
                   onTap: () {
-                    if (mounted) setState(() {
-                      if (_isSearchActive) {
-                        context.read<SearchQueryNotifier>().query = '';
-                        _showSearchBar = false;
-                        _isSearchActive = false;
-                      }
-                    });
+                    if (mounted) { // Added curly braces for the 'if (mounted)'
+                      setState(() {
+                        if (_isSearchActive) {
+                          context.read<SearchQueryNotifier>().query = '';
+                          _showSearchBar = false;
+                          _isSearchActive = false;
+                        }
+                      });
+                    }
                     showCupertinoModalPopup(context: context, builder: (_) => const SettingsSheet());
                   },
                   child: Container(
