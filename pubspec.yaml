@@ -39,6 +39,9 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_launcher_icons: ^0.14.3
   provider: ^6.1.5
+  device_info_plus: ^11.4.0
+  universal_platform: ^1.1.0
+  web_smooth_scroll: ^2.0.0
 
 dev_dependencies:
   flutter_test:
