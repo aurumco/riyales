@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Added Provider
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 import '../../config/app_config.dart';
 import '../../providers/locale_provider.dart';
@@ -47,6 +49,10 @@ class SettingsSheet extends StatelessWidget {
     final appConfig = context.watch<AppConfig>();
     final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // Detect mobile web users (only on web and on Android or iOS);
+    final isMobileWeb = kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
 
     // Get teal green color for all accent elements
     final tealGreen = hexToColor(
@@ -222,6 +228,39 @@ class SettingsSheet extends StatelessWidget {
               ],
             ),
           ),
+
+          // Download App button for mobile web users
+          if (isMobileWeb)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                launchUrl(Uri.parse('https://dl.ryls.ir'));
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    locale.languageCode == 'fa'
+                        ? 'دانلود اپلیکیشن'
+                        : 'Download App',
+                    style: TextStyle(
+                      fontFamily:
+                          locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                      fontSize: 17,
+                      fontWeight: FontWeight.normal,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  Icon(
+                    locale.languageCode == 'fa'
+                        ? Icons.keyboard_arrow_left
+                        : Icons.keyboard_arrow_right,
+                    size: chevronSize,
+                    color: chevronColor,
+                  ),
+                ],
+              ),
+            ),
 
           // Terms and Conditions Button
           CupertinoActionSheetAction(

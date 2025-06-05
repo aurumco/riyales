@@ -5,6 +5,7 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:web_smooth_scroll/web_smooth_scroll.dart';
+import 'package:vibration/vibration.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../config/app_config.dart';
@@ -143,6 +144,87 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
   Map<int, ScrollController?> get stockScrollControllers =>
       _stockScrollControllers;
 
+  // Show sorting options bottom sheet for stock tabs
+  void _showSortSheet(int index) {
+    Vibration.vibrate(duration: 30);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    final sortOptions = [
+      SortMode.defaultOrder,
+      SortMode.highestPrice,
+      SortMode.lowestPrice
+    ];
+    final optionLabels = [
+      isFa ? 'پیشفرض' : 'Default',
+      isFa ? 'بیشترین قیمت' : 'Highest Price',
+      isFa ? 'کمترین قیمت' : 'Lowest Price',
+    ];
+    final appConfig = context.read<AppConfig>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealGreen = hexToColor(
+      isDark
+          ? appConfig.themeOptions.dark.accentColorGreen
+          : appConfig.themeOptions.light.accentColorGreen,
+    );
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => CupertinoTheme(
+        data: CupertinoThemeData(
+          brightness: isDark ? Brightness.dark : Brightness.light,
+        ),
+        child: CupertinoActionSheet(
+          title: Text(
+            isFa ? 'مرتب‌سازی' : 'Sort By',
+            style: TextStyle(
+              fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          actions: List.generate(sortOptions.length, (i) {
+            return CupertinoActionSheetAction(
+              onPressed: () {
+                GlobalKey<AssetListPageState<models.StockAsset>>? currentKey;
+                if (index == 0) {
+                  currentKey = stockTseIfbKey;
+                } else if (index == 1) {
+                  currentKey = stockDebtKey;
+                } else if (index == 2) {
+                  currentKey = stockFuturesKey;
+                } else if (index == 3) {
+                  currentKey = stockHousingKey;
+                }
+                currentKey?.currentState?.setSortMode(sortOptions[i]);
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                optionLabels[i],
+                style: TextStyle(
+                  fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+                  fontSize: 17,
+                  fontWeight: FontWeight.normal,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            );
+          }),
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              isFa ? 'انصراف' : 'Cancel',
+              style: TextStyle(
+                fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: tealGreen,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _stockTabController.dispose();
@@ -265,15 +347,18 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                       ),
                     ),
                   );
-                  final wrapped = GestureDetector(onTap: onTap, child: segment);
+                  final wrappedWithLongPress = GestureDetector(
+                    onTap: onTap,
+                    onLongPress: () => _showSortSheet(index),
+                    child: segment,
+                  );
                   return isMobile
-                      ? Expanded(child: wrapped)
+                      ? Expanded(child: wrappedWithLongPress)
                       : Padding(
                           padding: const EdgeInsets.symmetric(
-                            // Made const
                             horizontal: horizontalMargin,
                           ),
-                          child: wrapped,
+                          child: wrappedWithLongPress,
                         );
                 }),
               );
