@@ -1,17 +1,19 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Added Provider
+import 'package:provider/provider.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:web_smooth_scroll/web_smooth_scroll.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../config/app_config.dart';
-// Specific stock data provider imports (assuming they export the provider variables for now)
 import '../../providers/data_providers/stock_tse_ifb_data_provider.dart';
 import '../../providers/data_providers/stock_debt_securities_data_provider.dart';
 import '../../providers/data_providers/stock_futures_data_provider.dart';
 import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
 import '../../providers/search_provider.dart';
-import '../../providers/locale_provider.dart'; // Added import
+import '../../providers/locale_provider.dart';
 import '../../localization/app_localizations.dart';
 import '../../utils/color_utils.dart';
 import '../../utils/helpers.dart';
@@ -390,7 +392,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
             animation: _stockTabController,
             builder: (context, child) {
               final index = _stockTabController.index;
-              return AnimatedSwitcher(
+              Widget content = AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 switchInCurve: Curves.easeInOutQuart,
                 switchOutCurve: Curves.easeInOutQuart,
@@ -402,6 +404,33 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                   child: _stockTabViews[index],
                 ),
               );
+
+              // Update scroll controllers after tab change
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _updateStockScrollControllers();
+              });
+
+              // For desktop web platform, enable middle-click scrolling and smooth scrolling
+              if (kIsWeb &&
+                  (defaultTargetPlatform == TargetPlatform.macOS ||
+                      defaultTargetPlatform == TargetPlatform.windows ||
+                      defaultTargetPlatform == TargetPlatform.linux)) {
+                // Get the current scroll controller for this tab
+                _updateStockScrollControllers();
+                final controller = _stockScrollControllers[index];
+
+                if (controller != null) {
+                  return WebSmoothScroll(
+                    controller: controller,
+                    scrollSpeed: 1.8,
+                    scrollAnimationLength: 600,
+                    curve: Curves.easeOutQuart,
+                    child: content,
+                  );
+                }
+              }
+
+              return content;
             },
           ),
         ),

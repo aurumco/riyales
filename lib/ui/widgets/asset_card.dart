@@ -48,7 +48,7 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'usd coin': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/usd.svg',
-    color: Color(0xFF2775CA), // Blue for USD Coin
+    color: Color(0xFF82BC67), // Green for USD Coin
   ),
   'dogecoin': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Dogecoin (DOGE).svg',
@@ -60,7 +60,7 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'litecoin': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/lite.svg',
-    color: Color(0xFFBEBEBE), // Silver for Litecoin
+    color: Color(0xFF029404), // Green for Litecoin
   ),
   'monero': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Monero.svg',
@@ -68,7 +68,7 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'ethereum classic': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Ethereum Classic (ETH).svg',
-    color: Color(0xFF325832), // Green for Ethereum Classic
+    color: Color(0xFF39B339), // Green for Ethereum Classic
   ),
   'stellar': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Stellar.svg',
@@ -92,7 +92,7 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'tezos': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Tezos (XTZ).svg',
-    color: Color(0xFFED3D53), // Red/orange for Tezos
+    color: Color(0xFF3286E2), // Blue for Tezos
   ),
   'eos': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/EOS.svg',
@@ -104,7 +104,7 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'vechain': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/VeChain (VET).svg',
-    color: Color(0xFF1596D5), // Blue for VeChain
+    color: Color(0xFF896BC7), // Purple for VeChain
   ),
   'ontology': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Ontology (ONT).svg',
@@ -130,10 +130,6 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
     iconPath: 'assets/icons/crypto/Namecoin (NMC).svg',
     color: Color(0xFF4FC8AE), // Teal for Namecoin
   ),
-  'enjin coin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Enjin Coin (ENJ).svg',
-    color: Color(0xFF6A7995), // Gray/blue for Enjin Coin
-  ),
   'horizen': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Horizen (ZEN).svg',
     color: Color(0xFF2C84DF), // Blue for Horizen
@@ -144,7 +140,7 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'nuls': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Nuls (NULS).svg',
-    color: Color(0xFF7A6B83), // Purple/gray for NULS
+    color: Color(0xFF65A034), // Green for NULS
   ),
   'dash': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/dash.svg',
@@ -176,11 +172,11 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'whitecoin': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/WhiteCoin (XWC).svg',
-    color: Color(0xFF231F20), // Black/navy for WhiteCoin
+    color: Color(0xFF8d51ea), // Purple for WhiteCoin
   ),
   'smartcash': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/SmartCash (SMART).svg',
-    color: Color(0xFF1E6796), // Blue for SmartCash
+    color: Color(0xFFf4b711), // Yellow for SmartCash
   ),
   'steem': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Steem (STEEM).svg',
@@ -204,15 +200,15 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'cloakcoin': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/CloakCoin (CLOAK).svg',
-    color: Color(0xFF32343A), // Dark gray for CloakCoin
+    color: Color(0xFFea3b21), // Red for CloakCoin
   ),
   'colossusxt': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/ColossusXT (COLX).svg',
-    color: Color(0xFF700366), // Purple for ColossusXT
+    color: Color(0xFF53a278), // Green for ColossusXT
   ),
   'counterparty': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Counterparty (XCP).svg',
-    color: Color(0xFFF05139), // Red for Counterparty
+    color: Color(0xFFeb154e), // Pink for Counterparty
   ),
   'crown': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Crown (CRW).svg',
@@ -234,25 +230,9 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
     iconPath: 'assets/icons/crypto/GameCredits (GAME).svg',
     color: Color(0xFF19191A), // Orange for GameCredits
   ),
-  'golem': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Golem (GNT).svg',
-    color: Color(0xFF001D38), // Dark blue for Golem
-  ),
-  'komodo': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Komodo (KMD).svg',
-    color: Color(0xFF306560), // Dark green for Komodo
-  ),
-  'lisk': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Lisk (LSK).svg',
-    color: Color(0xFF007FC3), // Blue for Lisk
-  ),
-  'monacoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/MonaCoin (MONA).svg',
-    color: Color(0xFF19191A), // Orange for MonaCoin
-  ),
   'nimiq': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Nimiq (NIM).svg',
-    color: Color(0xFF267BF2), // Blue for Nimiq
+    color: Color(0xFFf6ae2d), // Yellow for Nimiq
   ),
   'omisego': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/OmiseGO (OMG).svg',
@@ -272,19 +252,15 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
   ),
   'power ledger': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Power Ledger (POWR).svg',
-    color: Color(0xFF65AE65), // Green for Power Ledger
+    color: Color(0xFF29af92), // Green for Power Ledger
   ),
   'prizm': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/PRIZM (PZM).svg',
     color: Color(0xFF700366), // Cyan for PRIZM
   ),
-  'quarkchain': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/QuarkChain (QKC).svg',
-    color: Color(0xFF0C193C), // Dark blue for QuarkChain
-  ),
   'trueusd': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/TrueUSD (TUSD).svg',
-    color: Color(0xFF50AF95), // Teal for TrueUSD
+    color: Color(0xFF6cb0fd), // Blue for TrueUSD
   ),
   'vertcoin': CryptoIconInfo(
     iconPath: 'assets/icons/crypto/Vertcoin (VTC).svg',

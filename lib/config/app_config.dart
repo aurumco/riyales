@@ -17,7 +17,7 @@ class AppConfig extends Equatable {
   final int initialItemsToLoad;
   final CryptoIconFilterConfig cryptoIconFilter;
   final FeatureFlags featureFlags;
-  final UpdateInfoConfig updateInfo; // New
+  final UpdateInfoConfig updateInfo;
 
   const AppConfig({
     required this.appName,
@@ -34,7 +34,7 @@ class AppConfig extends Equatable {
     required this.initialItemsToLoad,
     required this.cryptoIconFilter,
     required this.featureFlags,
-    required this.updateInfo, // New
+    required this.updateInfo,
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -65,8 +65,8 @@ class AppConfig extends Equatable {
       splashScreen: SplashScreenConfig.fromJson(
         json['splashScreen'] as Map<String, dynamic>? ?? {},
       ),
-      itemsPerLazyLoad: json['itemsPerLazyLoad'] as int? ?? 20,
-      initialItemsToLoad: json['initialItemsToLoad'] as int? ?? 20,
+      itemsPerLazyLoad: json['itemsPerLazyLoad'] as int? ?? 24,
+      initialItemsToLoad: json['initialItemsToLoad'] as int? ?? 24,
       cryptoIconFilter: CryptoIconFilterConfig.fromJson(
         json['cryptoIconFilter'] as Map<String, dynamic>? ?? {},
       ),
@@ -154,8 +154,8 @@ class AppConfig extends Equatable {
         "iconPath": "assets/images/splash-screen-light.svg",
         "loadingIndicatorColor": "#FBC02D",
       },
-      "itemsPerLazyLoad": 20,
-      "initialItemsToLoad": 20,
+      "itemsPerLazyLoad": 24,
+      "initialItemsToLoad": 24,
       "cryptoIconFilter": {
         "brightness": 0.0,
         "contrast": 0.0,

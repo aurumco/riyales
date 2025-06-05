@@ -1,11 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Added Provider import
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:provider/provider.dart';
 import 'package:vibration/vibration.dart';
-import 'package:smooth_corner/smooth_corner.dart'; // Added import
+import 'package:smooth_corner/smooth_corner.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Config
-import '../../config/app_config.dart'; // Added import
+import '../../config/app_config.dart';
 
 // Models
 import '../../models/asset_models.dart' as models;
@@ -21,21 +24,19 @@ import '../../providers/data_providers/stock_debt_securities_data_provider.dart'
 import '../../providers/data_providers/stock_futures_data_provider.dart';
 import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
 
-// import '../../services/api_service.dart'; // ApiService might not be directly used in HomeScreen UI
-
 // UI Widgets
 import '../widgets/asset_list_page.dart';
 import '../widgets/stock_page.dart';
 import '../widgets/settings_sheet.dart';
-import '../widgets/common/error_placeholder.dart'; // If used directly
-import '../widgets/common/connection_aware_widgets.dart'; // For NetworkAwareWidget etc.
+import '../widgets/common/error_placeholder.dart';
+import '../widgets/common/connection_aware_widgets.dart';
 
 // Localization
 import '../../localization/app_localizations.dart';
 
 // Utils
-import '../../utils/color_utils.dart'; // For _hexToColor
-import '../../utils/helpers.dart'; // For containsPersian, _findScrollController etc.
+import '../../utils/color_utils.dart';
+import '../../utils/helpers.dart';
 
 class HomeScreen extends StatefulWidget {
   // Changed to StatefulWidget
@@ -64,6 +65,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   final goldTabKey = GlobalKey<AssetListPageState<models.GoldAsset>>();
   final cryptoTabKey = GlobalKey<AssetListPageState<models.CryptoAsset>>();
   final stockTabKey = GlobalKey<StockPageState>();
+
+  // Flag to track if device is desktop web
+  bool _isDesktopWeb = false;
+  // Title tap tracking for easter-egg
+  int _titleTapCount = 0;
+  DateTime? _firstTitleTapTime;
 
   void _setupScrollListener(int tabIndex) {
     if (_tabScrollListeners.containsKey(tabIndex)) {
@@ -139,6 +146,44 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     WidgetsBinding.instance.addObserver(this);
     // Connection status is handled by NetworkAwareWidget, no direct subscription needed here.
     // _setupTabs() is called in didChangeDependencies
+    // Check if the device is desktop web
+    _checkDeviceType();
+  }
+
+  // Function to check device type and set _isDesktopWeb flag
+  Future<void> _checkDeviceType() async {
+    // Detect desktop web by checking for mobile keywords in the user agent
+    if (kIsWeb) {
+      try {
+        final deviceInfo = DeviceInfoPlugin();
+        final webInfo = await deviceInfo.webBrowserInfo;
+        final ua = webInfo.userAgent?.toLowerCase() ?? '';
+        // Consider mobile if UA contains common mobile phone identifiers
+        final isMobile = ua.contains('mobile') ||
+            ua.contains('iphone') ||
+            (ua.contains('android') && ua.contains('mobile'));
+        final isDesktop = !isMobile;
+        if (mounted) setState(() => _isDesktopWeb = isDesktop);
+      } catch (_) {
+        if (mounted) setState(() => _isDesktopWeb = false);
+      }
+    } else {
+      // Not web
+      if (mounted) setState(() => _isDesktopWeb = false);
+    }
+  }
+
+  // Function to launch download URL
+  Future<void> _launchDownloadUrl() async {
+    const url = 'https://dl.ryls.ir';
+    try {
+      if (!await launchUrl(Uri.parse(url),
+          mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch $url');
+      }
+    } catch (e) {
+      // Handle error silently or show a snackbar
+    }
   }
 
   @override
@@ -387,6 +432,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             .onSecondaryContainer; // Adjusted opacity
     final screenWidth = MediaQuery.of(context).size.width;
     final tabFontSize = screenWidth < 360 ? 12.0 : 14.0;
+    final isLargeScreen = screenWidth >= 600; // Determine desktop/tablet
 
     final selectedTextStyle = TextStyle(
         color: segmentActiveTextColor,
@@ -400,9 +446,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     Widget mainScaffold = Scaffold(
       appBar: AppBar(
         // Use static title text to avoid animated language transition
-        title: Text(
-          l10n.riyalesAppTitle,
-          style: Theme.of(context).appBarTheme.titleTextStyle,
+        title: GestureDetector(
+          onTap: _onTitleTapped,
+          child: Text(
+            l10n.riyalesAppTitle,
+            style: Theme.of(context).appBarTheme.titleTextStyle,
+          ),
         ),
         actions: [
           AnimatedAlign(
@@ -519,289 +568,611 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56.0 + 2.0),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 2.0),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isMobile = constraints.maxWidth < 600;
-                final horizontalMargin = isMobile ? 4.0 : 0.0;
-                final BorderRadius tabBorderRadius = BorderRadius.circular(
-                    20.0); // Increased radius (Could be 14.0)
-                return Row(
-                  mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(4, (index) {
-                    final isSelected = _tabController.index == index;
-                    final label = [
-                      l10n.tabCurrency,
-                      l10n.tabGold,
-                      l10n.tabCrypto,
-                      l10n.tabStock
-                    ][index];
-                    void onTabTap() {
-                      if (_tabController.index == index) {
-                        final controller = _tabScrollControllers[index] ??=
-                            _findScrollController(index);
-                        if (controller != null && controller.hasClients) {
-                          controller.jumpTo(controller.offset);
-                          controller.animateTo(0,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOutQuart);
-                        }
-                      } else {
-                        if (mounted) {
-                          setState(() => _tabController.animateTo(index,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOutQuart));
-                        }
-                      }
-                    }
-
-                    final segment = SmoothCard(
-                      smoothness: themeConfig.cardCornerSmoothness,
-                      borderRadius:
-                          tabBorderRadius, // Use new BorderRadius object
-                      elevation: 0,
-                      color: isSelected
-                          ? segmentActiveBackground
-                          : segmentInactiveBackground,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10.0, horizontal: 16.0),
-                        child: Center(
-                          child: Builder(builder: (context) {
-                            Widget textWidget = Text(label,
-                                style: isSelected
-                                    ? selectedTextStyle
-                                    : unselectedTextStyle,
-                                textAlign: TextAlign.center);
-                            Widget fittedText = FittedBox(
-                                fit: BoxFit.scaleDown, child: textWidget);
-                            if (isSelected && !isDarkMode) {
-                              fittedText = Transform.translate(
-                                  offset: const Offset(0, 1),
-                                  child: fittedText);
+        bottom: isLargeScreen
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(56.0 + 2.0),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 2.0),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      final horizontalMargin = isMobile ? 4.0 : 0.0;
+                      final BorderRadius tabBorderRadius =
+                          BorderRadius.circular(
+                              20.0); // Increased radius (Could be 14.0)
+                      return Row(
+                        mainAxisSize:
+                            isMobile ? MainAxisSize.max : MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(4, (index) {
+                          final isSelected = _tabController.index == index;
+                          final label = [
+                            l10n.tabCurrency,
+                            l10n.tabGold,
+                            l10n.tabCrypto,
+                            l10n.tabStock
+                          ][index];
+                          void onTabTap() {
+                            if (_tabController.index == index) {
+                              final controller =
+                                  _tabScrollControllers[index] ??=
+                                      _findScrollController(index);
+                              if (controller != null && controller.hasClients) {
+                                controller.jumpTo(controller.offset);
+                                controller.animateTo(0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOutQuart);
+                              }
+                            } else {
+                              if (mounted) {
+                                setState(() => _tabController.animateTo(index,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOutQuart));
+                              }
                             }
-                            return fittedText;
-                          }),
-                        ),
-                      ),
-                    );
-                    final wrapped = GestureDetector(
-                      onTap: onTabTap,
-                      onLongPress: () {
-                        Vibration.vibrate(duration: 60);
-                        final isFa =
-                            Localizations.localeOf(context).languageCode ==
-                                'fa';
-                        final sortOptions = [
-                          SortMode.defaultOrder,
-                          SortMode.highestPrice,
-                          SortMode.lowestPrice,
-                        ];
-                        final optionLabels = [
-                          isFa ? 'پیشفرض' : 'Default',
-                          isFa ? 'بیشترین قیمت' : 'Highest Price',
-                          isFa ? 'کمترین قیمت' : 'Lowest Price',
-                        ];
-                        showCupertinoModalPopup(
-                          context: context,
-                          builder: (_) => CupertinoTheme(
-                            data: CupertinoThemeData(
-                                brightness: isDarkMode
-                                    ? Brightness.dark
-                                    : Brightness.light),
-                            child: CupertinoActionSheet(
-                              title: Text(isFa ? 'مرتب‌سازی' : 'Sort By',
-                                  style: TextStyle(
-                                      fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDarkMode
-                                          ? Colors.white
-                                          : Colors.black)),
-                              actions: List.generate(sortOptions.length, (i) {
-                                return CupertinoActionSheetAction(
-                                  onPressed: () {
-                                    GlobalKey<AssetListPageState<models.Asset>>?
-                                        currentKey;
-                                    if (index == 0) {
-                                      currentKey = currencyTabKey as GlobalKey<
-                                          AssetListPageState<models.Asset>>?;
-                                    } else if (index == 1) {
-                                      currentKey = goldTabKey as GlobalKey<
-                                          AssetListPageState<models.Asset>>?;
-                                    } else if (index == 2) {
-                                      currentKey = cryptoTabKey as GlobalKey<
-                                          AssetListPageState<models.Asset>>?;
-                                    }
-                                    // Stock page sorting is internal or not available via this menu
-                                    currentKey?.currentState
-                                        ?.setSortMode(sortOptions[i]);
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text(optionLabels[i],
-                                      style: TextStyle(
-                                          fontFamily:
-                                              isFa ? 'Vazirmatn' : 'SF-Pro',
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.normal,
-                                          color: isDarkMode
-                                              ? Colors.white
-                                              : Colors.black)),
-                                );
-                              }),
-                              cancelButton: CupertinoActionSheetAction(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: Text(isFa ? 'انصراف' : 'Cancel',
-                                    style: TextStyle(
-                                        fontFamily:
-                                            isFa ? 'Vazirmatn' : 'SF-Pro',
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w600,
-                                        color: tealGreen)),
+                          }
+
+                          final segment = SmoothCard(
+                            smoothness: themeConfig.cardCornerSmoothness,
+                            borderRadius:
+                                tabBorderRadius, // Use new BorderRadius object
+                            elevation: 0,
+                            color: isSelected
+                                ? segmentActiveBackground
+                                : segmentInactiveBackground,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10.0, horizontal: 16.0),
+                              child: Center(
+                                child: Builder(builder: (context) {
+                                  Widget textWidget = Text(label,
+                                      style: isSelected
+                                          ? selectedTextStyle
+                                          : unselectedTextStyle,
+                                      textAlign: TextAlign.center);
+                                  Widget fittedText = FittedBox(
+                                      fit: BoxFit.scaleDown, child: textWidget);
+                                  if (isSelected && !isDarkMode) {
+                                    fittedText = Transform.translate(
+                                        offset: const Offset(0, 1),
+                                        child: fittedText);
+                                  }
+                                  return fittedText;
+                                }),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                      child: segment,
-                    );
-                    return isMobile
-                        ? Expanded(child: wrapped)
-                        : Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: horizontalMargin),
-                            child: wrapped);
-                  }),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          if (_tabController.index !=
-              3) // Search bar not shown on stock page (it has its own)
-            AnimatedContainer(
-              duration: _showSearchBar
-                  ? const Duration(milliseconds: 400)
-                  : const Duration(milliseconds: 300),
-              curve: Curves.easeInOutQuart,
-              height: _showSearchBar ? 48.0 : 0.0,
-              margin: _showSearchBar
-                  ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
-                  : EdgeInsets.zero,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: AnimatedOpacity(
-                opacity: _showSearchBar ? 1.0 : 0.0,
-                duration: _showSearchBar
-                    ? const Duration(milliseconds: 300)
-                    : const Duration(milliseconds: 200),
-                child: _isSearchActive
-                    ? Builder(builder: (context) {
-                        final searchQueryNotifier = context
-                            .watch<SearchQueryNotifier>(); // Using Provider
-                        final searchText = searchQueryNotifier.query;
-                        final isRTL =
-                            Localizations.localeOf(context).languageCode ==
-                                    'fa' ||
-                                containsPersian(searchText);
-                        final textColor =
-                            isDarkMode ? Colors.grey[300] : Colors.grey[700];
-                        final placeholderColor =
-                            isDarkMode ? Colors.grey[600] : Colors.grey[500];
-                        final iconColor =
-                            isDarkMode ? Colors.grey[400] : Colors.grey[600];
-                        final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
-                        return Container(
-                          decoration: ShapeDecoration(
-                            color: isDarkMode
-                                ? const Color(
-                                    0xFF161616) // Match card background
-                                : Colors.white,
-                            shape: SmoothRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                smoothness: 0.7),
-                          ),
-                          child: CupertinoTextField(
-                            controller: TextEditingController(text: searchText)
-                              ..selection = TextSelection.fromPosition(
-                                  TextPosition(offset: searchText.length)),
-                            onChanged: (v) => context
-                                .read<SearchQueryNotifier>()
-                                .query = v, // Using Provider
-                            placeholder: l10n.searchPlaceholder,
-                            placeholderStyle: TextStyle(
-                                color: placeholderColor,
-                                fontFamily: fontFamily),
-                            prefix: Padding(
-                                padding:
-                                    const EdgeInsetsDirectional.only(start: 18),
-                                child: Icon(CupertinoIcons.search,
-                                    size: 20, color: iconColor)),
-                            suffix: searchText.isNotEmpty
-                                ? CupertinoButton(
-                                    padding: const EdgeInsetsDirectional.only(
-                                        end: 18),
-                                    minSize: 30,
-                                    child: Icon(CupertinoIcons.clear,
-                                        size: 18, color: iconColor),
-                                    onPressed: () => context
-                                        .read<SearchQueryNotifier>()
-                                        .query = '', // Using Provider
-                                  )
-                                : null,
-                            textAlign: isRTL ? TextAlign.right : TextAlign.left,
-                            padding: EdgeInsetsDirectional.only(
-                                start: 9,
-                                end: searchText.isNotEmpty ? 28 : 12,
-                                top: 11,
-                                bottom: 11),
-                            style: TextStyle(
-                                color: textColor, fontFamily: fontFamily),
-                            cursorColor: isDarkMode
-                                ? Colors.grey[400]
-                                : Colors.grey[700],
-                            decoration:
-                                null, // Important: use null to avoid double background
-                          ),
-                        );
-                      })
-                    : const SizedBox(),
-              ),
-            ),
-          Expanded(
-            child: AnimatedBuilder(
-              // Using AnimatedBuilder to react to TabController changes
-              animation: _tabController,
-              builder: (context, child) {
-                final index = _tabController.index;
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeInOutQuart,
-                  switchOutCurve: Curves.easeInOutQuart,
-                  transitionBuilder: (Widget c, Animation<double> a) =>
-                      FadeTransition(opacity: a, child: c),
-                  child: Container(
-                    key: ValueKey<int>(index), // Key for AnimatedSwitcher
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: index == 3
-                        ? StockPage(
-                            key: stockTabKey,
-                            showSearchBar: _showSearchBar,
-                            isSearchActive: _isSearchActive)
-                        : _mainTabViews[index],
+                          );
+                          final wrapped = GestureDetector(
+                            onTap: onTabTap,
+                            onLongPress: () {
+                              Vibration.vibrate(duration: 30);
+                              final isFa = Localizations.localeOf(context)
+                                      .languageCode ==
+                                  'fa';
+                              final sortOptions = [
+                                SortMode.defaultOrder,
+                                SortMode.highestPrice,
+                                SortMode.lowestPrice,
+                              ];
+                              final optionLabels = [
+                                isFa ? 'پیشفرض' : 'Default',
+                                isFa ? 'بیشترین قیمت' : 'Highest Price',
+                                isFa ? 'کمترین قیمت' : 'Lowest Price',
+                              ];
+                              showCupertinoModalPopup(
+                                context: context,
+                                builder: (_) => CupertinoTheme(
+                                  data: CupertinoThemeData(
+                                      brightness: isDarkMode
+                                          ? Brightness.dark
+                                          : Brightness.light),
+                                  child: CupertinoActionSheet(
+                                    title: Text(isFa ? 'مرتب‌سازی' : 'Sort By',
+                                        style: TextStyle(
+                                            fontFamily:
+                                                isFa ? 'Vazirmatn' : 'SF-Pro',
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : Colors.black)),
+                                    actions:
+                                        List.generate(sortOptions.length, (i) {
+                                      return CupertinoActionSheetAction(
+                                        onPressed: () {
+                                          GlobalKey<
+                                              AssetListPageState<
+                                                  models.Asset>>? currentKey;
+                                          if (index == 0) {
+                                            currentKey = currencyTabKey
+                                                as GlobalKey<
+                                                    AssetListPageState<
+                                                        models.Asset>>?;
+                                          } else if (index == 1) {
+                                            currentKey = goldTabKey
+                                                as GlobalKey<
+                                                    AssetListPageState<
+                                                        models.Asset>>?;
+                                          } else if (index == 2) {
+                                            currentKey = cryptoTabKey
+                                                as GlobalKey<
+                                                    AssetListPageState<
+                                                        models.Asset>>?;
+                                          }
+                                          // Stock page sorting is internal or not available via this menu
+                                          currentKey?.currentState
+                                              ?.setSortMode(sortOptions[i]);
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: Text(optionLabels[i],
+                                            style: TextStyle(
+                                                fontFamily: isFa
+                                                    ? 'Vazirmatn'
+                                                    : 'SF-Pro',
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.normal,
+                                                color: isDarkMode
+                                                    ? Colors.white
+                                                    : Colors.black)),
+                                      );
+                                    }),
+                                    cancelButton: CupertinoActionSheetAction(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      child: Text(isFa ? 'انصراف' : 'Cancel',
+                                          style: TextStyle(
+                                              fontFamily:
+                                                  isFa ? 'Vazirmatn' : 'SF-Pro',
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w600,
+                                              color: tealGreen)),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: segment,
+                          );
+                          return isMobile
+                              ? Expanded(child: wrapped)
+                              : Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: horizontalMargin),
+                                  child: wrapped);
+                        }),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                ),
+              ),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 600) {
+            // Mobile: original column layout
+            return Column(
+              children: [
+                if (_tabController.index !=
+                    3) // Search bar not shown on stock page (it has its own)
+                  AnimatedContainer(
+                    duration: _showSearchBar
+                        ? const Duration(milliseconds: 400)
+                        : const Duration(milliseconds: 300),
+                    curve: Curves.easeInOutQuart,
+                    height: _showSearchBar ? 48.0 : 0.0,
+                    margin: _showSearchBar
+                        ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
+                        : EdgeInsets.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: AnimatedOpacity(
+                      opacity: _showSearchBar ? 1.0 : 0.0,
+                      duration: _showSearchBar
+                          ? const Duration(milliseconds: 300)
+                          : const Duration(milliseconds: 200),
+                      child: _isSearchActive
+                          ? Builder(builder: (context) {
+                              final searchQueryNotifier = context.watch<
+                                  SearchQueryNotifier>(); // Using Provider
+                              final searchText = searchQueryNotifier.query;
+                              final isRTL = Localizations.localeOf(context)
+                                          .languageCode ==
+                                      'fa' ||
+                                  containsPersian(searchText);
+                              final textColor = isDarkMode
+                                  ? Colors.grey[300]
+                                  : Colors.grey[700];
+                              final placeholderColor = isDarkMode
+                                  ? Colors.grey[600]
+                                  : Colors.grey[500];
+                              final iconColor = isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600];
+                              final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
+                              return Container(
+                                decoration: ShapeDecoration(
+                                  color: isDarkMode
+                                      ? const Color(
+                                          0xFF161616) // Match card background
+                                      : Colors.white,
+                                  shape: SmoothRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      smoothness: 0.7),
+                                ),
+                                child: CupertinoTextField(
+                                  controller:
+                                      TextEditingController(text: searchText)
+                                        ..selection =
+                                            TextSelection.fromPosition(
+                                                TextPosition(
+                                                    offset: searchText.length)),
+                                  onChanged: (v) => context
+                                      .read<SearchQueryNotifier>()
+                                      .query = v, // Using Provider
+                                  placeholder: l10n.searchPlaceholder,
+                                  placeholderStyle: TextStyle(
+                                      color: placeholderColor,
+                                      fontFamily: fontFamily),
+                                  prefix: Padding(
+                                      padding: const EdgeInsetsDirectional.only(
+                                          start: 18),
+                                      child: Icon(CupertinoIcons.search,
+                                          size: 20, color: iconColor)),
+                                  suffix: searchText.isNotEmpty
+                                      ? CupertinoButton(
+                                          padding:
+                                              const EdgeInsetsDirectional.only(
+                                                  end: 18),
+                                          minSize: 30,
+                                          child: Icon(CupertinoIcons.clear,
+                                              size: 18, color: iconColor),
+                                          onPressed: () => context
+                                              .read<SearchQueryNotifier>()
+                                              .query = '', // Using Provider
+                                        )
+                                      : null,
+                                  textAlign:
+                                      isRTL ? TextAlign.right : TextAlign.left,
+                                  padding: EdgeInsetsDirectional.only(
+                                      start: 9,
+                                      end: searchText.isNotEmpty ? 28 : 12,
+                                      top: 11,
+                                      bottom: 11),
+                                  style: TextStyle(
+                                      color: textColor, fontFamily: fontFamily),
+                                  cursorColor: isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[700],
+                                  decoration:
+                                      null, // Important: use null to avoid double background
+                                ),
+                              );
+                            })
+                          : const SizedBox(),
+                    ),
+                  ),
+                Expanded(
+                  child: AnimatedBuilder(
+                    // Using AnimatedBuilder to react to TabController changes
+                    animation: _tabController,
+                    builder: (context, child) {
+                      final index = _tabController.index;
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        switchInCurve: Curves.easeInOutQuart,
+                        switchOutCurve: Curves.easeInOutQuart,
+                        transitionBuilder: (Widget c, Animation<double> a) =>
+                            FadeTransition(opacity: a, child: c),
+                        child: Container(
+                          key: ValueKey<int>(index), // Key for AnimatedSwitcher
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          child: index == 3
+                              ? StockPage(
+                                  key: stockTabKey,
+                                  showSearchBar: _showSearchBar,
+                                  isSearchActive: _isSearchActive)
+                              : _mainTabViews[index],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+          // Desktop/Tablet: use NavigationRail for vertical tabs under the app title with search field
+          final isRTL = Localizations.localeOf(context).languageCode == 'fa';
+          return Row(
+            textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Align row contents from top
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            spacing: 0,
+            children: [
+              // Wrap NavigationRail in a Column with the same top padding as search field to align with cards
+              Padding(
+                padding: EdgeInsets.only(
+                    top: 7.0,
+                    // Adjust padding based on text direction
+                    left: isRTL ? 0.0 : 7.0,
+                    right: isRTL ? 7.0 : 0.0),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    // Disable all hover and touch feedback effects
+                    highlightColor: Colors.transparent,
+                    splashColor: Colors.transparent,
+                    hoverColor: Colors.transparent,
+                    splashFactory: NoSplash.splashFactory,
+                  ),
+                  child: NavigationRail(
+                    // ======== VISUAL PROPERTIES ========
+                    // Match page background
+                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                    // Badge-style indicator color for selected tab
+                    indicatorColor: isDarkMode
+                        ? tealGreen
+                            .withAlpha(38) // Light teal background in dark mode
+                        : Theme.of(context)
+                            .colorScheme
+                            .secondaryContainer
+                            .withAlpha(128),
+                    useIndicator: true,
+
+                    // ======== SIZING PROPERTIES ========
+                    minWidth: 68, // Slightly narrower for better proportions
+                    minExtendedWidth: 130,
+
+                    // ======== LAYOUT PROPERTIES ========
+                    labelType: NavigationRailLabelType.all,
+                    groupAlignment:
+                        -1.0, // Align tabs from top (-1.0) to bottom (1.0)
+
+                    // ======== TEXT & ICON STYLING ========
+                    selectedIconTheme: IconThemeData(
+                      color:
+                          isDarkMode ? tealGreen.withAlpha(230) : Colors.white,
+                      size: 22, // Size of icons
+                    ),
+                    selectedLabelTextStyle: TextStyle(
+                      color: isDarkMode
+                          ? tealGreen.withAlpha(230)
+                          : tealGreen.withAlpha(430),
+                      fontWeight: FontWeight.w500,
+                      fontFamily:
+                          Localizations.localeOf(context).languageCode == 'fa'
+                              ? 'Vazirmatn'
+                              : 'SF-Pro',
+                    ),
+                    unselectedIconTheme: IconThemeData(
+                      color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                      size: 22,
+                    ),
+                    unselectedLabelTextStyle: TextStyle(
+                      color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                      fontFamily:
+                          Localizations.localeOf(context).languageCode == 'fa'
+                              ? 'Vazirmatn'
+                              : 'SF-Pro',
+                    ),
+
+                    // ======== NAVIGATION BEHAVIOR ========
+                    selectedIndex: _tabController.index,
+                    onDestinationSelected: (index) {
+                      if (_isDesktopWeb && index == _mainTabs.length) {
+                        // If it's the download button (last item)
+                        _launchDownloadUrl();
+                      } else {
+                        // Regular tab selection
+                        setState(() => _tabController.animateTo(index));
+                      }
+                    },
+
+                    // ======== TAB DESTINATIONS ========
+                    destinations: [
+                      NavigationRailDestination(
+                        icon: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onLongPress: () => _showSortSheet(0),
+                          onDoubleTap: () => _showSortSheet(0),
+                          child:
+                              const Icon(CupertinoIcons.money_dollar, size: 22),
+                        ),
+                        label: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onLongPress: () => _showSortSheet(0),
+                          onDoubleTap: () => _showSortSheet(0),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 22),
+                            child: Text(l10n.tabCurrency),
+                          ),
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onLongPress: () => _showSortSheet(1),
+                          onDoubleTap: () => _showSortSheet(1),
+                          child: const Icon(CupertinoIcons.sparkles, size: 22),
+                        ),
+                        label: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onLongPress: () => _showSortSheet(1),
+                          onDoubleTap: () => _showSortSheet(1),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 22),
+                            child: Text(l10n.tabGold),
+                          ),
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onLongPress: () => _showSortSheet(2),
+                          onDoubleTap: () => _showSortSheet(2),
+                          child: const Icon(CupertinoIcons.bitcoin_circle,
+                              size: 22),
+                        ),
+                        label: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onLongPress: () => _showSortSheet(2),
+                          onDoubleTap: () => _showSortSheet(2),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 22),
+                            child: Text(l10n.tabCrypto),
+                          ),
+                        ),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.trending_up, size: 22),
+                        label: Padding(
+                          padding: const EdgeInsets.only(bottom: 22),
+                          child: Text(l10n.tabStock),
+                        ),
+                      ),
+                      // Download button for desktop web users
+                      if (_isDesktopWeb)
+                        NavigationRailDestination(
+                          icon: const Icon(CupertinoIcons.cloud_download,
+                              size: 22),
+                          label: Padding(
+                            padding: const EdgeInsets.only(bottom: 22),
+                            child: Text(isRTL ? "دانلود" : "App"),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    if (_tabController.index != 3)
+                      AnimatedContainer(
+                        duration: _showSearchBar
+                            ? const Duration(milliseconds: 400)
+                            : const Duration(milliseconds: 300),
+                        curve: Curves.easeInOutQuart,
+                        height: _showSearchBar ? 48.0 : 0.0,
+                        margin: _showSearchBar
+                            ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
+                            : EdgeInsets.zero,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: AnimatedOpacity(
+                          opacity: _showSearchBar ? 1.0 : 0.0,
+                          duration: _showSearchBar
+                              ? const Duration(milliseconds: 300)
+                              : const Duration(milliseconds: 200),
+                          child: _isSearchActive
+                              ? Builder(builder: (context) {
+                                  final searchQueryNotifier =
+                                      context.watch<SearchQueryNotifier>();
+                                  final searchText = searchQueryNotifier.query;
+                                  final isRTLInner =
+                                      Localizations.localeOf(context)
+                                                  .languageCode ==
+                                              'fa' ||
+                                          containsPersian(searchText);
+                                  final textColorInner = isDarkMode
+                                      ? Colors.grey[300]
+                                      : Colors.grey[700];
+                                  final placeholderColorInner = isDarkMode
+                                      ? Colors.grey[600]
+                                      : Colors.grey[500];
+                                  final iconColorInner = isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600];
+                                  final fontFamilyInner =
+                                      isRTLInner ? 'Vazirmatn' : 'SF-Pro';
+                                  return Container(
+                                    decoration: ShapeDecoration(
+                                      color: isDarkMode
+                                          ? const Color(0xFF161616)
+                                          : Colors.white,
+                                      shape: SmoothRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          smoothness: 0.7),
+                                    ),
+                                    child: CupertinoTextField(
+                                      controller: TextEditingController(
+                                          text: searchText)
+                                        ..selection =
+                                            TextSelection.fromPosition(
+                                                TextPosition(
+                                                    offset: searchText.length)),
+                                      onChanged: (v) => context
+                                          .read<SearchQueryNotifier>()
+                                          .query = v,
+                                      placeholder: l10n.searchPlaceholder,
+                                      placeholderStyle: TextStyle(
+                                          color: placeholderColorInner,
+                                          fontFamily: fontFamilyInner),
+                                      prefix: Padding(
+                                          padding:
+                                              const EdgeInsetsDirectional.only(
+                                                  start: 18),
+                                          child: Icon(CupertinoIcons.search,
+                                              size: 20, color: iconColorInner)),
+                                      suffix: searchText.isNotEmpty
+                                          ? CupertinoButton(
+                                              padding:
+                                                  const EdgeInsetsDirectional
+                                                      .only(end: 18),
+                                              minSize: 30,
+                                              child: Icon(CupertinoIcons.clear,
+                                                  size: 18,
+                                                  color: iconColorInner),
+                                              onPressed: () => context
+                                                  .read<SearchQueryNotifier>()
+                                                  .query = '',
+                                            )
+                                          : null,
+                                      textAlign: isRTLInner
+                                          ? TextAlign.right
+                                          : TextAlign.left,
+                                      padding: EdgeInsetsDirectional.only(
+                                          start: 9,
+                                          end: searchText.isNotEmpty ? 28 : 12,
+                                          top: 11,
+                                          bottom: 11),
+                                      style: TextStyle(
+                                          color: textColorInner,
+                                          fontFamily: fontFamilyInner),
+                                      cursorColor: isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[700],
+                                      decoration: null,
+                                    ),
+                                  );
+                                })
+                              : const SizedBox(),
+                        ),
+                      ),
+                    Expanded(
+                      child: AnimatedBuilder(
+                        animation: _tabController,
+                        builder: (context, child) {
+                          final index = _tabController.index;
+                          return index == 3
+                              ? StockPage(
+                                  key: stockTabKey,
+                                  showSearchBar: _showSearchBar,
+                                  isSearchActive: _isSearchActive)
+                              : _mainTabViews[index];
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
 
@@ -877,5 +1248,143 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       // print('Error finding scroll controller for tab $tabIndex: $e');
       return null;
     }
+  }
+
+  // Handle title taps for easter-egg
+  void _onTitleTapped() {
+    final now = DateTime.now();
+    if (_firstTitleTapTime == null ||
+        now.difference(_firstTitleTapTime!).inSeconds > 5) {
+      // Reset if outside threshold
+      _firstTitleTapTime = now;
+      _titleTapCount = 1;
+    } else {
+      _titleTapCount++;
+    }
+    if (_titleTapCount >= 10) {
+      // Reset tracking and prepare message
+      _titleTapCount = 0;
+      _firstTitleTapTime = null;
+      final isRTL = Localizations.localeOf(context).languageCode == 'fa';
+      final message = isRTL
+          ? 'به دستور شرکت ارتباطات و راهکارهای مانا.'
+          : 'By order of Aurum Co.';
+      // Show styled SnackBar mimicking ConnectionSnackbar with green background
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          elevation: 0,
+          duration: const Duration(milliseconds: 2500),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color.fromARGB(255, 5, 190, 99),
+          margin: const EdgeInsets.only(bottom: 10, left: 10, right: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Row(
+            textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+            children: [
+              // Placeholder icon, customize as needed
+              const Icon(CupertinoIcons.checkmark_seal_fill,
+                  color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          dismissDirection: DismissDirection.horizontal,
+        ),
+      );
+    }
+  }
+
+  void _showSortSheet(int index) {
+    // Show sorting options for asset tabs
+    Vibration.vibrate(duration: 30);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    final sortOptions = [
+      SortMode.defaultOrder,
+      SortMode.highestPrice,
+      SortMode.lowestPrice,
+    ];
+    final optionLabels = [
+      isFa ? 'پیشفرض' : 'Default',
+      isFa ? 'بیشترین قیمت' : 'Highest Price',
+      isFa ? 'کمترین قیمت' : 'Lowest Price',
+    ];
+    // Determine accent color for cancel button
+    final appConfig = context.read<AppConfig>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealGreen = hexToColor(
+      isDark
+          ? appConfig.themeOptions.dark.accentColorGreen
+          : appConfig.themeOptions.light.accentColorGreen,
+    );
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => CupertinoTheme(
+        data: CupertinoThemeData(
+          brightness: isDark ? Brightness.dark : Brightness.light,
+        ),
+        child: CupertinoActionSheet(
+          title: Text(
+            isFa ? 'مرتب‌سازی' : 'Sort By',
+            style: TextStyle(
+              fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          actions: List.generate(sortOptions.length, (i) {
+            return CupertinoActionSheetAction(
+              onPressed: () {
+                GlobalKey<AssetListPageState<models.Asset>>? currentKey;
+                if (index == 0) {
+                  currentKey = currencyTabKey
+                      as GlobalKey<AssetListPageState<models.Asset>>?;
+                } else if (index == 1) {
+                  currentKey = goldTabKey
+                      as GlobalKey<AssetListPageState<models.Asset>>?;
+                } else if (index == 2) {
+                  currentKey = cryptoTabKey
+                      as GlobalKey<AssetListPageState<models.Asset>>?;
+                }
+                currentKey?.currentState?.setSortMode(sortOptions[i]);
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                optionLabels[i],
+                style: TextStyle(
+                  fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+                  fontSize: 17,
+                  fontWeight: FontWeight.normal,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            );
+          }),
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              isFa ? 'انصراف' : 'Cancel',
+              style: TextStyle(
+                fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: tealGreen,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

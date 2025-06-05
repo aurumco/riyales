@@ -4,6 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:web_smooth_scroll/web_smooth_scroll.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../providers/locale_provider.dart';
@@ -11,12 +14,13 @@ import '../../providers/favorites_provider.dart';
 import '../../providers/search_provider.dart';
 import '../../providers/card_corner_settings_provider.dart';
 import '../../localization/app_localizations.dart';
-import '../../services/connection_service.dart'; // For ConnectionStatus enum
+import '../../services/connection_service.dart';
 import './asset_card.dart';
 import './common/animated_card_builder.dart';
 import './common/error_placeholder.dart';
 
 enum AssetType { currency, gold, crypto, stock }
+
 enum SortMode { defaultOrder, highestPrice, lowestPrice }
 
 class AssetListPage<T extends models.Asset> extends StatefulWidget {
@@ -45,7 +49,9 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
   AssetListPageState<T> createState() => AssetListPageState<T>(); // Changed
 }
 
-class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>> { // Changed: Made public
+class AssetListPageState<T extends models.Asset>
+    extends State<AssetListPage<T>> {
+  // Changed: Made public
   static const double _maxRadiusDelta = 13.5;
   static const double _maxSmoothnessDelta = 0.75;
   final ScrollController _scrollController = ScrollController();
@@ -68,17 +74,27 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     _trigramIndex.clear();
     for (int i = 0; i < assets.length; i++) {
       final asset = assets[i];
-      String text = '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
-      if (asset is models.CurrencyAsset) { text += ' ${asset.nameEn.toLowerCase()}'; }
-      else if (asset is models.GoldAsset) { text += ' ${asset.nameEn.toLowerCase()}'; }
-      else if (asset is models.CryptoAsset) { text += ' ${asset.nameFa.toLowerCase()}'; }
-      else if (asset is models.StockAsset) { text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}'; }
+      String text =
+          '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
+      if (asset is models.CurrencyAsset) {
+        text += ' ${asset.nameEn.toLowerCase()}';
+      } else if (asset is models.GoldAsset) {
+        text += ' ${asset.nameEn.toLowerCase()}';
+      } else if (asset is models.CryptoAsset) {
+        text += ' ${asset.nameFa.toLowerCase()}';
+      } else if (asset is models.StockAsset) {
+        text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
+      }
       text = text.replaceAll(RegExp(r'\s+'), ' ');
       for (int j = 0; j <= text.length - 2; j++) {
-        _bigramIndex.putIfAbsent(text.substring(j, j + 2), () => <int>{}).add(i);
+        _bigramIndex
+            .putIfAbsent(text.substring(j, j + 2), () => <int>{})
+            .add(i);
       }
       for (int j = 0; j <= text.length - 3; j++) {
-        _trigramIndex.putIfAbsent(text.substring(j, j + 3), () => <int>{}).add(i);
+        _trigramIndex
+            .putIfAbsent(text.substring(j, j + 3), () => <int>{})
+            .add(i);
       }
     }
   }
@@ -101,7 +117,8 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
   void didUpdateWidget(covariant AssetListPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.fullItemsListForSearch.length != _lastFullDataLength ||
-        widget.fullItemsListForSearch != oldWidget.fullItemsListForSearch) { // Also check if list instance changed
+        widget.fullItemsListForSearch != oldWidget.fullItemsListForSearch) {
+      // Also check if list instance changed
       _searchIndexBuilt = false;
       _lastFullDataLength = widget.fullItemsListForSearch.length;
     }
@@ -114,19 +131,19 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     }
 
     if (mounted) {
-        final settingsNotifier = context.read<CardCornerSettingsNotifier>();
-        // Ensure _defaultRadius and _defaultSmoothness are initialized.
-        // They are set in initState's post-frame callback, which should be sufficient.
-        if (pos < 0) {
-          final factor = (-pos / 100).clamp(0.0, 1.0);
-          final newSmooth = _defaultSmoothness + _maxSmoothnessDelta * factor;
-          final newRadius = _defaultRadius + _maxRadiusDelta * factor;
-          settingsNotifier.updateSmoothness(newSmooth);
-          settingsNotifier.updateRadius(newRadius);
-        } else {
-          settingsNotifier.updateSmoothness(_defaultSmoothness);
-          settingsNotifier.updateRadius(_defaultRadius);
-        }
+      final settingsNotifier = context.read<CardCornerSettingsNotifier>();
+      // Ensure _defaultRadius and _defaultSmoothness are initialized.
+      // They are set in initState's post-frame callback, which should be sufficient.
+      if (pos < 0) {
+        final factor = (-pos / 100).clamp(0.0, 1.0);
+        final newSmooth = _defaultSmoothness + _maxSmoothnessDelta * factor;
+        final newRadius = _defaultRadius + _maxRadiusDelta * factor;
+        settingsNotifier.updateSmoothness(newSmooth);
+        settingsNotifier.updateRadius(newRadius);
+      } else {
+        settingsNotifier.updateSmoothness(_defaultSmoothness);
+        settingsNotifier.updateRadius(_defaultRadius);
+      }
     }
   }
 
@@ -153,9 +170,12 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     final width = MediaQuery.of(context).size.width;
     final orientation = MediaQuery.of(context).orientation;
     const double baseAspectRatio = 0.8;
-    if (width < 600 && orientation == Orientation.portrait) return baseAspectRatio;
-    if (width < 900 && orientation == Orientation.landscape) return baseAspectRatio * 0.8;
-    if (width < 900 && orientation == Orientation.portrait) return baseAspectRatio * 0.9;
+    if (width < 600 && orientation == Orientation.portrait)
+      return baseAspectRatio;
+    if (width < 900 && orientation == Orientation.landscape)
+      return baseAspectRatio * 0.8;
+    if (width < 900 && orientation == Orientation.portrait)
+      return baseAspectRatio * 0.9;
     if (width < 1200) return baseAspectRatio * 0.9;
     return baseAspectRatio * 0.9;
   }
@@ -170,15 +190,16 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     final isRTL = localeNotifier.locale.languageCode == 'fa';
     // AppConfig is not directly watched here anymore; it's assumed to be stable or handled by parent.
 
-    if (widget.error != null && !widget.error!.toLowerCase().contains('offline')) {
-        _errorRetryTimer?.cancel();
-        _errorRetryTimer = Timer(const Duration(seconds: 5), () {
-            if (mounted) {
-                widget.onRefresh();
-            }
-        });
+    if (widget.error != null &&
+        !widget.error!.toLowerCase().contains('offline')) {
+      _errorRetryTimer?.cancel();
+      _errorRetryTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted) {
+          widget.onRefresh();
+        }
+      });
     } else {
-        _errorRetryTimer?.cancel();
+      _errorRetryTimer?.cancel();
     }
 
     if (widget.isLoading && widget.items.isEmpty) {
@@ -186,14 +207,16 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     }
 
     if (widget.error != null && widget.items.isEmpty) {
-      final isConnectionError = widget.error!.toLowerCase().contains('offline') ||
-                                widget.error!.toLowerCase().contains('dioexception') ||
-                                widget.error!.toLowerCase().contains('socketexception');
+      final isConnectionError =
+          widget.error!.toLowerCase().contains('offline') ||
+              widget.error!.toLowerCase().contains('dioexception') ||
+              widget.error!.toLowerCase().contains('socketexception');
       if (isConnectionError) {
         // Determine a more specific status if possible, or use a generic "serverDown" / "internetDown"
-        final status = widget.error!.toLowerCase().contains('offline') && !widget.error!.toLowerCase().contains('dioexception')
-                       ? ConnectionStatus.internetDown
-                       : ConnectionStatus.serverDown;
+        final status = widget.error!.toLowerCase().contains('offline') &&
+                !widget.error!.toLowerCase().contains('dioexception')
+            ? ConnectionStatus.internetDown
+            : ConnectionStatus.serverDown;
         return Center(child: ErrorPlaceholder(status: status));
       }
       // For other types of errors (e.g., parsing errors, unexpected issues)
@@ -203,13 +226,15 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
           child: Text(
             "${l10n.errorGeneric}: ${widget.error}", // Include the actual error message
             textAlign: TextAlign.center,
-            style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87),
+            style:
+                TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87),
           ),
         ),
       );
     }
 
-    List<T> dataToProcess = List<T>.from(widget.items); // Use a copy for filtering/sorting
+    List<T> dataToProcess =
+        List<T>.from(widget.items); // Use a copy for filtering/sorting
 
     if (searchQueryNotifier.query.length >= 2) {
       if (!_searchIndexBuilt && widget.fullItemsListForSearch.isNotEmpty) {
@@ -222,20 +247,33 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
         final indices = _bigramIndex[queryLower] ?? <int>{};
         final sortedIdx = indices.toList()..sort();
         if (widget.fullItemsListForSearch.isNotEmpty) {
-            filtered = sortedIdx.where((i) => i < widget.fullItemsListForSearch.length).map((i) => widget.fullItemsListForSearch[i]).toList();
+          filtered = sortedIdx
+              .where((i) => i < widget.fullItemsListForSearch.length)
+              .map((i) => widget.fullItemsListForSearch[i])
+              .toList();
         }
       } else {
         Set<int>? resultSet;
         for (int k = 0; k <= queryLower.length - 3; k++) {
           final gram = queryLower.substring(k, k + 3);
           final gramSet = _trigramIndex[gram] ?? <int>{};
-          if (resultSet == null) { resultSet = gramSet.toSet(); }
-          else { resultSet = resultSet.intersection(gramSet); }
-          if (resultSet.isEmpty) { break; }
+          if (resultSet == null) {
+            resultSet = gramSet.toSet();
+          } else {
+            resultSet = resultSet.intersection(gramSet);
+          }
+          if (resultSet.isEmpty) {
+            break;
+          }
         }
-        if (resultSet != null && resultSet.isNotEmpty && widget.fullItemsListForSearch.isNotEmpty) {
+        if (resultSet != null &&
+            resultSet.isNotEmpty &&
+            widget.fullItemsListForSearch.isNotEmpty) {
           final sortedIdx = resultSet.toList()..sort();
-          filtered = sortedIdx.where((i) => i < widget.fullItemsListForSearch.length).map((i) => widget.fullItemsListForSearch[i]).toList();
+          filtered = sortedIdx
+              .where((i) => i < widget.fullItemsListForSearch.length)
+              .map((i) => widget.fullItemsListForSearch[i])
+              .toList();
         }
       }
       dataToProcess = filtered; // Update dataToProcess with filtered results
@@ -245,15 +283,20 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     List<T> sortedDisplayData;
     switch (_sortMode) {
       case SortMode.highestPrice:
-        sortedDisplayData = List<T>.from(dataToProcess)..sort((a, b) => b.price.compareTo(a.price));
+        sortedDisplayData = List<T>.from(dataToProcess)
+          ..sort((a, b) => b.price.compareTo(a.price));
         break;
       case SortMode.lowestPrice:
-        sortedDisplayData = List<T>.from(dataToProcess)..sort((a, b) => a.price.compareTo(b.price));
+        sortedDisplayData = List<T>.from(dataToProcess)
+          ..sort((a, b) => a.price.compareTo(b.price));
         break;
       default: // DefaultOrder (includes favorites first)
         final favorites = favoritesNotifier.favorites;
-        final favoriteItems = dataToProcess.where((item) => favorites.contains(item.id)).toList();
-        final nonFavoriteItems = dataToProcess.where((item) => !favorites.contains(item.id)).toList();
+        final favoriteItems =
+            dataToProcess.where((item) => favorites.contains(item.id)).toList();
+        final nonFavoriteItems = dataToProcess
+            .where((item) => !favorites.contains(item.id))
+            .toList();
         // TODO: Consider if original API sort order should be preserved within these groups
         sortedDisplayData = [...favoriteItems, ...nonFavoriteItems];
     }
@@ -261,7 +304,9 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     if (sortedDisplayData.isEmpty) {
       return Center(
         child: Text(
-          searchQueryNotifier.query.isNotEmpty ? l10n.searchNoResults : l10n.listNoData,
+          searchQueryNotifier.query.isNotEmpty
+              ? l10n.searchNoResults
+              : l10n.listNoData,
           style: TextStyle(
             fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
             fontSize: 16,
@@ -274,9 +319,15 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
     final columnCount = _getOptimalColumnCount(context);
     final aspectRatio = _getCardAspectRatio(context);
 
-    return CustomScrollView(
+    Widget scrollableContent = CustomScrollView(
       controller: _scrollController,
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      physics: (kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.macOS ||
+                  defaultTargetPlatform == TargetPlatform.windows ||
+                  defaultTargetPlatform == TargetPlatform.linux))
+          ? const NeverScrollableScrollPhysics()
+          : const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics()),
       slivers: [
         CupertinoSliverRefreshControl(
           refreshTriggerPullDistance: 100.0,
@@ -314,6 +365,22 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
         ),
       ],
     );
+
+    // Wrap with WebSmoothScroll if on desktop web platform only
+    if (kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.windows ||
+            defaultTargetPlatform == TargetPlatform.linux)) {
+      return WebSmoothScroll(
+        controller: _scrollController,
+        scrollSpeed: 1.3,
+        scrollAnimationLength: 1000,
+        curve: Curves.easeInOutCirc,
+        child: scrollableContent,
+      );
+    }
+
+    return scrollableContent;
   }
 
   // Public getter for the ScrollController

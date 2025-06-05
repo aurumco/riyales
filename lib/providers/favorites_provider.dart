@@ -41,7 +41,7 @@ class FavoritesNotifier extends ChangeNotifier {
           await Vibration.hasVibrator(); // Made bool? to align with package
       if (hasVibrator) {
         // Added null check
-        Vibration.vibrate(duration: 60);
+        Vibration.vibrate(duration: 30);
       }
     } catch (e) {
       // Vibration failed, log if necessary
