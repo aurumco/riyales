@@ -10,7 +10,7 @@ import '../config/app_config.dart';
 Future<AppConfig> fetchAppConfig() async {
   final dio = Dio();
   Map<String, dynamic> localConfigJson;
-  AppConfig loadedAppConfig;
+  AppConfig loadedAppConfig = AppConfig.defaultConfig(); // Initialize here
 
   try {
     final localConfigString = await rootBundle.loadString('assets/config/app_config.json');

@@ -96,7 +96,7 @@ class CryptoDataNotifier extends ChangeNotifier {
         if (isSpecialFetch) {
           // Filter for favorites and directly assign to cryptoAssets
           // This assumes favoriteIds contains the asset.id
-          cryptoAssets = fetchedAssets.where((asset) => favoriteIds!.contains(asset.id)).toList();
+          cryptoAssets = fetchedAssets.where((asset) => favoriteIds.contains(asset.id)).toList(); // Removed !
           // _isCurrentlyShowingFavorites = true; // Set flag if needed
         } else {
           // _isCurrentlyShowingFavorites = false; // Reset flag

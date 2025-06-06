@@ -36,7 +36,7 @@ class GoldDataNotifier extends ChangeNotifier {
     const bool isSpecialFetch = false; // GoldDataNotifier doesn't have special fetches like crypto favorites
 
     if (isLoadMore) {
-      if (_isLoadingMore || (_fullDataList.isNotEmpty && goldAssets.length >= _fullDataList.length)) {
+      if (_isLoadingMore || (_fullDataList.isNotEmpty && goldAssets.length >= _fullDataList.length)) { // Added braces
         return;
       }
       _isLoadingMore = true;
@@ -46,7 +46,7 @@ class GoldDataNotifier extends ChangeNotifier {
       final int end = (currentLength + appConfig.itemsPerLazyLoad > _fullDataList.length)
           ? _fullDataList.length
           : currentLength + appConfig.itemsPerLazyLoad;
-      if (currentLength < end) {
+      if (currentLength < end) { // Added braces
         goldAssets.addAll(_fullDataList.sublist(currentLength, end));
       }
 

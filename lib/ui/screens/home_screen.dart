@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'dart:async'; // Added for Timer
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
@@ -278,7 +279,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.currency,
         ),
@@ -291,7 +292,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.gold,
         ),
@@ -304,7 +305,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.crypto,
         ),

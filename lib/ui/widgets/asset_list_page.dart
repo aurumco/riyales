@@ -12,7 +12,7 @@ import '../../models/asset_models.dart' as models;
 import '../../providers/locale_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/search_provider.dart';
-import '../../providers/card_corner_settings_provider.dart';
+// import '../../providers/card_corner_settings_provider.dart'; // Removed unused import
 import '../../localization/app_localizations.dart';
 import '../../services/connection_service.dart';
 import './asset_card.dart';

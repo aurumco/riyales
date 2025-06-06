@@ -156,7 +156,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           isLoading: currencyNotifier.isLoading,
           error: currencyNotifier.error,
           onRefresh: () => currencyNotifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => currencyNotifier.loadMore(),
+          onLoadMore: () => currencyNotifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () => currencyNotifier
               .fetchInitialData(), // May not be strictly needed here if already loaded
           assetType: AssetType.currency,
@@ -170,7 +170,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           isLoading: goldNotifier.isLoading,
           error: goldNotifier.error,
           onRefresh: () => goldNotifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => goldNotifier.loadMore(),
+          onLoadMore: () => goldNotifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () => goldNotifier.fetchInitialData(),
           assetType: AssetType.gold,
         );
@@ -183,7 +183,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           isLoading: cryptoNotifier.isLoading,
           error: cryptoNotifier.error,
           onRefresh: () => cryptoNotifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => cryptoNotifier.loadMore(),
+          onLoadMore: () => cryptoNotifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () => cryptoNotifier.fetchInitialData(),
           assetType: AssetType.crypto,
         );
@@ -198,7 +198,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           error: stockTseIfbNotifier.error,
           onRefresh: () =>
               stockTseIfbNotifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => stockTseIfbNotifier.loadMore(),
+          onLoadMore: () => stockTseIfbNotifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () => stockTseIfbNotifier.fetchInitialData(),
           assetType: AssetType
               .stock, // This might need to be more specific if StockPage uses this delegate

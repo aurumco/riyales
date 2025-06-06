@@ -79,7 +79,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.stock, // Consider a more specific type if needed
         ),
@@ -92,7 +92,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.stock,
         ),
@@ -105,7 +105,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.stock,
         ),
@@ -118,7 +118,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           isLoading: notifier.isLoading,
           error: notifier.error,
           onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () => notifier.loadMore(),
+          onLoadMore: () => notifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () async => notifier.fetchInitialData(),
           assetType: AssetType.stock,
         ),
