@@ -61,6 +61,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   final Map<int, ScrollController?> _tabScrollControllers = {};
   final Map<int, void Function()> _tabScrollListeners = {};
 
+  Timer? _autoRefreshTimer; // Added timer instance variable
+
   final currencyTabKey = GlobalKey<AssetListPageState<models.CurrencyAsset>>();
   final goldTabKey = GlobalKey<AssetListPageState<models.GoldAsset>>();
   final cryptoTabKey = GlobalKey<AssetListPageState<models.CryptoAsset>>();
@@ -148,6 +150,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     // _setupTabs() is called in didChangeDependencies
     // Check if the device is desktop web
     _checkDeviceType();
+    _startAutoRefreshTimer(); // Added call to start timer
   }
 
   // Function to check device type and set _isDesktopWeb flag
@@ -209,54 +212,39 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     } // Ensure widget is mounted
 
     if (state == AppLifecycleState.resumed) {
-      final currentTabIndex = _tabController.index;
-      // Using context.read<NotifierClass>().fetchInitialData(isRefresh: true) or a dedicated refreshData()
-      switch (currentTabIndex) {
-        case 0:
-          {
-            context
-                .read<CurrencyDataNotifier>()
-                .fetchInitialData(isRefresh: true);
-            break;
-          }
-        case 1:
-          {
-            context.read<GoldDataNotifier>().fetchInitialData(isRefresh: true);
-            break;
-          }
-        case 2:
-          {
-            context
-                .read<CryptoDataNotifier>()
-                .fetchInitialData(isRefresh: true);
-            break;
-          }
-        case 3:
-          {
-            final stockState = stockTabKey.currentState;
-            if (stockState != null) {
-              final activeStockTabIndex = stockState.stockTabController.index;
-              if (activeStockTabIndex == 0) {
-                context
-                    .read<StockTseIfbDataNotifier>()
-                    .fetchInitialData(isRefresh: true);
-              } else if (activeStockTabIndex == 1) {
-                context
-                    .read<StockDebtSecuritiesDataNotifier>()
-                    .fetchInitialData(isRefresh: true);
-              } else if (activeStockTabIndex == 2) {
-                context
-                    .read<StockFuturesDataNotifier>()
-                    .fetchInitialData(isRefresh: true);
-              } else if (activeStockTabIndex == 3) {
-                context
-                    .read<StockHousingFacilitiesDataNotifier>()
-                    .fetchInitialData(isRefresh: true);
-              }
-            }
-            break;
-          }
-      }
+      _startAutoRefreshTimer(); // Restart timer on resume
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.detached) {
+      _autoRefreshTimer?.cancel(); // Cancel timer on pause/inactive/detached
+    }
+  }
+
+  void _startAutoRefreshTimer() {
+    _autoRefreshTimer?.cancel(); // Cancel any existing timer
+    // Call _checkAutoRefresh immediately, then set up periodic timer
+    // Using a separate Future.delayed to avoid issues if _checkAutoRefresh itself takes time or calls notifyListeners
+    Future.delayed(Duration.zero, () => _checkAutoRefresh(null));
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 1), _checkAutoRefresh);
+  }
+
+  void _checkAutoRefresh(Timer? timer) { // Timer can be null for the initial immediate call
+    if (!mounted) return; // Ensure widget is still mounted
+
+    final currentTabIndex = _tabController.index;
+    const staleness = Duration(minutes: 5);
+
+    switch (currentTabIndex) {
+      case 0: // Currency
+        context.read<CurrencyDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+      case 1: // Gold
+        context.read<GoldDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+      case 2: // Crypto
+        context.read<CryptoDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+      case 3: // Stock
+        stockTabKey.currentState?.refreshCurrentSubTabDataIfStale(staleness: staleness);
+        break;
     }
   }
 
@@ -383,6 +371,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     _tabController.dispose();
     _showSearchBarNotifier.dispose();
     _isSearchActiveNotifier.dispose();
+    _autoRefreshTimer?.cancel(); // Added timer cancellation
     super.dispose();
   }
 
@@ -1065,7 +1054,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                             height: showSearchBar ? 48.0 : 0.0,
                             margin: showSearchBar
                             ? const EdgeInsets.only(top: 10.0, bottom: 4.0) // Already const
-                            : const EdgeInsets.zero, // Made const
+                            : const EdgeInsets.zero, // Ensure const
                         padding: const EdgeInsets.symmetric(horizontal: 12), // Already const
                             color: Theme.of(context).scaffoldBackgroundColor,
                             child: AnimatedOpacity(

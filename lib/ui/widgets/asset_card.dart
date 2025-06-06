@@ -611,9 +611,9 @@ class AssetCard extends StatelessWidget {
 
       iconWidget = DynamicGlow(
         // Changed to use public class name
-        key: ValueKey(asset.id),
-        imageProvider: AssetImage(iconPath),
-        defaultGlowColor: Colors.yellow.withOpacity(0.3),
+        key: ValueKey(asset.id), // This makes DynamicGlow non-const
+        imageProvider: AssetImage(iconPath), // AssetImage can be const if iconPath is known at compile time, but DynamicGlow is already non-const due to key.
+        defaultGlowColor: const Color(0x4DFFFF00), // const Color for yellow with 0.3 opacity
         size: 32.0,
         child: ClipOval(
           child: Image.asset(

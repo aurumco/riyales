@@ -14,9 +14,13 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
   String? error;
   List<StockAsset> stockAssets = []; // Public list for current items
 
-  int _currentlyLoadedCount = 0;
+  // int _currentlyLoadedCount = 0;
   List<StockAsset> _fullDataList = [];
-  Timer? _updateTimer;
+  // Timer? _updateTimer; // Removed
+
+  bool hasDataBeenFetchedOnce = false;
+  DateTime? lastFetchTime;
+  bool _isLoadingMore = false;
 
   // Public getter for the full data list
   List<StockAsset> get fullDataList => _fullDataList;
@@ -24,97 +28,135 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
   List<StockAsset> get items => stockAssets;
 
   StockDebtSecuritiesDataNotifier({required this.apiService, required this.appConfig, required this.connectionService}) {
-    _currentlyLoadedCount = appConfig.initialItemsToLoad;
+    // _currentlyLoadedCount = appConfig.initialItemsToLoad;
     fetchInitialData();
   }
 
-  Future<void> fetchInitialData({bool isRefresh = false}) async {
-    if (!isRefresh) {
-      isLoading = true;
-      error = null;
-      notifyListeners();
-    }
+  Future<void> fetchInitialData({bool isRefresh = false, bool isLoadMore = false}) async {
+    const bool isSpecialFetch = false;
 
-    final String apiUrl = appConfig.apiEndpoints.stockDebtSecuritiesUrl;
-    final bool isOnline = await connectionService.checkConnection(apiUrl);
-    if (!isOnline) {
-      error = "Offline";
-      isLoading = false;
+    if (isLoadMore) {
+      if (_isLoadingMore || (_fullDataList.isNotEmpty && stockAssets.length >= _fullDataList.length)) {
+        return;
+      }
+      _isLoadingMore = true;
+      // notifyListeners(); // Optional
+
+      final currentLength = stockAssets.length;
+      final int end = (currentLength + appConfig.itemsPerLazyLoad > _fullDataList.length)
+          ? _fullDataList.length
+          : currentLength + appConfig.itemsPerLazyLoad;
+      if (currentLength < end) {
+        stockAssets.addAll(_fullDataList.sublist(currentLength, end));
+      }
+
+      _isLoadingMore = false;
       notifyListeners();
       return;
     }
 
-    try {
-      final dynamic responseData = await apiService.fetchData(apiUrl);
-      List<StockAsset> fetchedAssets = [];
-      if (responseData is List) {
-        fetchedAssets = responseData
-            .map((item) => StockAsset.fromJson(item as Map<String, dynamic>))
-            .toList();
+    if (!isRefresh && !isSpecialFetch && hasDataBeenFetchedOnce) {
+      if (isLoading) {
+          isLoading = false;
+          notifyListeners();
       }
+      return;
+    }
 
-      List<String> priorityList = [];
-      try {
-        final dynamic priorityResponse = await apiService.fetchData(appConfig.apiEndpoints.priorityAssetsUrl);
-        if (priorityResponse is Map<String, dynamic>) {
-          priorityList = List<String>.from(priorityResponse['stock_debt_securities'] as List<dynamic>? ?? []);
-        }
-      } catch (_) {
-        // Failed to load priority list
-      }
-
-      final List<StockAsset> priorityAssets = [];
-      final List<StockAsset> otherAssets = [];
-      if (priorityList.isNotEmpty) {
-          for (final symbol in priorityList) {
-            priorityAssets.addAll(fetchedAssets.where((a) => a.symbol == symbol));
-          }
-          for (final asset in fetchedAssets) {
-            if (!priorityAssets.any((pa) => pa.id == asset.id)) {
-              otherAssets.add(asset);
-            }
-          }
-          _fullDataList = [...priorityAssets, ...otherAssets];
-      } else {
-          _fullDataList = fetchedAssets;
-      }
-
-      stockAssets = _fullDataList.take(_currentlyLoadedCount).toList();
+    isLoading = true;
+    if (isRefresh || isSpecialFetch) {
       error = null;
+    }
+    notifyListeners();
+
+    try {
+      final String apiUrl = appConfig.apiEndpoints.stockDebtSecuritiesUrl;
+      final bool isOnline = await connectionService.checkConnection(apiUrl);
+      if (!isOnline) {
+        error = "Offline";
+        if (!isRefresh && !hasDataBeenFetchedOnce) {
+            hasDataBeenFetchedOnce = false;
+        }
+      } else {
+        final dynamic responseData = await apiService.fetchData(apiUrl);
+        List<StockAsset> fetchedAssets = [];
+        if (responseData is List) {
+          fetchedAssets = responseData
+              .map((item) => StockAsset.fromJson(item as Map<String, dynamic>))
+              .toList();
+        }
+
+        List<String> priorityList = [];
+        try {
+          final dynamic priorityResponse = await apiService.fetchData(appConfig.apiEndpoints.priorityAssetsUrl);
+          if (priorityResponse is Map<String, dynamic>) {
+            priorityList = List<String>.from(priorityResponse['stock_debt_securities'] as List<dynamic>? ?? []);
+          }
+        } catch (_) {
+          // Failed to load priority list
+        }
+
+        final List<StockAsset> priorityAssetsList = []; // Renamed
+        final List<StockAsset> otherAssets = [];
+        if (priorityList.isNotEmpty) {
+            for (final symbol in priorityList) {
+              priorityAssetsList.addAll(fetchedAssets.where((a) => a.symbol == symbol));
+            }
+            for (final assetInFetched in fetchedAssets) { // Renamed
+              if (!priorityAssetsList.any((pa) => pa.id == assetInFetched.id)) {
+                otherAssets.add(assetInFetched);
+              }
+            }
+            _fullDataList = [...priorityAssetsList, ...otherAssets];
+        } else {
+            _fullDataList = fetchedAssets;
+        }
+
+        stockAssets = _fullDataList.take(appConfig.initialItemsToLoad).toList();
+        error = null;
+      }
+
+      if(error == null && !isSpecialFetch){
+          hasDataBeenFetchedOnce = true;
+          lastFetchTime = DateTime.now();
+          // if (!isRefresh) { // Removed call to _startAutoRefresh
+          //   _startAutoRefresh();
+          // }
+      }
     } catch (e) {
       error = e.toString();
+      if (!isRefresh && !isSpecialFetch) {
+        hasDataBeenFetchedOnce = false;
+      }
     } finally {
       isLoading = false;
-      notifyListeners();
-      if (!isRefresh) {
-        _startAutoRefresh();
-      }
-    }
-  }
-
-  void loadMore() {
-    if (_currentlyLoadedCount < _fullDataList.length) {
-      _currentlyLoadedCount = (_currentlyLoadedCount + appConfig.itemsPerLazyLoad > _fullDataList.length)
-          ? _fullDataList.length
-          : _currentlyLoadedCount + appConfig.itemsPerLazyLoad;
-      stockAssets = _fullDataList.take(_currentlyLoadedCount).toList();
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
 
-  void _startAutoRefresh() {
-    _updateTimer?.cancel();
-    final updateIntervalMs = appConfig.priceUpdateIntervalMinutes * 60 * 1000;
-    if (updateIntervalMs > 0) {
-        _updateTimer = Timer.periodic(Duration(milliseconds: updateIntervalMs), (timer) {
-            fetchInitialData(isRefresh: true);
-        });
+  // void loadMore() { // Integrated
+  // }
+
+  Future<void> fetchDataIfStaleOrNeverFetched({Duration staleness = const Duration(minutes: 5)}) async {
+    if (!hasDataBeenFetchedOnce || lastFetchTime == null || DateTime.now().difference(lastFetchTime!) > staleness) {
+      await fetchInitialData(isRefresh: true);
     }
   }
+
+  // void _startAutoRefresh() { // Removed method
+  //   _updateTimer?.cancel();
+  //   final updateIntervalMs = appConfig.priceUpdateIntervalMinutes * 60 * 1000;
+  //   if (updateIntervalMs > 0) {
+  //       _updateTimer = Timer.periodic(Duration(milliseconds: updateIntervalMs), (timer) {
+  //           fetchInitialData(isRefresh: true);
+  //       });
+  //   }
+  // }
 
   @override
   void dispose() {
-    _updateTimer?.cancel();
+    // _updateTimer?.cancel(); // Removed timer cancellation
     super.dispose();
   }
 }

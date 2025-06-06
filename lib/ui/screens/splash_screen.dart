@@ -69,7 +69,7 @@ class SplashScreenState extends State<SplashScreen> {
             Padding(
               padding: EdgeInsets.only(
                   bottom: screenHeight * loaderBottomMarginFactor),
-              child: CupertinoActivityIndicator(
+              child: const CupertinoActivityIndicator( // Made const
                 radius: loaderRadius,
                 color: Colors.grey, // Use default iOS grey color
               ),

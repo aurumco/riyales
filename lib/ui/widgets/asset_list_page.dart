@@ -52,14 +52,14 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
 class AssetListPageState<T extends models.Asset>
     extends State<AssetListPage<T>> {
   // Changed: Made public
-  static const double _maxRadiusDelta = 13.5;
-  static const double _maxSmoothnessDelta = 0.75;
+  // static const double _maxRadiusDelta = 13.5; // Removed unused field
+  // static const double _maxSmoothnessDelta = 0.75; // Removed unused field
   final ScrollController _scrollController = ScrollController();
   // StreamSubscription for connection status is no longer managed here, parent handles data refresh on reconnect.
   Timer? _errorRetryTimer; // Kept for retrying non-connection errors if any
 
-  double _defaultRadius = 21.0;
-  double _defaultSmoothness = 0.9;
+  // double _defaultRadius = 21.0; // Removed unused field
+  // double _defaultSmoothness = 0.9; // Removed unused field
 
   bool _searchIndexBuilt = false;
   final Map<String, Set<int>> _bigramIndex = {};
@@ -105,9 +105,9 @@ class AssetListPageState<T extends models.Asset>
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final settings = context.read<CardCornerSettingsNotifier>().settings;
-        _defaultRadius = settings.radius;
-        _defaultSmoothness = settings.smoothness;
+        // final settings = context.read<CardCornerSettingsNotifier>().settings; // Assignments removed
+        // _defaultRadius = settings.radius; // Assignment to unused field removed
+        // _defaultSmoothness = settings.smoothness; // Assignment to unused field removed
         widget.onInitialize();
       }
     });
@@ -149,11 +149,11 @@ class AssetListPageState<T extends models.Asset>
   int _getOptimalColumnCount(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final orientation = MediaQuery.of(context).orientation;
-    if (width < 600 && orientation == Orientation.portrait) return 2;
-    if (width < 900 && orientation == Orientation.landscape) return 4;
-    if (width < 900 && orientation == Orientation.portrait) return 5;
-    if (width < 1200 && orientation == Orientation.landscape) return 5;
-    if (width < 1600) return 8;
+    if (width < 600 && orientation == Orientation.portrait) { return 2; }
+    if (width < 900 && orientation == Orientation.landscape) { return 4; }
+    if (width < 900 && orientation == Orientation.portrait) { return 5; }
+    if (width < 1200 && orientation == Orientation.landscape) { return 5; }
+    if (width < 1600) { return 8; }
     return 9;
   }
 
@@ -161,13 +161,16 @@ class AssetListPageState<T extends models.Asset>
     final width = MediaQuery.of(context).size.width;
     final orientation = MediaQuery.of(context).orientation;
     const double baseAspectRatio = 0.8;
-    if (width < 600 && orientation == Orientation.portrait)
+    if (width < 600 && orientation == Orientation.portrait) {
       return baseAspectRatio;
-    if (width < 900 && orientation == Orientation.landscape)
+    }
+    if (width < 900 && orientation == Orientation.landscape) {
       return baseAspectRatio * 0.8;
-    if (width < 900 && orientation == Orientation.portrait)
+    }
+    if (width < 900 && orientation == Orientation.portrait) {
       return baseAspectRatio * 0.9;
-    if (width < 1200) return baseAspectRatio * 0.9;
+    }
+    if (width < 1200) { return baseAspectRatio * 0.9; }
     return baseAspectRatio * 0.9;
   }
 

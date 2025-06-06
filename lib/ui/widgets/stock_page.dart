@@ -125,8 +125,35 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
       ),
     ]);
     _stockTabController = TabController(length: _stockTabs.length, vsync: this);
+    _fetchDataForStockSubTab(_stockTabController.index); // Initial load for the first visible sub-tab
+    _stockTabController.addListener(_handleStockSubTabSelection); // Add listener
     // Initialize scroll controllers after tabs are set up
     _updateStockScrollControllers();
+  }
+
+  void _handleStockSubTabSelection() {
+    if (!_stockTabController.indexIsChanging && mounted) {
+      _fetchDataForStockSubTab(_stockTabController.index);
+      _updateStockScrollControllers();
+    }
+  }
+
+  void _fetchDataForStockSubTab(int index) {
+    if (!mounted) return;
+    switch (index) {
+      case 0:
+        context.read<StockTseIfbDataNotifier>().fetchInitialData();
+        break;
+      case 1:
+        context.read<StockDebtSecuritiesDataNotifier>().fetchInitialData();
+        break;
+      case 2:
+        context.read<StockFuturesDataNotifier>().fetchInitialData();
+        break;
+      case 3:
+        context.read<StockHousingFacilitiesDataNotifier>().fetchInitialData();
+        break;
+    }
   }
 
   // Method to update the scroll controllers map
@@ -225,8 +252,28 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     );
   }
 
+  void refreshCurrentSubTabDataIfStale({Duration staleness = const Duration(minutes: 5)}) {
+    if (!mounted) return;
+    final activeStockTabIndex = _stockTabController.index;
+    switch (activeStockTabIndex) {
+      case 0:
+        context.read<StockTseIfbDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+      case 1:
+        context.read<StockDebtSecuritiesDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+      case 2:
+        context.read<StockFuturesDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+      case 3:
+        context.read<StockHousingFacilitiesDataNotifier>().fetchDataIfStaleOrNeverFetched(staleness: staleness);
+        break;
+    }
+  }
+
   @override
   void dispose() {
+    _stockTabController.removeListener(_handleStockSubTabSelection); // Remove listener
     _stockTabController.dispose();
     super.dispose();
   }
@@ -374,7 +421,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           height: widget.showSearchBar ? 48.0 : 0.0,
           margin: widget.showSearchBar
               ? const EdgeInsets.only(top: 10.0, bottom: 2.0) // Already const
-              : const EdgeInsets.zero, // Made const
+              : const EdgeInsets.zero, // Ensure const
           padding: const EdgeInsets.symmetric(horizontal: 12), // Already const
           color: Theme.of(context).scaffoldBackgroundColor,
           child: AnimatedOpacity(

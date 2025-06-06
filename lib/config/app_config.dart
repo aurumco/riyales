@@ -18,6 +18,10 @@ class AppConfig extends Equatable {
   final CryptoIconFilterConfig cryptoIconFilter;
   final FeatureFlags featureFlags;
   final UpdateInfoConfig updateInfo;
+  final List<String> priorityCurrency;
+  final List<String> priorityGold;
+  final List<String> priorityCrypto;
+  final List<String> priorityCommodity; // Added
 
   const AppConfig({
     required this.appName,
@@ -35,6 +39,10 @@ class AppConfig extends Equatable {
     required this.cryptoIconFilter,
     required this.featureFlags,
     required this.updateInfo,
+    required this.priorityCurrency,
+    required this.priorityGold,
+    required this.priorityCrypto,
+    required this.priorityCommodity, // Added
   });
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
@@ -74,11 +82,18 @@ class AppConfig extends Equatable {
         json['feature_flags'] as Map<String, dynamic>? ?? {},
       ),
       updateInfo: UpdateInfoConfig.fromJson(updateMap),
+      priorityCurrency: List<String>.from(json['priority_currency'] as List<dynamic>? ?? []),
+      priorityGold: List<String>.from(json['priority_gold'] as List<dynamic>? ?? []),
+      priorityCrypto: List<String>.from(json['priority_crypto'] as List<dynamic>? ?? []),
+      priorityCommodity: List<String>.from(json['priority_commodity'] as List<dynamic>? ?? []), // Added
     );
   }
 
   // Default fallback config
   factory AppConfig.defaultConfig() {
+    // Note: priorityCurrency, priorityGold, priorityCrypto will be empty lists by default
+    // as they are not included in this hardcoded default map, and fromJson handles the ?? [].
+    // This is the desired behavior: they are populated from priority_assets.json later.
     return AppConfig.fromJson(const {
       "app_name": "Riyales",
       "remote_config_url":
@@ -100,7 +115,7 @@ class AppConfig extends Equatable {
             "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/housing_facilities.json",
         "stock_tse_ifb_symbols_url":
             "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/tse_ifb_symbols.json",
-        "priority_assets_url":
+        "priority_assets_url": // This is part of api_endpoints, not top-level AppConfig for priority lists themselves
             "https://raw.githubusercontent.com/aurumco/riyales-api/main/priority_assets.json",
         "terms_en_url":
             "https://raw.githubusercontent.com/aurumco/riyales-api/refs/heads/main/api/v1/config/terms_en.json",
@@ -188,8 +203,41 @@ class AppConfig extends Equatable {
         initialItemsToLoad,
         cryptoIconFilter,
         featureFlags,
-        updateInfo, // New
+        updateInfo,
+        priorityCurrency,
+        priorityGold,
+        priorityCrypto,
+        priorityCommodity, // Added
       ];
+
+  AppConfig copyWithPriorityAssets({
+    List<String>? priorityCurrency,
+    List<String>? priorityGold,
+    List<String>? priorityCrypto,
+    List<String>? priorityCommodity, // Added
+  }) {
+    return AppConfig(
+      appName: appName,
+      remoteConfigUrl: remoteConfigUrl,
+      apiEndpoints: apiEndpoints,
+      priceUpdateIntervalMinutes: priceUpdateIntervalMinutes,
+      updateIntervalMs: updateIntervalMs,
+      supportedLocales: supportedLocales,
+      defaultLocale: defaultLocale,
+      themeOptions: themeOptions,
+      fonts: fonts,
+      splashScreen: splashScreen,
+      itemsPerLazyLoad: itemsPerLazyLoad,
+      initialItemsToLoad: initialItemsToLoad,
+      cryptoIconFilter: cryptoIconFilter,
+      featureFlags: featureFlags,
+      updateInfo: updateInfo,
+      priorityCurrency: priorityCurrency ?? this.priorityCurrency,
+      priorityGold: priorityGold ?? this.priorityGold,
+      priorityCrypto: priorityCrypto ?? this.priorityCrypto,
+      priorityCommodity: priorityCommodity ?? this.priorityCommodity, // Added
+    );
+  }
 }
 
 class ApiEndpoints extends Equatable {

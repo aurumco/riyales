@@ -449,7 +449,7 @@ void _showLanguagePicker(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   CupertinoButton(
-                    padding: const EdgeInsets.zero, // Made const
+                    padding: const EdgeInsets.zero, // Ensure const
                     child: Text(
                       l10n.dialogClose, // Use passed l10n
                       style: TextStyle(
@@ -544,7 +544,7 @@ void _showCurrencyUnitPicker(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   CupertinoButton(
-                    padding: const EdgeInsets.zero, // Made const
+                    padding: const EdgeInsets.zero, // Corrected: single line
                     child: Text(
                       l10n.dialogClose, // Use passed l10n
                       style: TextStyle(

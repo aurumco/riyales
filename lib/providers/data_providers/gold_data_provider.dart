@@ -14,9 +14,13 @@ class GoldDataNotifier extends ChangeNotifier {
   String? error;
   List<GoldAsset> goldAssets = []; // Public list for current items
 
-  int _currentlyLoadedCount = 0;
+  // int _currentlyLoadedCount = 0; // Replaced by items.length for loadMore
   List<GoldAsset> _fullDataList = [];
-  Timer? _updateTimer;
+  // Timer? _updateTimer; // Removed
+
+  bool hasDataBeenFetchedOnce = false;
+  DateTime? lastFetchTime;
+  bool _isLoadingMore = false;
 
   // Public getter for the full data list
   List<GoldAsset> get fullDataList => _fullDataList;
@@ -24,157 +28,210 @@ class GoldDataNotifier extends ChangeNotifier {
   List<GoldAsset> get items => goldAssets;
 
   GoldDataNotifier({required this.apiService, required this.appConfig, required this.connectionService}) {
-    _currentlyLoadedCount = appConfig.initialItemsToLoad;
+    // _currentlyLoadedCount = appConfig.initialItemsToLoad; // Initial load handled by fetchInitialData
     fetchInitialData();
   }
 
-  Future<void> fetchInitialData({bool isRefresh = false}) async {
-    if (!isRefresh) {
-      isLoading = true;
-      error = null;
-      notifyListeners();
-    }
+  Future<void> fetchInitialData({bool isRefresh = false, bool isLoadMore = false}) async {
+    const bool isSpecialFetch = false; // GoldDataNotifier doesn't have special fetches like crypto favorites
 
-    final bool isOnline = await connectionService.checkConnection(appConfig.apiEndpoints.goldUrl);
-    if (!isOnline) {
-      error = "Offline"; // Or a localized message
-      isLoading = false;
+    if (isLoadMore) {
+      if (_isLoadingMore || (_fullDataList.isNotEmpty && goldAssets.length >= _fullDataList.length)) {
+        return;
+      }
+      _isLoadingMore = true;
+      // notifyListeners(); // Optional
+
+      final currentLength = goldAssets.length;
+      final int end = (currentLength + appConfig.itemsPerLazyLoad > _fullDataList.length)
+          ? _fullDataList.length
+          : currentLength + appConfig.itemsPerLazyLoad;
+      if (currentLength < end) {
+        goldAssets.addAll(_fullDataList.sublist(currentLength, end));
+      }
+
+      _isLoadingMore = false;
       notifyListeners();
-      // TODO: Implement loading cached data
       return;
     }
 
+    if (!isRefresh && !isSpecialFetch && hasDataBeenFetchedOnce) {
+      if (isLoading) {
+          isLoading = false;
+          notifyListeners();
+      }
+      return;
+    }
+
+    isLoading = true;
+    if (isRefresh || isSpecialFetch) {
+        error = null;
+    }
+    notifyListeners();
+
     try {
-      // Fetch local gold prices
-      List<GoldAsset> fetchedGoldAssets = [];
-      final dynamic goldResponseData = await apiService.fetchData(appConfig.apiEndpoints.goldUrl);
-      if (goldResponseData is Map && goldResponseData.containsKey('gold')) {
-        fetchedGoldAssets.addAll(
-          (goldResponseData['gold'] as List)
-              .map((item) => GoldAsset.fromJson(item as Map<String, dynamic>))
-              .toList(),
-        );
-      }
-
-      // Fetch commodity data
-      List<GoldAsset> commodityAssets = [];
+      // Check primary gold URL connection first
+      final bool isGoldOnline = await connectionService.checkConnection(appConfig.apiEndpoints.goldUrl);
+      // Check commodity URL connection (only if URL is provided)
       final commodityUrl = appConfig.apiEndpoints.commodityUrl;
+      bool isCommodityOnline = false;
       if (commodityUrl.isNotEmpty) {
-        final bool isCommodityOnline = await connectionService.checkConnection(commodityUrl);
-        if (isCommodityOnline) {
-          final dynamic commodityResponseData = await apiService.fetchData(commodityUrl);
-          if (commodityResponseData is Map) {
-            final preciousList = commodityResponseData['metal_precious'] as List<dynamic>? ?? [];
-            final baseList = commodityResponseData['metal_base'] as List<dynamic>? ?? [];
-            final energyList = commodityResponseData['energy'] as List<dynamic>? ?? [];
+        isCommodityOnline = await connectionService.checkConnection(commodityUrl);
+      }
 
-            commodityAssets.addAll(preciousList.map((item) => GoldAsset.fromJson(item as Map<String, dynamic>, isCommodity: true)).toList());
-            commodityAssets.addAll(baseList.map((item) => GoldAsset.fromJson(item as Map<String, dynamic>, isCommodity: true)).toList());
-            commodityAssets.addAll(energyList.map((item) => GoldAsset.fromJson(item as Map<String, dynamic>, isCommodity: true)).toList());
+      if (!isGoldOnline && (commodityUrl.isEmpty || !isCommodityOnline)) {
+        error = "Offline"; // Both are offline
+        if (!isRefresh && !hasDataBeenFetchedOnce) {
+            hasDataBeenFetchedOnce = false;
+        }
+      } else {
+        // Fetch local gold prices
+        List<GoldAsset> fetchedGoldAssets = [];
+        if (isGoldOnline) { // Only fetch if online
+            final dynamic goldResponseData = await apiService.fetchData(appConfig.apiEndpoints.goldUrl);
+            if (goldResponseData is Map && goldResponseData.containsKey('gold')) {
+                fetchedGoldAssets.addAll(
+                (goldResponseData['gold'] as List)
+                    .map((item) => GoldAsset.fromJson(item as Map<String, dynamic>))
+                    .toList(),
+                );
+            }
+        } else if (commodityUrl.isNotEmpty && isCommodityOnline) {
+            // Gold is offline, but commodities might be online. Set error for partial data.
+            error = "Gold data offline; showing commodities only.";
+        }
+
+
+        // Fetch commodity data
+        List<GoldAsset> commodityAssets = [];
+        if (commodityUrl.isNotEmpty && isCommodityOnline) { // Only fetch if URL exists and is online
+            final dynamic commodityResponseData = await apiService.fetchData(commodityUrl);
+            if (commodityResponseData is Map) {
+              final preciousList = commodityResponseData['metal_precious'] as List<dynamic>? ?? [];
+              final baseList = commodityResponseData['metal_base'] as List<dynamic>? ?? [];
+              final energyList = commodityResponseData['energy'] as List<dynamic>? ?? [];
+
+              commodityAssets.addAll(preciousList.map((item) => GoldAsset.fromJson(item as Map<String, dynamic>, isCommodity: true)).toList());
+              commodityAssets.addAll(baseList.map((item) => GoldAsset.fromJson(item as Map<String, dynamic>, isCommodity: true)).toList());
+              commodityAssets.addAll(energyList.map((item) => GoldAsset.fromJson(item as Map<String, dynamic>, isCommodity: true)).toList());
+            }
+        } else if (isGoldOnline && commodityUrl.isNotEmpty && !isCommodityOnline) {
+            // Commodities are offline, but gold might be online. Set error for partial data.
+             if (error == null) error = "Commodity data offline; showing gold only."; else error += " Commodity data offline.";
+        }
+
+        // Combine gold and commodity assets, avoiding duplicates by id
+        final List<GoldAsset> combinedAssets = [];
+        final Set<String> seenIds = {};
+        for (final asset in fetchedGoldAssets) {
+          if (seenIds.add(asset.id)) {
+            combinedAssets.add(asset);
           }
+        }
+        for (final asset in commodityAssets) {
+          if (seenIds.add(asset.id)) {
+            combinedAssets.add(asset);
+          }
+        }
+
+        // Load priority lists
+        final List<String> goldPriorityList = appConfig.priorityGold; // Use pre-loaded list
+        final List<String> commodityPriorityList = appConfig.priorityCommodity; // Use pre-loaded list
+        // // Only attempt to fetch priority if at least one main data source was online // Kept for reference, logic removed
+        // if(isGoldOnline || (commodityUrl.isNotEmpty && isCommodityOnline)) {
+        //     try {
+        //         final dynamic priorityResponse = await apiService.fetchData(appConfig.apiEndpoints.priorityAssetsUrl);
+        //         if (priorityResponse is Map<String, dynamic>) {
+        //         goldPriorityList = List<String>.from(priorityResponse['gold'] as List<dynamic>? ?? []);
+        //         commodityPriorityList = List<String>.from(priorityResponse['commodity'] as List<dynamic>? ?? []);
+        //         }
+        //     } catch (_) {
+        //         // Failed to load priority lists, proceed without them
+        //     }
+        // }
+
+        // Apply priority
+        final List<GoldAsset> sortedPriorityGold = [];
+        final List<GoldAsset> remainingAfterGoldPriority = [];
+        if (goldPriorityList.isNotEmpty) {
+            for (final symbol in goldPriorityList) {
+              sortedPriorityGold.addAll(combinedAssets.where((a) => a.symbol == symbol && !a.isCommodity));
+            }
+            for (final asset in combinedAssets) {
+              if (!sortedPriorityGold.any((sa) => sa.id == asset.id)) {
+                   remainingAfterGoldPriority.add(asset);
+              }
+            }
         } else {
-          // Potentially handle commodity offline differently or note partial data
+            remainingAfterGoldPriority.addAll(combinedAssets);
         }
-      }
 
-      // Combine gold and commodity assets, avoiding duplicates by id
-      final List<GoldAsset> combinedAssets = [];
-      final Set<String> seenIds = {};
-      for (final asset in fetchedGoldAssets) {
-        if (seenIds.add(asset.id)) {
-          combinedAssets.add(asset);
-        }
-      }
-      for (final asset in commodityAssets) {
-        if (seenIds.add(asset.id)) {
-          combinedAssets.add(asset);
-        }
-      }
+        final List<GoldAsset> sortedPriorityCommodities = [];
+        final List<GoldAsset> otherAssets = [];
 
-      // Load priority lists
-      List<String> goldPriorityList = [];
-      List<String> commodityPriorityList = [];
-      try {
-        final dynamic priorityResponse = await apiService.fetchData(appConfig.apiEndpoints.priorityAssetsUrl);
-        if (priorityResponse is Map<String, dynamic>) {
-          goldPriorityList = List<String>.from(priorityResponse['gold'] as List<dynamic>? ?? []);
-          commodityPriorityList = List<String>.from(priorityResponse['commodity'] as List<dynamic>? ?? []);
-        }
-      } catch (_) {
-        // Failed to load priority lists
-      }
-
-      // Apply priority
-      final List<GoldAsset> sortedPriorityGold = [];
-      final List<GoldAsset> remainingAfterGoldPriority = [];
-      if (goldPriorityList.isNotEmpty) {
-          for (final symbol in goldPriorityList) {
-            sortedPriorityGold.addAll(combinedAssets.where((a) => a.symbol == symbol && !a.isCommodity));
-          }
-          for (final asset in combinedAssets) {
-            if (!sortedPriorityGold.any((sa) => sa.id == asset.id)) {
-                 remainingAfterGoldPriority.add(asset);
+        if (commodityPriorityList.isNotEmpty) {
+            for (final symbol in commodityPriorityList) {
+              sortedPriorityCommodities.addAll(remainingAfterGoldPriority.where((a) => a.symbol.toLowerCase() == symbol.toLowerCase() && a.isCommodity));
             }
-          }
-      } else {
-          remainingAfterGoldPriority.addAll(combinedAssets);
-      }
-
-      final List<GoldAsset> sortedPriorityCommodities = [];
-      final List<GoldAsset> otherAssets = [];
-
-      if (commodityPriorityList.isNotEmpty) {
-          for (final symbol in commodityPriorityList) {
-            // Ensure case-insensitivity for commodity symbols if needed, original used .toLowerCase()
-            sortedPriorityCommodities.addAll(remainingAfterGoldPriority.where((a) => a.symbol.toLowerCase() == symbol.toLowerCase() && a.isCommodity));
-          }
-           for (final asset in remainingAfterGoldPriority) {
-            if (!sortedPriorityCommodities.any((sa) => sa.id == asset.id)) {
-                 otherAssets.add(asset);
+             for (final asset in remainingAfterGoldPriority) {
+              if (!sortedPriorityCommodities.any((sa) => sa.id == asset.id)) {
+                   otherAssets.add(asset);
+              }
             }
-          }
-      } else {
-          otherAssets.addAll(remainingAfterGoldPriority);
+        } else {
+            otherAssets.addAll(remainingAfterGoldPriority);
+        }
+
+        _fullDataList = [...sortedPriorityGold, ...sortedPriorityCommodities, ...otherAssets];
+        goldAssets = _fullDataList.take(appConfig.initialItemsToLoad).toList();
+        // If there was a partial offline error but some data was fetched, keep it, otherwise clear if all successful
+        if (isGoldOnline && (commodityUrl.isEmpty || isCommodityOnline)) {
+             error = null;
+        }
       }
 
-      _fullDataList = [...sortedPriorityGold, ...sortedPriorityCommodities, ...otherAssets];
-      goldAssets = _fullDataList.take(_currentlyLoadedCount).toList();
-      error = null;
+      if (error == null && !isSpecialFetch) {
+          hasDataBeenFetchedOnce = true;
+          lastFetchTime = DateTime.now();
+          //  if (!isRefresh) { // Removed call to _startAutoRefresh
+          //    _startAutoRefresh();
+          //  }
+      }
+
     } catch (e) {
       error = e.toString();
-      // TODO: Load cached data
+      if (!isRefresh && !isSpecialFetch) {
+          hasDataBeenFetchedOnce = false;
+      }
     } finally {
       isLoading = false;
-      notifyListeners();
-      if (!isRefresh) {
-        _startAutoRefresh();
-      }
-    }
-  }
-
-  void loadMore() {
-    if (_currentlyLoadedCount < _fullDataList.length) {
-      _currentlyLoadedCount = (_currentlyLoadedCount + appConfig.itemsPerLazyLoad > _fullDataList.length)
-          ? _fullDataList.length
-          : _currentlyLoadedCount + appConfig.itemsPerLazyLoad;
-      goldAssets = _fullDataList.take(_currentlyLoadedCount).toList();
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
 
-  void _startAutoRefresh() {
-    _updateTimer?.cancel();
-     final updateIntervalMs = appConfig.priceUpdateIntervalMinutes * 60 * 1000;
-    if (updateIntervalMs > 0) {
-        _updateTimer = Timer.periodic(Duration(milliseconds: updateIntervalMs), (timer) {
-            fetchInitialData(isRefresh: true);
-        });
+  // void loadMore() { // Integrated into fetchInitialData
+  // }
+
+  Future<void> fetchDataIfStaleOrNeverFetched({Duration staleness = const Duration(minutes: 5)}) async {
+    if (!hasDataBeenFetchedOnce || lastFetchTime == null || DateTime.now().difference(lastFetchTime!) > staleness) {
+      await fetchInitialData(isRefresh: true);
     }
   }
+
+  // void _startAutoRefresh() { // Removed method
+  //   _updateTimer?.cancel();
+  //    final updateIntervalMs = appConfig.priceUpdateIntervalMinutes * 60 * 1000;
+  //   if (updateIntervalMs > 0) {
+  //       _updateTimer = Timer.periodic(Duration(milliseconds: updateIntervalMs), (timer) {
+  //           fetchInitialData(isRefresh: true);
+  //       });
+  //   }
+  // }
 
   @override
   void dispose() {
-    _updateTimer?.cancel();
+    // _updateTimer?.cancel(); // Removed timer cancellation
     super.dispose();
   }
 }
