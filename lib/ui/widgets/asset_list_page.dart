@@ -131,19 +131,10 @@ class AssetListPageState<T extends models.Asset>
     }
 
     if (mounted) {
-      final settingsNotifier = context.read<CardCornerSettingsNotifier>();
-      // Ensure _defaultRadius and _defaultSmoothness are initialized.
-      // They are set in initState's post-frame callback, which should be sufficient.
-      if (pos < 0) {
-        final factor = (-pos / 100).clamp(0.0, 1.0);
-        final newSmooth = _defaultSmoothness + _maxSmoothnessDelta * factor;
-        final newRadius = _defaultRadius + _maxRadiusDelta * factor;
-        settingsNotifier.updateSmoothness(newSmooth);
-        settingsNotifier.updateRadius(newRadius);
-      } else {
-        settingsNotifier.updateSmoothness(_defaultSmoothness);
-        settingsNotifier.updateRadius(_defaultRadius);
-      }
+      // final settingsNotifier = context.read<CardCornerSettingsNotifier>();
+      // The dynamic update of card corner settings based on scroll position has been removed
+      // to optimize scrolling performance.
+      // _defaultRadius and _defaultSmoothness are initialized in initState's post-frame callback.
     }
   }
 

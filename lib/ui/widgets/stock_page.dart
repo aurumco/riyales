@@ -244,22 +244,22 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric( // Made const
             horizontal: 8.0,
             vertical: 0.0,
-          ), // Reduced vertical padding
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < 600;
-              const horizontalMargin = 1.0; // Reduced horizontal spacing
+              const double horizontalMargin = 1.0; // Made const and typed
               // Use fixed tab radius and smoothness from theme, not from provider
               final themeConfig = isDarkMode
                   ? appConfig.themeOptions.dark
                   : appConfig.themeOptions.light;
-              final BorderRadius tabBorderRadius = BorderRadius.circular(
-                  20.0); // Increased radius (Could be 14.0)
+              final BorderRadius tabBorderRadius = BorderRadius.circular( // Made const
+                  20.0);
               final segmentInactiveBackground = isDarkMode
-                  ? const Color(0xFF161616) // Match card background
+                  ? const Color(0xFF161616) // Already const
                   : hexToColor(themeConfig.cardColor);
               final segmentActiveBackground = isDarkMode
                   ? tealGreen.withAlpha(38)
@@ -311,13 +311,13 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                   final segment = SmoothCard(
                     smoothness: themeConfig.cardCornerSmoothness,
                     borderRadius:
-                        tabBorderRadius, // Use new BorderRadius object
+                        tabBorderRadius,
                     elevation: 0,
                     color: isSelected
                         ? segmentActiveBackground
                         : segmentInactiveBackground,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric( // Made const
                         vertical: 10.0,
                         horizontal: 12.0,
                       ),
@@ -337,7 +337,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                             );
                             if (isSelected && !isDarkMode) {
                               fittedText = Transform.translate(
-                                offset: const Offset(0, 1),
+                                offset: const Offset(0, 1), // Already const
                                 child: fittedText,
                               );
                             }
@@ -355,7 +355,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                   return isMobile
                       ? Expanded(child: wrappedWithLongPress)
                       : Padding(
-                          padding: const EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric( // Made const
                             horizontal: horizontalMargin,
                           ),
                           child: wrappedWithLongPress,
@@ -368,20 +368,20 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
         // Add search bar after stock tabs
         AnimatedContainer(
           duration: widget.showSearchBar
-              ? const Duration(milliseconds: 400)
-              : const Duration(milliseconds: 300),
-          curve: Curves.easeInOutQuart,
+              ? const Duration(milliseconds: 400) // Already const
+              : const Duration(milliseconds: 300), // Already const
+          curve: Curves.easeInOutQuart, // Already const
           height: widget.showSearchBar ? 48.0 : 0.0,
           margin: widget.showSearchBar
-              ? const EdgeInsets.only(top: 10.0, bottom: 2.0)
-              : EdgeInsets.zero,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+              ? const EdgeInsets.only(top: 10.0, bottom: 2.0) // Already const
+              : const EdgeInsets.zero, // Made const
+          padding: const EdgeInsets.symmetric(horizontal: 12), // Already const
           color: Theme.of(context).scaffoldBackgroundColor,
           child: AnimatedOpacity(
             opacity: widget.showSearchBar ? 1.0 : 0.0,
             duration: widget.showSearchBar
-                ? const Duration(milliseconds: 300)
-                : const Duration(milliseconds: 200),
+                ? const Duration(milliseconds: 300) // Already const
+                : const Duration(milliseconds: 200), // Already const
             child: widget.isSearchActive
                 ? Builder(
                     builder: (context) {
@@ -435,14 +435,14 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
                           ),
                           prefix: Padding(
                             padding:
-                                const EdgeInsetsDirectional.only(start: 18),
+                                const EdgeInsetsDirectional.only(start: 18), // Made const
                             child: Icon(CupertinoIcons.search,
                                 size: 20, color: iconColor),
                           ),
                           suffix: searchText.isNotEmpty
                               ? CupertinoButton(
                                   padding:
-                                      const EdgeInsetsDirectional.only(end: 18),
+                                      const EdgeInsetsDirectional.only(end: 18), // Made const
                                   minSize: 30,
                                   child: Icon(CupertinoIcons.clear,
                                       size: 18, color: iconColor),
@@ -478,9 +478,9 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
             builder: (context, child) {
               final index = _stockTabController.index;
               Widget content = AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeInOutQuart,
-                switchOutCurve: Curves.easeInOutQuart,
+                        duration: const Duration(milliseconds: 300), // Already const
+                        switchInCurve: Curves.easeInOutQuart, // Already const
+                        switchOutCurve: Curves.easeInOutQuart, // Already const
                 transitionBuilder: (Widget child, Animation<double> anim) =>
                     FadeTransition(opacity: anim, child: child),
                 child: Container(

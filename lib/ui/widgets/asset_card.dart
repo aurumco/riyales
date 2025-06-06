@@ -486,7 +486,7 @@ class AssetCard extends StatelessWidget {
             colorFilter: ColorFilter.matrix(matrix),
             child: CachedNetworkImage(
               cacheManager: CacheManager(
-                Config('cryptoCache', stalePeriod: const Duration(days: 30)),
+                const Config('cryptoCache', stalePeriod: Duration(days: 30)), // Added const
               ),
               imageUrl: (asset as models.CryptoAsset).iconUrl!,
               width: 32,
@@ -505,20 +505,20 @@ class AssetCard extends StatelessWidget {
               placeholder: (context, url) => Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
+                decoration: const BoxDecoration( // Already const
                   shape: BoxShape.circle,
                   color: Colors.transparent,
                 ),
-                child: const CupertinoActivityIndicator(radius: 8),
+                child: const CupertinoActivityIndicator(radius: 8), // Already const
               ),
               errorWidget: (context, url, error) => Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
+                decoration: const BoxDecoration( // Already const
                   shape: BoxShape.circle,
                   color: Colors.transparent,
                 ),
-                child: const Icon(
+                child: const Icon( // Already const
                   CupertinoIcons.exclamationmark_circle,
                   size: 16,
                 ),
@@ -583,7 +583,7 @@ class AssetCard extends StatelessWidget {
         ),
         child: ClipOval(
           child: ColorFiltered(
-            colorFilter: const ColorFilter.matrix([
+            colorFilter: const ColorFilter.matrix([ // This was already const, ensuring it stays
               1, 0, 0, 0, 0,
               0, 1, 0, 0, 0,
               0, 0, 1, 0, 0,
@@ -703,7 +703,7 @@ class AssetCard extends StatelessWidget {
               ],
             ),
           ),
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(12.0), // This was already const
           child: Stack(
             children: [
               Column(
@@ -716,7 +716,7 @@ class AssetCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       iconWidget,
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 8), // Already const
                       Expanded(
                         child: Text(
                           assetName,
@@ -786,7 +786,7 @@ class AssetCard extends StatelessWidget {
 
                       if (pinBadgeWidget == null &&
                           symbolBadgeInnerWidget == null) {
-                        return const SizedBox.shrink();
+                        return const SizedBox.shrink(); // Already const
                       }
 
                       List<Widget> badgeChildren = [];
@@ -795,7 +795,7 @@ class AssetCard extends StatelessWidget {
                       }
                       if (symbolBadgeInnerWidget != null) {
                         if (pinBadgeWidget != null) {
-                          badgeChildren.add(const SizedBox(width: 5));
+                          badgeChildren.add(const SizedBox(width: 5)); // Already const
                         }
                         badgeChildren.add(symbolBadgeInnerWidget);
                       }
@@ -819,8 +819,8 @@ class AssetCard extends StatelessWidget {
                       alignment: currentLocale.languageCode == 'en'
                           ? Alignment.centerLeft
                           : Alignment.centerRight,
-                      duration: const Duration(milliseconds: 400),
-                      curve: const Cubic(0.77, 0, 0.175, 1),
+                      duration: const Duration(milliseconds: 400), // Already const
+                      curve: const Cubic(0.77, 0, 0.175, 1), // Already const
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: currentLocale.languageCode == 'en'
@@ -839,7 +839,7 @@ class AssetCard extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 4), // Already const
                                 Icon(
                                   asset.changePercent! > 0
                                       ? CupertinoIcons.arrow_up_right
@@ -868,7 +868,7 @@ class AssetCard extends StatelessWidget {
                                           : Colors.grey,
                                   size: 12,
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 4), // Already const
                                 Text(
                                   '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%', // from helpers.dart
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -883,19 +883,19 @@ class AssetCard extends StatelessWidget {
                               ],
                       ),
                     ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 4), // Already const
                   AnimatedAlign(
                     alignment: currentLocale.languageCode == 'en'
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
-                    duration: const Duration(milliseconds: 400),
-                    curve: const Cubic(0.77, 0, 0.175, 1),
+                    duration: const Duration(milliseconds: 400), // Already const
+                    curve: const Cubic(0.77, 0, 0.175, 1), // Already const
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: TweenAnimationBuilder<double>(
                         tween: Tween<double>(begin: 0.0, end: numericPrice),
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeInOutQuart,
+                        duration: const Duration(milliseconds: 600), // Already const
+                        curve: Curves.easeInOutQuart, // Already const
                         builder: (context, value, child) {
                           final priceText = formatPrice(
                             // from helpers.dart
@@ -924,8 +924,8 @@ class AssetCard extends StatelessWidget {
                     alignment: currentLocale.languageCode == 'en'
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
-                    duration: const Duration(milliseconds: 400),
-                    curve: const Cubic(0.77, 0, 0.175, 1),
+                    duration: const Duration(milliseconds: 400), // Already const
+                    curve: const Cubic(0.77, 0, 0.175, 1), // Already const
                     child: Text(
                       displayUnit,
                       style: theme.textTheme.labelMedium?.copyWith(

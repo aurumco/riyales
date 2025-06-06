@@ -297,13 +297,13 @@ class RiyalesApp extends StatelessWidget {
           builder: (context, child) {
             final animated = AnimatedTheme(
               data: Theme.of(context), // Ensures theme changes animate
-              duration: const Duration(milliseconds: 30), // Faster transition
+              duration: const Duration(milliseconds: 200), // Adjusted duration
               curve: Curves.linear, // Smoother, consistent speed
               child: child!,
             );
-            // Disable implicit animations for smoother UX in bottom sheets etc.
+            // Enable implicit animations for evaluation
             return MediaQuery(
-              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              data: MediaQuery.of(context).copyWith(disableAnimations: false), // Changed to false
               child: animated,
             );
           },

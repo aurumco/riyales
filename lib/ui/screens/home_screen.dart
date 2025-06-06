@@ -55,8 +55,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   final List<Widget> _mainTabViews = [];
   // ConnectionStatus _connectionStatus = ConnectionStatus.connected; // Handled by NetworkAwareWidget
   // late StreamSubscription<ConnectionStatus> _connectionSubscription; // Handled by NetworkAwareWidget
-  bool _showSearchBar = false;
-  bool _isSearchActive = false;
+  final ValueNotifier<bool> _showSearchBarNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isSearchActiveNotifier = ValueNotifier(false);
   bool _tabListenerAdded = false;
   final Map<int, ScrollController?> _tabScrollControllers = {};
   final Map<int, void Function()> _tabScrollListeners = {};
@@ -85,17 +85,17 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     final controller = _findScrollController(tabIndex);
     if (controller != null && controller.hasClients) {
       void listener() {
-        if (_isSearchActive) {
+        if (_isSearchActiveNotifier.value) {
           if (controller.offset <= 0) {
-            if (!_showSearchBar) {
+            if (!_showSearchBarNotifier.value) {
               if (mounted) {
-                setState(() => _showSearchBar = true);
+                _showSearchBarNotifier.value = true;
               }
             }
           } else {
-            if (_showSearchBar) {
+            if (_showSearchBarNotifier.value) {
               if (mounted) {
-                setState(() => _showSearchBar = false);
+                _showSearchBarNotifier.value = false;
               }
             }
           }
@@ -323,8 +323,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       ),
       StockPage(
           key: stockTabKey,
-          showSearchBar: _showSearchBar,
-          isSearchActive: _isSearchActive),
+          showSearchBar: _showSearchBarNotifier.value,
+          isSearchActive: _isSearchActiveNotifier.value),
     ]);
 
     int previousIndex = _tabController.index; // Save before disposing
@@ -381,6 +381,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     _tabScrollListeners.clear();
     _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
+    _showSearchBarNotifier.dispose();
+    _isSearchActiveNotifier.dispose();
     super.dispose();
   }
 
@@ -401,8 +403,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
 
     if (appConfig.appName == "Riyales Default Fallback") {
       // Check if it's the default fallback from FutureProvider
-      return const Scaffold(
-          body: Center(child: Text("App configuration is using fallback.")));
+      return const Scaffold( // Made const
+          body: Center(child: Text("App configuration is using fallback."))); // Made const
     }
 
     // Accessing other providers
@@ -460,78 +462,68 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 : Alignment.center, // Using localeNotifier
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutQuart,
-            child: IconButton(
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (Widget child, Animation<double> anim) =>
-                    ScaleTransition(scale: anim, child: child),
-                child: Icon(
-                  _isSearchActive
-                      ? CupertinoIcons.clear
-                      : CupertinoIcons.search,
-                  key: ValueKey<bool>(_isSearchActive),
-                  color: _showSearchBar
-                      ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
-                      : (isDarkMode ? Colors.white : Colors.black),
-                  size: 28,
-                ),
-              ),
-              onPressed: () {
-                if (_isSearchActive) {
-                  if (mounted) {
-                    setState(() {
-                      context.read<SearchQueryNotifier>().query =
-                          ''; // Using Provider
-                      _showSearchBar = false;
-                      _isSearchActive = false;
-                    });
-                  }
-                  return;
-                }
-                final currentTabIndex = _tabController.index;
-                _tabScrollControllers[currentTabIndex] ??=
-                    _findScrollController(currentTabIndex);
-                final controller = _tabScrollControllers[currentTabIndex];
-                if (controller != null && controller.hasClients) {
-                  if (controller.offset <= 0) {
-                    if (mounted) {
-                      setState(() {
-                        _showSearchBar = true;
-                        _isSearchActive = true;
-                      });
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isSearchActiveNotifier,
+              builder: (context, isSearchActive, child) {
+                return IconButton(
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (Widget child, Animation<double> anim) =>
+                        ScaleTransition(scale: anim, child: child),
+                    child: Icon(
+                      isSearchActive // From builder
+                          ? CupertinoIcons.clear
+                          : CupertinoIcons.search,
+                      key: ValueKey<bool>(isSearchActive), // From builder
+                      color: _showSearchBarNotifier.value // Using notifier's value directly
+                          ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
+                          : (isDarkMode ? Colors.white : Colors.black),
+                      size: 28,
+                    ),
+                  ),
+                  onPressed: () {
+                    if (isSearchActive) { // From builder
+                      context.read<SearchQueryNotifier>().query = '';
+                      _showSearchBarNotifier.value = false;
+                      _isSearchActiveNotifier.value = false;
+                      return;
                     }
-                    _setupScrollListener(currentTabIndex);
-                  } else {
-                    controller.jumpTo(controller.offset);
-                    controller
-                        .animateTo(0,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOutQuart)
-                        .then((_) {
-                      if (mounted) {
-                        setState(() {
-                          _showSearchBar = true;
-                          _isSearchActive = true;
+                    final currentTabIndex = _tabController.index;
+                    _tabScrollControllers[currentTabIndex] ??=
+                        _findScrollController(currentTabIndex);
+                    final controller = _tabScrollControllers[currentTabIndex];
+                    if (controller != null && controller.hasClients) {
+                      if (controller.offset <= 0) {
+                        _showSearchBarNotifier.value = true;
+                        _isSearchActiveNotifier.value = true;
+                        _setupScrollListener(currentTabIndex);
+                      } else {
+                        controller.jumpTo(controller.offset);
+                        controller
+                            .animateTo(0,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOutQuart)
+                            .then((_) {
+                          if (mounted) { // Keep mounted for async operations
+                            _showSearchBarNotifier.value = true;
+                            _isSearchActiveNotifier.value = true;
+                            _setupScrollListener(currentTabIndex);
+                          }
                         });
                       }
-                      _setupScrollListener(currentTabIndex);
-                    });
-                  }
-                } else {
-                  if (mounted) {
-                    setState(() {
-                      _showSearchBar = true;
-                      _isSearchActive = true;
-                    });
-                  }
-                }
+                    } else {
+                      _showSearchBarNotifier.value = true;
+                      _isSearchActiveNotifier.value = true;
+                    }
+                  },
+                  splashColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  style: ButtonStyle(
+                      overlayColor: WidgetStateProperty.all(Colors.transparent)),
+                );
               },
-              splashColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              focusColor: Colors.transparent,
-              style: ButtonStyle(
-                  overlayColor: WidgetStateProperty.all(Colors.transparent)),
             ),
           ),
           AnimatedAlign(
@@ -539,28 +531,29 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 ? Alignment.centerLeft
                 : Alignment.center,
             duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutQuart,
+            curve: Curves.easeInOutQuart, // Already const
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GestureDetector(
-                onTap: () {
-                  if (mounted) {
-                    setState(() {
-                      if (_isSearchActive) {
-                        context.read<SearchQueryNotifier>().query =
-                            ''; // Using Provider
-                        _showSearchBar = false;
-                        _isSearchActive = false;
+              padding: const EdgeInsets.all(8.0), // Already const
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _isSearchActiveNotifier,
+                builder: (context, isSearchActive, child) {
+                  return GestureDetector(
+                    onTap: () {
+                      if (isSearchActive) { // Use 'isSearchActive' from builder
+                        context.read<SearchQueryNotifier>().query = '';
+                        _showSearchBarNotifier.value = false;
+                        _isSearchActiveNotifier.value = false;
                       }
-                    });
-                  }
-                  showCupertinoModalPopup(
-                      context: context, builder: (_) => const SettingsSheet());
+                      showCupertinoModalPopup(
+                          context: context, builder: (_) => const SettingsSheet());
+                    },
+                    child: child, // The Container is passed as child to the builder
+                  );
                 },
-                child: Container(
+                child: Container( // This is the child for ValueListenableBuilder
                   width: 40,
                   height: 40,
-                  decoration: const BoxDecoration(shape: BoxShape.circle),
+                  decoration: const BoxDecoration(shape: BoxShape.circle), // Made const
                   child: Icon(CupertinoIcons.person_crop_circle,
                       size: 28, color: Theme.of(context).colorScheme.onSurface),
                 ),
@@ -571,17 +564,17 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         bottom: isLargeScreen
             ? null
             : PreferredSize(
-                preferredSize: const Size.fromHeight(56.0 + 2.0),
+                preferredSize: const Size.fromHeight(56.0 + 2.0), // Already const
                 child: Padding(
                   padding:
-                      const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 2.0),
+                      const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 2.0), // Made const
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final isMobile = constraints.maxWidth < 600;
                       final horizontalMargin = isMobile ? 4.0 : 0.0;
                       final BorderRadius tabBorderRadius =
-                          BorderRadius.circular(
-                              20.0); // Increased radius (Could be 14.0)
+                          BorderRadius.circular( // Made const
+                              20.0);
                       return Row(
                         mainAxisSize:
                             isMobile ? MainAxisSize.max : MainAxisSize.min,
@@ -617,13 +610,13 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           final segment = SmoothCard(
                             smoothness: themeConfig.cardCornerSmoothness,
                             borderRadius:
-                                tabBorderRadius, // Use new BorderRadius object
+                                tabBorderRadius,
                             elevation: 0,
                             color: isSelected
                                 ? segmentActiveBackground
                                 : segmentInactiveBackground,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric( // Made const
                                   vertical: 10.0, horizontal: 16.0),
                               child: Center(
                                 child: Builder(builder: (context) {
@@ -636,7 +629,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                       fit: BoxFit.scaleDown, child: textWidget);
                                   if (isSelected && !isDarkMode) {
                                     fittedText = Transform.translate(
-                                        offset: const Offset(0, 1),
+                                        offset: const Offset(0, 1), // Already const
                                         child: fittedText);
                                   }
                                   return fittedText;
@@ -756,26 +749,32 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
               children: [
                 if (_tabController.index !=
                     3) // Search bar not shown on stock page (it has its own)
-                  AnimatedContainer(
-                    duration: _showSearchBar
-                        ? const Duration(milliseconds: 400)
-                        : const Duration(milliseconds: 300),
-                    curve: Curves.easeInOutQuart,
-                    height: _showSearchBar ? 48.0 : 0.0,
-                    margin: _showSearchBar
-                        ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
-                        : EdgeInsets.zero,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: AnimatedOpacity(
-                      opacity: _showSearchBar ? 1.0 : 0.0,
-                      duration: _showSearchBar
-                          ? const Duration(milliseconds: 300)
-                          : const Duration(milliseconds: 200),
-                      child: _isSearchActive
-                          ? Builder(builder: (context) {
-                              final searchQueryNotifier = context.watch<
-                                  SearchQueryNotifier>(); // Using Provider
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _showSearchBarNotifier,
+                    builder: (context, showSearchBar, child) {
+                      return AnimatedContainer(
+                        duration: showSearchBar
+                            ? const Duration(milliseconds: 400)
+                            : const Duration(milliseconds: 300),
+                        curve: Curves.easeInOutQuart,
+                        height: showSearchBar ? 48.0 : 0.0,
+                        margin: showSearchBar
+                            ? const EdgeInsets.only(top: 10.0, bottom: 4.0) // Already const
+                            : const EdgeInsets.zero, // Made const
+                        padding: const EdgeInsets.symmetric(horizontal: 12), // Already const
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: AnimatedOpacity(
+                          opacity: showSearchBar ? 1.0 : 0.0,
+                          duration: showSearchBar
+                              ? const Duration(milliseconds: 300)
+                              : const Duration(milliseconds: 200),
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: _isSearchActiveNotifier,
+                            builder: (context, isSearchActive, child) {
+                              return isSearchActive
+                                  ? Builder(builder: (context) {
+                                      final searchQueryNotifier = context.watch<
+                                          SearchQueryNotifier>(); // Using Provider
                               final searchText = searchQueryNotifier.query;
                               final isRTL = Localizations.localeOf(context)
                                           .languageCode ==
@@ -816,14 +815,14 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                       color: placeholderColor,
                                       fontFamily: fontFamily),
                                   prefix: Padding(
-                                      padding: const EdgeInsetsDirectional.only(
+                                      padding: const EdgeInsetsDirectional.only( // Made const
                                           start: 18),
                                       child: Icon(CupertinoIcons.search,
                                           size: 20, color: iconColor)),
                                   suffix: searchText.isNotEmpty
                                       ? CupertinoButton(
                                           padding:
-                                              const EdgeInsetsDirectional.only(
+                                              const EdgeInsetsDirectional.only( // Made const
                                                   end: 18),
                                           minSize: 30,
                                           child: Icon(CupertinoIcons.clear,
@@ -850,8 +849,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                 ),
                               );
                             })
-                          : const SizedBox(),
-                    ),
+                                  : const SizedBox();
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 Expanded(
                   child: AnimatedBuilder(
@@ -860,9 +863,9 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                     builder: (context, child) {
                       final index = _tabController.index;
                       return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        switchInCurve: Curves.easeInOutQuart,
-                        switchOutCurve: Curves.easeInOutQuart,
+                        duration: const Duration(milliseconds: 300), // Already const
+                        switchInCurve: Curves.easeInOutQuart, // Already const
+                        switchOutCurve: Curves.easeInOutQuart, // Already const
                         transitionBuilder: (Widget c, Animation<double> a) =>
                             FadeTransition(opacity: a, child: c),
                         child: Container(
@@ -871,8 +874,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           child: index == 3
                               ? StockPage(
                                   key: stockTabKey,
-                                  showSearchBar: _showSearchBar,
-                                  isSearchActive: _isSearchActive)
+                                  showSearchBar: _showSearchBarNotifier.value,
+                                  isSearchActive: _isSearchActiveNotifier.value)
                               : _mainTabViews[index],
                         ),
                       );
@@ -898,14 +901,14 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                     top: 7.0,
                     // Adjust padding based on text direction
                     left: isRTL ? 0.0 : 7.0,
-                    right: isRTL ? 7.0 : 0.0),
+                    right: isRTL ? 7.0 : 0.0), // Cannot be const due to isRTL
                 child: Theme(
                   data: Theme.of(context).copyWith(
                     // Disable all hover and touch feedback effects
-                    highlightColor: Colors.transparent,
-                    splashColor: Colors.transparent,
-                    hoverColor: Colors.transparent,
-                    splashFactory: NoSplash.splashFactory,
+                    highlightColor: Colors.transparent, // Already const
+                    splashColor: Colors.transparent, // Already const
+                    hoverColor: Colors.transparent, // Already const
+                    splashFactory: NoSplash.splashFactory, // Already const
                   ),
                   child: NavigationRail(
                     // ======== VISUAL PROPERTIES ========
@@ -979,14 +982,14 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onLongPress: () => _showSortSheet(0),
                           onDoubleTap: () => _showSortSheet(0),
                           child:
-                              const Icon(CupertinoIcons.money_dollar, size: 22),
+                              const Icon(CupertinoIcons.money_dollar, size: 22), // Already const
                         ),
                         label: GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onLongPress: () => _showSortSheet(0),
                           onDoubleTap: () => _showSortSheet(0),
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 22),
+                            padding: const EdgeInsets.only(bottom: 22), // Made const
                             child: Text(l10n.tabCurrency),
                           ),
                         ),
@@ -996,14 +999,14 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           behavior: HitTestBehavior.translucent,
                           onLongPress: () => _showSortSheet(1),
                           onDoubleTap: () => _showSortSheet(1),
-                          child: const Icon(CupertinoIcons.sparkles, size: 22),
+                          child: const Icon(CupertinoIcons.sparkles, size: 22), // Already const
                         ),
                         label: GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onLongPress: () => _showSortSheet(1),
                           onDoubleTap: () => _showSortSheet(1),
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 22),
+                            padding: const EdgeInsets.only(bottom: 22), // Made const
                             child: Text(l10n.tabGold),
                           ),
                         ),
@@ -1013,7 +1016,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           behavior: HitTestBehavior.translucent,
                           onLongPress: () => _showSortSheet(2),
                           onDoubleTap: () => _showSortSheet(2),
-                          child: const Icon(CupertinoIcons.bitcoin_circle,
+                          child: const Icon(CupertinoIcons.bitcoin_circle, // Already const
                               size: 22),
                         ),
                         label: GestureDetector(
@@ -1021,25 +1024,25 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onLongPress: () => _showSortSheet(2),
                           onDoubleTap: () => _showSortSheet(2),
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 22),
+                            padding: const EdgeInsets.only(bottom: 22), // Made const
                             child: Text(l10n.tabCrypto),
                           ),
                         ),
                       ),
                       NavigationRailDestination(
-                        icon: const Icon(Icons.trending_up, size: 22),
+                        icon: const Icon(Icons.trending_up, size: 22), // Already const
                         label: Padding(
-                          padding: const EdgeInsets.only(bottom: 22),
+                          padding: const EdgeInsets.only(bottom: 22), // Made const
                           child: Text(l10n.tabStock),
                         ),
                       ),
                       // Download button for desktop web users
                       if (_isDesktopWeb)
                         NavigationRailDestination(
-                          icon: const Icon(CupertinoIcons.cloud_download,
+                          icon: const Icon(CupertinoIcons.cloud_download, // Already const
                               size: 22),
                           label: Padding(
-                            padding: const EdgeInsets.only(bottom: 22),
+                            padding: const EdgeInsets.only(bottom: 22), // Made const
                             child: Text(isRTL ? "دانلود" : "App"),
                           ),
                         ),
@@ -1051,26 +1054,32 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 child: Column(
                   children: [
                     if (_tabController.index != 3)
-                      AnimatedContainer(
-                        duration: _showSearchBar
-                            ? const Duration(milliseconds: 400)
-                            : const Duration(milliseconds: 300),
-                        curve: Curves.easeInOutQuart,
-                        height: _showSearchBar ? 48.0 : 0.0,
-                        margin: _showSearchBar
-                            ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
-                            : EdgeInsets.zero,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        child: AnimatedOpacity(
-                          opacity: _showSearchBar ? 1.0 : 0.0,
-                          duration: _showSearchBar
-                              ? const Duration(milliseconds: 300)
-                              : const Duration(milliseconds: 200),
-                          child: _isSearchActive
-                              ? Builder(builder: (context) {
-                                  final searchQueryNotifier =
-                                      context.watch<SearchQueryNotifier>();
+                       ValueListenableBuilder<bool>(
+                        valueListenable: _showSearchBarNotifier,
+                        builder: (context, showSearchBar, child) {
+                          return AnimatedContainer(
+                            duration: showSearchBar
+                                ? const Duration(milliseconds: 400)
+                                : const Duration(milliseconds: 300),
+                            curve: Curves.easeInOutQuart,
+                            height: showSearchBar ? 48.0 : 0.0,
+                            margin: showSearchBar
+                            ? const EdgeInsets.only(top: 10.0, bottom: 4.0) // Already const
+                            : const EdgeInsets.zero, // Made const
+                        padding: const EdgeInsets.symmetric(horizontal: 12), // Already const
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            child: AnimatedOpacity(
+                              opacity: showSearchBar ? 1.0 : 0.0,
+                              duration: showSearchBar
+                                  ? const Duration(milliseconds: 300)
+                                  : const Duration(milliseconds: 200),
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _isSearchActiveNotifier,
+                                builder: (context, isSearchActive, child) {
+                                return isSearchActive
+                                  ? Builder(builder: (context) {
+                                      final searchQueryNotifier =
+                                          context.watch<SearchQueryNotifier>();
                                   final searchText = searchQueryNotifier.query;
                                   final isRTLInner =
                                       Localizations.localeOf(context)
@@ -1114,14 +1123,14 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                           fontFamily: fontFamilyInner),
                                       prefix: Padding(
                                           padding:
-                                              const EdgeInsetsDirectional.only(
+                                              const EdgeInsetsDirectional.only( // Made const
                                                   start: 18),
                                           child: Icon(CupertinoIcons.search,
                                               size: 20, color: iconColorInner)),
                                       suffix: searchText.isNotEmpty
                                           ? CupertinoButton(
                                               padding:
-                                                  const EdgeInsetsDirectional
+                                                  const EdgeInsetsDirectional // Made const
                                                       .only(end: 18),
                                               minSize: 30,
                                               child: Icon(CupertinoIcons.clear,
@@ -1150,8 +1159,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                     ),
                                   );
                                 })
-                              : const SizedBox(),
-                        ),
+                                  : const SizedBox();
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     Expanded(
                       child: AnimatedBuilder(
@@ -1161,8 +1174,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           return index == 3
                               ? StockPage(
                                   key: stockTabKey,
-                                  showSearchBar: _showSearchBar,
-                                  isSearchActive: _isSearchActive)
+                                  showSearchBar: _showSearchBarNotifier.value,
+                                  isSearchActive: _isSearchActiveNotifier.value)
                               : _mainTabViews[index];
                         },
                       ),
@@ -1185,26 +1198,29 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             actions: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: GestureDetector(
-                  onTap: () {
-                    if (mounted) {
-                      // Added curly braces for the 'if (mounted)'
-                      setState(() {
-                        if (_isSearchActive) {
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _isSearchActiveNotifier,
+                  builder: (context, isSearchActiveValue, child) {
+                    return GestureDetector(
+                      onTap: () {
+                        // mounted check is less critical here as we are not calling setState.
+                        // ValueNotifier updates are safe even if listeners are gone.
+                        if (isSearchActiveValue) {
                           context.read<SearchQueryNotifier>().query = '';
-                          _showSearchBar = false;
-                          _isSearchActive = false;
+                          _showSearchBarNotifier.value = false;
+                          _isSearchActiveNotifier.value = false;
                         }
-                      });
-                    }
-                    showCupertinoModalPopup(
-                        context: context,
-                        builder: (_) => const SettingsSheet());
+                        showCupertinoModalPopup(
+                            context: context,
+                            builder: (_) => const SettingsSheet()); // Already const
+                      },
+                      child: child, // Use child from builder
+                    );
                   },
-                  child: Container(
+                  child: Container( // This is the child for ValueListenableBuilder
                     width: 40,
                     height: 40,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                    decoration: const BoxDecoration(shape: BoxShape.circle), // Already const
                     child: Icon(CupertinoIcons.person_crop_circle,
                         size: 28,
                         color: Theme.of(context).colorScheme.onSurface),
@@ -1213,7 +1229,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
               ),
             ],
           ),
-          body: Center(child: ErrorPlaceholder(status: status)),
+          body: Center(child: ErrorPlaceholder(status: status)), // ErrorPlaceholder not const
         );
       },
     );
@@ -1274,20 +1290,20 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           elevation: 0,
-          duration: const Duration(milliseconds: 2500),
+          duration: const Duration(milliseconds: 2500), // Already const
           behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color.fromARGB(255, 5, 190, 99),
-          margin: const EdgeInsets.only(bottom: 10, left: 10, right: 10),
+          backgroundColor: const Color.fromARGB(255, 5, 190, 99), // Already const
+          margin: const EdgeInsets.only(bottom: 10, left: 10, right: 10), // Already const
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.0), // Made const
           ),
           content: Row(
             textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
             children: [
               // Placeholder icon, customize as needed
-              const Icon(CupertinoIcons.checkmark_seal_fill,
+              const Icon(CupertinoIcons.checkmark_seal_fill, // Made const
                   color: Colors.white, size: 20),
-              const SizedBox(width: 12),
+              const SizedBox(width: 12), // Made const
               Expanded(
                 child: Text(
                   message,

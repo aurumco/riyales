@@ -33,7 +33,7 @@ class _AnimatedCardBuilderState extends State<AnimatedCardBuilder>
     final int staggerDelay = math.min(widget.index * 20, 120);
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
 
@@ -43,12 +43,12 @@ class _AnimatedCardBuilderState extends State<AnimatedCardBuilder>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.05),
+      begin: const Offset(0, 0.03),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _scaleAnimation = Tween<double>(
-      begin: 0.98,
+      begin: 0.99,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 

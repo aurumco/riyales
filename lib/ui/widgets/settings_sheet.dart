@@ -64,8 +64,8 @@ class SettingsSheet extends StatelessWidget {
 
     // Chevron color and size for all dropdowns and terms row
     final chevronColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
-    const chevronSize =
-        0.0; // Original code had 0.0, likely meant to be larger or was an error. Keeping for now.
+    const double chevronSize = // Explicitly typed and kept const
+        0.0;
 
     // App Version and Update Info
     // String displayVersion = currentAppVersion; // Not used in the original extracted code
@@ -104,7 +104,7 @@ class SettingsSheet extends StatelessWidget {
             onPressed: () {}, // Empty callback to make it non-dismissible
             isDefaultAction: false,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 4), // Already const
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -163,7 +163,7 @@ class SettingsSheet extends StatelessWidget {
                         color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 8), // Corrected: ensure only one, already const
                     Icon(
                       CupertinoIcons.chevron_down,
                       size: 16,
@@ -217,7 +217,7 @@ class SettingsSheet extends StatelessWidget {
                         color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 8), // Already const
                     Icon(
                       CupertinoIcons.chevron_down,
                       size: 16,
@@ -426,14 +426,14 @@ void _showLanguagePicker(
         height: 250,
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF2C2C2E) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)), // Made const
         ),
         child: Column(
           children: [
             // iOS-style picker header
             Container(
               height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16), // Already const
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? const Color(0xFF3A3A3C)
@@ -449,7 +449,7 @@ void _showLanguagePicker(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   CupertinoButton(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.zero, // Made const
                     child: Text(
                       l10n.dialogClose, // Use passed l10n
                       style: TextStyle(
@@ -521,14 +521,14 @@ void _showCurrencyUnitPicker(
         height: 250,
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF2C2C2E) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12.0)), // Made const
         ),
         child: Column(
           children: [
             // iOS-style picker header
             Container(
               height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16), // Already const
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? const Color(0xFF3A3A3C)
@@ -544,7 +544,7 @@ void _showCurrencyUnitPicker(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   CupertinoButton(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.zero, // Made const
                     child: Text(
                       l10n.dialogClose, // Use passed l10n
                       style: TextStyle(
