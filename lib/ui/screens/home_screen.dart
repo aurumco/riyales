@@ -21,9 +21,9 @@ import '../../providers/data_providers/currency_data_provider.dart';
 import '../../providers/data_providers/gold_data_provider.dart';
 import '../../providers/data_providers/crypto_data_provider.dart';
 import '../../providers/data_providers/stock_tse_ifb_data_provider.dart';
-import '../../providers/data_providers/stock_debt_securities_data_provider.dart';
-import '../../providers/data_providers/stock_futures_data_provider.dart';
-import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
+// import '../../providers/data_providers/stock_debt_securities_data_provider.dart'; // Removed
+// import '../../providers/data_providers/stock_futures_data_provider.dart'; // Removed
+// import '../../providers/data_providers/stock_housing_facilities_data_provider.dart'; // Removed
 
 // UI Widgets
 import '../widgets/asset_list_page.dart';
