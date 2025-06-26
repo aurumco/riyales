@@ -1,74 +1,47 @@
 <!DOCTYPE html>
-<html lang="fa-IR" dir="rtl">
+<html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  
-  <link rel="manifest" href="manifest.json">
-  <link rel="canonical" href="https://ryls.ir/">
-
-  <!-- SEO Meta Tags -->
-  <title>ریالِس | قیمت لحظه‌ای دلار، یورو، طلا و ارزهای دیجیتال</title>
-  <meta name="description" content="مرجع کامل و لحظه‌ای قیمت دلار، یورو، درهم، سکه طلا، تمام سکه، ۱۸ عیار و انواع ارزهای دیجیتال مانند بیت‌کوین و تتر. با ریالِس، از آخرین تحولات بازار ارز و طلا باخبر شوید.">
-  <meta name="keywords" content="قیمت دلار, قیمت یورو, قیمت سکه, قیمت طلا, نرخ ارز, ریالِس, قیمت لحظه ای, دلار آزاد, سکه امامی, طلای ۱۸ عیار, قیمت تتر, قیمت بیت کوین, بازار ارز, صرافی, ارز دیجیتال, riyales, dollar, gold, crypto">
-  <meta name="robots" content="index, follow">
-  <meta name="author" content="Aurum">
-  <meta name="geo.region" content="IR" />
-  <meta name="geo.placename" content="Iran" />
-
-  <!-- Theme colors -->
+  <!-- <link rel="manifest" href="manifest.json"> -->
+  <!-- Theme colors for browser and PWA status bars -->
   <meta name="theme-color" content="#090909">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="msapplication-navbutton-color" content="#090909">
+  <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker, dollar, euro, riyal, دلار, یورو, ریال, پوند, لیر, روبل, قیمت, نرخ, طلا, بهار آزادی, سکه, سکه امامی, کریپتو, ارز دیجیتال, بیتکوین, اتریوم, تتر, ترون, 24 عیار, 18 عیار, عیار, بانک مرکزی, نرخ دلار, قیمت دلار, قیمت سکه, قیمت لحظه‌ای, نرخ بروز, بورس, سهام, شاخص بورس, شاخص فرابورس, تسهیلات مسکن, اوراق بدهی, ارز, درهم, دینار, ریالس, فرابورس, بورس اوراق بهادار, بورس اوراق بهادار تهران, قیمت دلار, نیمایی, بانکی, فیات, دلار چند, طلا چند, سکه چند, دلار آمریکا, تومان, قیمت هر دلار, سکه یک گرمی, نفت, نفت برنت, نفت اپک, گاز, قیمت نفت, قیمت گاز, فلزات, فلزات گرانبها, نقره, لیر ترکیه, روبل روسیه, دلار کانادا, پوند انگلیس, آخرین قیمت"
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Aurum">
 
-  <!-- PWA & App Meta -->
+  <meta name="description" content="Riyales – Currency, Gold, Crypto & Stock Prices">
+
+  <!-- PWA & status bar styles -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="ریالِس">
+  <meta name="apple-mobile-web-app-title" content="Riyales">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <!-- Open Graph (for Facebook, LinkedIn, etc.) -->
-  <meta property="og:title" content="ریالِس | قیمت لحظه‌ای دلار، یورو، طلا و ارزهای دیجیتال">
-  <meta property="og:description" content="مرجع کامل و لحظه‌ای قیمت دلار، یورو، درهم، سکه طلا و انواع ارزهای دیجیتال. با ریالِس، از آخرین تحولات بازار باخبر شوید.">
-  <meta property="og:image" content="https://ryls.ir/assets/Icon-512.png">
+  <title>Riyales</title>
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="Riyales">
+  <meta property="og:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta property="og:image" content="icons/Icon-maskable-192.png">
   <meta property="og:url" content="https://ryls.ir">
   <meta property="og:type" content="website">
-  <meta property="og:locale" content="fa_IR">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ریالِس | قیمت لحظه‌ای دلار، یورو، طلا و ارزهای دیجیتال">
-  <meta name="twitter:description" content="مرجع کامل و لحظه‌ای قیمت دلار، یورو، سکه طلا و ارزهای دیجیتال.">
-  <meta name="twitter:image" content="https://ryls.ir/assets/Icon-512.png">
-  <meta name="twitter:site" content="@riyales">
+  <meta name="twitter:title" content="Riyales">
+  <meta name="twitter:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta name="twitter:image" content="icons/Icon-maskable-192.png">
 
-  <!-- JSON-LD Structured Data -->
-  <script type="application/ld+json" id="structured-data">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "ریالِس",
-    "url": "https://ryls.ir",
-    "logo": "https://ryls.ir/assets/Icon-512.png",
-    "description": "مرجع قیمت لحظه‌ای ارز، طلا و ارزهای دیجیتال",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://ryls.ir/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    },
-    "mainEntityOfPage": {
-       "@type":"WebPage",
-       "@id":"https://ryls.ir"
-    }
-  }
-  </script>
-
+  <!-- Disable right-click, text selection, drag/drop, copy/paste -->
   <style>
     :root {
       --scrollbar-track-light: #f1f1f1;
@@ -83,99 +56,89 @@
       user-select: none;
       -webkit-touch-callout: none;
       scroll-behavior: smooth;
-      overflow: hidden;
+      overflow: hidden; /* Prevent body scrolling */
     }
-    .flutter-scrollbar::-webkit-scrollbar { width: 10px; display: none; }
+    /* Scrollbar styling for WebKit browsers */
+    /* Only show scrollbar on desktop and make auto-hide */
+    .flutter-scrollbar::-webkit-scrollbar {
+      width: 10px;
+      display: none; /* Hide by default */
+    }
     .flutter-scrollbar:hover::-webkit-scrollbar, 
     .flutter-scrollbar:active::-webkit-scrollbar, 
-    .flutter-scrollbar:focus::-webkit-scrollbar { display: block; }
-    .flutter-scrollbar::-webkit-scrollbar-track { background: var(--scrollbar-track-light); border-radius: 10px; }
-    .flutter-scrollbar::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-light); border-radius: 5px; border: 2px solid var(--scrollbar-track-light); }
-    .flutter-scrollbar { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-light) var(--scrollbar-track-light); }
+    .flutter-scrollbar:focus::-webkit-scrollbar {
+      display: block; /* Show on interaction */
+    }
+    .flutter-scrollbar::-webkit-scrollbar-track {
+      background: var(--scrollbar-track-light);
+      border-radius: 10px;
+    }
+    .flutter-scrollbar::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbar-thumb-light);
+      border-radius: 5px;
+      border: 2px solid var(--scrollbar-track-light);
+    }
+    /* Firefox scrollbar */
+    .flutter-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb-light) var(--scrollbar-track-light);
+    }
     @media (prefers-color-scheme: dark) {
-      .flutter-scrollbar::-webkit-scrollbar-track { background: var(--scrollbar-track-dark); }
-      .flutter-scrollbar::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-dark); border: 2px solid var(--scrollbar-track-dark); }
-      .flutter-scrollbar { scrollbar-color: var(--scrollbar-thumb-dark) var(--scrollbar-track-dark); }
+      .flutter-scrollbar::-webkit-scrollbar-track {
+        background: var(--scrollbar-track-dark);
+      }
+      .flutter-scrollbar::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb-dark);
+        border: 2px solid var(--scrollbar-track-dark);
+      }
+      .flutter-scrollbar {
+        scrollbar-color: var(--scrollbar-thumb-dark) var(--scrollbar-track-dark);
+      }
     }
   </style>
-
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.body.style.userSelect='none';
+      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+      document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+      document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+      document.addEventListener('dragover', function(e) { e.preventDefault(); });
+      document.addEventListener('drop', function(e) { e.preventDefault(); });
+      document.addEventListener('copy', function(e) { e.preventDefault(); });
+      document.addEventListener('paste', function(e) { e.preventDefault(); });
+    });
+  </script>
 </head>
 <body style="background-color: #090909;">
-  
+  <script src="flutter_bootstrap.js" async></script>
+  <!-- Script to apply flutter-scrollbar class to the right container -->
   <script>
-    (function() {
-      "use strict";
+    document.addEventListener('DOMContentLoaded', function() {
+      // Apply class initially
+      applyScrollbarClass();
+      // Watch for DOM changes to apply class to dynamically created elements
+      const observer = new MutationObserver(function(mutations) {
+        applyScrollbarClass();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
       
-      const API_URL = "https://raw.githubusercontent.com/aurumco/riyales-api/refs/heads/main/api/v1/market/lite.json";
-      const ASSET_NAMES = {
-        currency: ["دلار", "یورو", "لیر ترکیه", "روبل روسیه", "درهم امارات", "یوآن چین", "پوند", "دلار کانادا", "دینار کویت", "ریال عربستان", "دینار عراق", "دینار بحرین", "بات تایلند", "ریال عمان"],
-        cryptocurrency: ["تتر", "بیت‌کوین", "اتریوم", "ترون", "دوج‌کوین", "بایننس کوین"],
-        gold: ["سکه امامی", "سکه بهار آزادی", "سکه یک گرمی", "طلای ۱۸ عیار", "طلای ۲۴ عیار"]
-      };
-
-      function formatPrice(price, unit = 'تومان') {
-        const num = Number(price);
-        if (isNaN(num)) return price;
-        return new Intl.NumberFormat('fa-IR').format(num) + (unit ? ' ' + unit : '');
-      }
-
-      function findAsset(data, type, name) {
-        const list = data[type] || [];
-        const nameKey = type === 'cryptocurrency' ? 'name_fa' : 'name';
-        return list.find(item => item[nameKey] === name);
-      }
-
-      async function updateMetaWithLiveData() {
-        try {
-          const response = await fetch(API_URL, { headers: { 'Accept': 'application/json' } });
-          if (!response.ok) return;
-
-          const data = await response.json();
-          let descriptionParts = [];
-          
-          const usd = findAsset(data, 'currency', 'دلار');
-
-          // Title update (keeping the existing logic for USD)
-          if (usd) {
-            const price = formatPrice(usd.price, ''); // No unit for title
-            const title = `قیمت دلار ${price} تومان | ریالِس، مرجع قیمت ارز و طلا`;
-            document.title = title;
-            document.querySelector('meta[property="og:title"]').setAttribute('content', title);
-            document.querySelector('meta[name="twitter:title"]').setAttribute('content', title);
-          }
-          
-          // Description update
-          const allAssets = [
-            ...ASSET_NAMES.currency.map(name => findAsset(data, 'currency', name)),
-            ...ASSET_NAMES.cryptocurrency.map(name => findAsset(data, 'cryptocurrency', name)),
-            ...ASSET_NAMES.gold.map(name => findAsset(data, 'gold', name))
-          ].filter(Boolean); // Filter out any assets that weren't found
-
-          if (allAssets.length > 0) {
-            const descriptionText = "قیمت لحظه‌ای: " + allAssets.map(asset => {
-              const priceKey = asset.price_toman ? 'price_toman' : 'price';
-              const name = asset.name_fa || asset.name;
-              return `${name} ${formatPrice(asset[priceKey], asset.unit || '')}`;
-            }).join('، ') + ". با ریالِس از آخرین تحولات بازار ارز، طلا و رمزارز باخبر شوید.";
-
-            document.querySelector('meta[name="description"]').setAttribute('content', descriptionText);
-            document.querySelector('meta[property="og:description"]').setAttribute('content', descriptionText);
-            document.querySelector('meta[name="twitter:description"]').setAttribute('content', descriptionText);
-          }
-
-        } catch (error) {
-          console.error("SEO Meta Updater: Failed to fetch or process live data.", error);
+      function applyScrollbarClass() {
+        // First try to find elements with the flutter-scrollbar key
+        const scrollElem = document.querySelector('[data-key="flutter-scrollbar"]');
+        if (scrollElem) {
+          scrollElem.classList.add('flutter-scrollbar');
+        }
+        
+        // Also apply to primary scrollable container in Flutter web
+        const scrollContainer = document.querySelector('.flutter-view, flt-glass-pane');
+        if (scrollContainer) {
+          const scrollableChildren = scrollContainer.querySelectorAll('[class*="scrollable"]');
+          scrollableChildren.forEach(function(elem) {
+            elem.classList.add('flutter-scrollbar');
+          });
         }
       }
-
-      updateMetaWithLiveData();
-      // Periodically update the data every 5 minutes
-      setInterval(updateMetaWithLiveData, 5 * 60 * 1000);
-
-    })();
+    });
   </script>
-
-  <script src="flutter_bootstrap.js" async></script>
-  
 </body>
 </html>
