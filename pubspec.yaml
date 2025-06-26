@@ -43,6 +43,11 @@ dependencies:
   universal_platform: ^1.1.0
   web_smooth_scroll: ^2.0.0
   auto_size_text: ^3.0.0
+  uuid: ^4.5.1
+  package_info_plus: ^8.3.0
+  universal_html: ^2.2.4
+  http: ^1.4.0
+  tapsell_plus: ^2.3.2
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +58,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/images/
@@ -76,11 +82,6 @@ flutter:
     - family: Onest
       fonts:
         - asset: assets/fonts/Onest.ttf
-    - family: Quicksand
-      fonts:
-        - asset: assets/fonts/Quicksand.ttf
-
-  generate: true
 
 flutter_launcher_icons:
   android: true
