@@ -1,0 +1,151 @@
+{
+  "@@locale": "en",
+  "riyalesAppTitle": "Riyales",
+  "@riyalesAppTitle": {
+    "description": "The title of the application"
+  },
+  "tabCurrency": "Currency",
+  "@tabCurrency": {
+    "description": "Currency tab title"
+  },
+  "tabGold": "Gold",
+  "@tabGold": {
+    "description": "Gold tab title"
+  },
+  "tabCrypto": "Crypto",
+  "@tabCrypto": {
+    "description": "Cryptocurrency tab title"
+  },
+  "tabStock": "Stocks",
+  "@tabStock": {
+    "description": "Stocks tab title"
+  },
+  "stockTabSymbols": "Symbols",
+  "@stockTabSymbols": {
+    "description": "Stock symbols tab title"
+  },
+  "stockTabDebtSecurities": "Securities",
+  "@stockTabDebtSecurities": {
+    "description": "Debt securities tab title"
+  },
+  "stockTabFutures": "Futures",
+  "@stockTabFutures": {
+    "description": "Futures tab title"
+  },
+  "stockTabHousingFacilities": "Facilities",
+  "@stockTabHousingFacilities": {
+    "description": "Housing facilities tab title"
+  },
+  "searchPlaceholder": "Search...",
+  "@searchPlaceholder": {
+    "description": "Placeholder text for search field"
+  },
+  "listNoData": "No data to display.",
+  "@listNoData": {
+    "description": "Message shown when there is no data to display"
+  },
+  "searchNoResults": "No results found.",
+  "@searchNoResults": {
+    "description": "Message shown when search returns no results"
+  },
+  "searchStartTyping": "Start typing to search.",
+  "@searchStartTyping": {
+    "description": "Message shown when user should start typing to search"
+  },
+  "errorFetchingData": "Error fetching data",
+  "@errorFetchingData": {
+    "description": "Message shown when there is an error fetching data"
+  },
+  "retryButton": "Retry",
+  "@retryButton": {
+    "description": "Text for retry button"
+  },
+  "cardTapped": "Card tapped",
+  "@cardTapped": {
+    "description": "Message shown when a card is tapped"
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title for settings screen"
+  },
+  "settingsTheme": "App Theme",
+  "@settingsTheme": {
+    "description": "Label for theme settings"
+  },
+  "themeLight": "Light",
+  "@themeLight": {
+    "description": "Label for light theme option"
+  },
+  "themeDark": "Dark",
+  "@themeDark": {
+    "description": "Label for dark theme option"
+  },
+  "settingsLanguage": "App Language",
+  "@settingsLanguage": {
+    "description": "Label for language settings"
+  },
+  "dialogClose": "Close",
+  "@dialogClose": {
+    "description": "Button text to close a dialog"
+  },
+  "settingsCurrencyUnit": "Display Currency Unit",
+  "@settingsCurrencyUnit": {
+    "description": "Label for currency unit settings"
+  },
+  "currencyUnitToman": "Toman",
+  "@currencyUnitToman": {
+    "description": "Label for Toman currency unit"
+  },
+  "currencyUnitUSD": "Dollar",
+  "@currencyUnitUSD": {
+    "description": "Label for USD currency unit"
+  },
+  "currencyUnitEUR": "Euro",
+  "@currencyUnitEUR": {
+    "description": "Label for Euro currency unit"
+  },
+  "errorNoInternet": "No Internet Connection",
+  "@errorNoInternet": {
+    "description": "Message shown when there is no internet connection"
+  },
+  "errorCheckConnection": "Please check your internet connection.",
+  "@errorCheckConnection": {
+    "description": "Message asking user to check internet connection"
+  },
+  "errorServerUnavailable": "Server Unavailable",
+  "@errorServerUnavailable": {
+    "description": "Message shown when server is unavailable"
+  },
+  "errorServerMessage": "Please try again later.",
+  "@errorServerMessage": {
+    "description": "Message asking user to try again later"
+  },
+  "errorGeneric": "Could not display data",
+  "@errorGeneric": {
+    "description": "Generic error message"
+  },
+  "retrying": "Retrying automatically...",
+  "@retrying": {
+    "description": "Message shown when app is retrying an operation"
+  },
+  "youreOffline": "You're offline.",
+  "@youreOffline": {
+    "description": "Message shown when user is offline"
+  },
+  "youreBackOnline": "You're back online.",
+  "@youreBackOnline": {
+    "description": "Message shown when user is back online"
+  },
+  "settingsTerms": "Terms & Conditions",
+  "@settingsTerms": {
+    "description": "Label for terms and conditions in settings"
+  },
+  "settingsAppVersion": "App Version",
+  "@settingsAppVersion": {
+    "description": "Label for app version in settings"
+  },
+  "settingsUpdateAvailable": "Update Available",
+  "@settingsUpdateAvailable": {
+    "description": "Message shown when an update is available"
+  }
+} 
