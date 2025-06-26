@@ -1,0 +1,9 @@
+# Allow all user agents to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow crawling of specific files if any (none for now)
+# Disallow: /private/
+
+# Location of sitemap
+Sitemap: https://ryls.ir/sitemap.xml 
