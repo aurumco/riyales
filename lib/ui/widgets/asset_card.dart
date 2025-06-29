@@ -712,133 +712,206 @@ class AssetCard extends StatelessWidget {
         color: isDarkMode
             ? const Color(0xFF161616)
             : hexToColor(themeConfig.cardColor),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.center,
-              colors: [
-                theme.colorScheme.primary.withAlpha((255 * 0.1)
-                    .round()), // Adjusted opacity using withAlpha directly
-                Colors.transparent,
-              ],
+        child: SmoothClipRRect(
+          borderRadius: BorderRadius.circular(cornerSettings.radius),
+          smoothness: cornerSettings.smoothness,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.center,
+                colors: [
+                  theme.colorScheme.primary.withAlpha((255 * 0.1)
+                      .round()), // Adjusted opacity using withAlpha directly
+                  Colors.transparent,
+                ],
+              ),
             ),
-          ),
-          padding: const EdgeInsets.all(12.0), // This was already const
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    textDirection: ui.TextDirection.ltr,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      iconWidget,
-                      const SizedBox(width: 8), // Already const
-                      Expanded(
-                        child: AutoSizeText(
-                          assetName,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontFamily: nameFontFamily,
+            padding: const EdgeInsets.all(12.0), // This was already const
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      textDirection: ui.TextDirection.ltr,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        iconWidget,
+                        const SizedBox(width: 8), // Already const
+                        Expanded(
+                          child: AutoSizeText(
+                            assetName,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontFamily: nameFontFamily,
+                            ),
+                            maxLines: 1,
+                            minFontSize: 14,
+                            maxFontSize: 17,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
                           ),
-                          maxLines: 1,
-                          minFontSize: 14,
-                          maxFontSize: 17,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
                         ),
-                      ),
-                    ],
-                  ),
-                  Builder(
-                    builder: (context) {
-                      Widget? pinBadgeWidget;
-                      if (isFavorite) {
-                        pinBadgeWidget = Container(
-                          height: 16,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? tealGreen.withAlpha(38)
-                                : theme.colorScheme.secondaryContainer
-                                    .withAlpha(128),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Icon(
-                            CupertinoIcons.eye_fill,
-                            size: 11,
-                            color: isDarkMode
-                                ? tealGreen.withAlpha(230)
-                                : theme.colorScheme.onSecondaryContainer,
-                          ),
-                        );
-                      }
-
-                      Widget? symbolBadgeInnerWidget;
-                      if (assetType == AssetType.currency ||
-                          assetType == AssetType.gold) {
-                        symbolBadgeInnerWidget = Container(
-                          height: 16,
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? tealGreen.withAlpha(38)
-                                : theme.colorScheme.secondaryContainer
-                                    .withAlpha(128),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            asset.symbol,
-                            style: TextStyle(
-                              fontFamily: 'CourierPrime',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                      ],
+                    ),
+                    Builder(
+                      builder: (context) {
+                        Widget? pinBadgeWidget;
+                        if (isFavorite) {
+                          pinBadgeWidget = Container(
+                            height: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isDarkMode
+                                  ? tealGreen.withAlpha(38)
+                                  : theme.colorScheme.secondaryContainer
+                                      .withAlpha(128),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Icon(
+                              CupertinoIcons.eye_fill,
+                              size: 11,
                               color: isDarkMode
                                   ? tealGreen.withAlpha(230)
                                   : theme.colorScheme.onSecondaryContainer,
                             ),
+                          );
+                        }
+
+                        Widget? symbolBadgeInnerWidget;
+                        if (assetType == AssetType.currency ||
+                            assetType == AssetType.gold) {
+                          symbolBadgeInnerWidget = Container(
+                            height: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isDarkMode
+                                  ? tealGreen.withAlpha(38)
+                                  : theme.colorScheme.secondaryContainer
+                                      .withAlpha(128),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              asset.symbol,
+                              style: TextStyle(
+                                fontFamily: 'CourierPrime',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDarkMode
+                                    ? tealGreen.withAlpha(230)
+                                    : theme.colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                          );
+                        }
+
+                        if (pinBadgeWidget == null &&
+                            symbolBadgeInnerWidget == null) {
+                          return const SizedBox.shrink(); // Already const
+                        }
+
+                        List<Widget> badgeChildren = [];
+                        if (pinBadgeWidget != null) {
+                          badgeChildren.add(pinBadgeWidget);
+                        }
+                        if (symbolBadgeInnerWidget != null) {
+                          if (pinBadgeWidget != null) {
+                            badgeChildren
+                                .add(const SizedBox(width: 5)); // Already const
+                          }
+                          badgeChildren.add(symbolBadgeInnerWidget);
+                        }
+
+                        return Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: badgeChildren,
+                            ),
                           ),
                         );
-                      }
-
-                      if (pinBadgeWidget == null &&
-                          symbolBadgeInnerWidget == null) {
-                        return const SizedBox.shrink(); // Already const
-                      }
-
-                      List<Widget> badgeChildren = [];
-                      if (pinBadgeWidget != null) {
-                        badgeChildren.add(pinBadgeWidget);
-                      }
-                      if (symbolBadgeInnerWidget != null) {
-                        if (pinBadgeWidget != null) {
-                          badgeChildren
-                              .add(const SizedBox(width: 5)); // Already const
-                        }
-                        badgeChildren.add(symbolBadgeInnerWidget);
-                      }
-
-                      return Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: badgeChildren,
-                          ),
+                      },
+                    ),
+                    const Spacer(),
+                    if (asset.changePercent != null)
+                      AnimatedAlign(
+                        alignment: currentLocale.languageCode == 'en'
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        duration:
+                            const Duration(milliseconds: 400), // Already const
+                        curve: const Cubic(0.77, 0, 0.175, 1), // Already const
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: currentLocale.languageCode == 'en'
+                              ? MainAxisAlignment.start
+                              : MainAxisAlignment.end,
+                          children: currentLocale.languageCode == 'en'
+                              ? [
+                                  Text(
+                                    '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%', // from helpers.dart
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: asset.changePercent! > 0
+                                          ? accentColorGreen
+                                          : asset.changePercent! < 0
+                                              ? accentColorRed
+                                              : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4), // Already const
+                                  Icon(
+                                    asset.changePercent! > 0
+                                        ? CupertinoIcons.arrow_up_right
+                                        : asset.changePercent! < 0
+                                            ? CupertinoIcons.arrow_down_right
+                                            : CupertinoIcons.minus,
+                                    color: asset.changePercent! > 0
+                                        ? accentColorGreen
+                                        : asset.changePercent! < 0
+                                            ? accentColorRed
+                                            : Colors.grey,
+                                    size: 12,
+                                  ),
+                                ]
+                              : [
+                                  Icon(
+                                    asset.changePercent! > 0
+                                        ? CupertinoIcons.arrow_up_right
+                                        : asset.changePercent! < 0
+                                            ? CupertinoIcons.arrow_down_right
+                                            : CupertinoIcons.minus,
+                                    color: asset.changePercent! > 0
+                                        ? accentColorGreen
+                                        : asset.changePercent! < 0
+                                            ? accentColorRed
+                                            : Colors.grey,
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 4), // Already const
+                                  Text(
+                                    '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%', // from helpers.dart
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: asset.changePercent! > 0
+                                          ? accentColorGreen
+                                          : asset.changePercent! < 0
+                                              ? accentColorRed
+                                              : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                         ),
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  if (asset.changePercent != null)
+                      ),
+                    const SizedBox(height: 4), // Already const
                     AnimatedAlign(
                       alignment: currentLocale.languageCode == 'en'
                           ? Alignment.centerLeft
@@ -846,132 +919,63 @@ class AssetCard extends StatelessWidget {
                       duration:
                           const Duration(milliseconds: 400), // Already const
                       curve: const Cubic(0.77, 0, 0.175, 1), // Already const
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: currentLocale.languageCode == 'en'
-                            ? MainAxisAlignment.start
-                            : MainAxisAlignment.end,
-                        children: currentLocale.languageCode == 'en'
-                            ? [
-                                Text(
-                                  '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%', // from helpers.dart
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: asset.changePercent! > 0
-                                        ? accentColorGreen
-                                        : asset.changePercent! < 0
-                                            ? accentColorRed
-                                            : Colors.grey,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 4), // Already const
-                                Icon(
-                                  asset.changePercent! > 0
-                                      ? CupertinoIcons.arrow_up_right
-                                      : asset.changePercent! < 0
-                                          ? CupertinoIcons.arrow_down_right
-                                          : CupertinoIcons.minus,
-                                  color: asset.changePercent! > 0
-                                      ? accentColorGreen
-                                      : asset.changePercent! < 0
-                                          ? accentColorRed
-                                          : Colors.grey,
-                                  size: 12,
-                                ),
-                              ]
-                            : [
-                                Icon(
-                                  asset.changePercent! > 0
-                                      ? CupertinoIcons.arrow_up_right
-                                      : asset.changePercent! < 0
-                                          ? CupertinoIcons.arrow_down_right
-                                          : CupertinoIcons.minus,
-                                  color: asset.changePercent! > 0
-                                      ? accentColorGreen
-                                      : asset.changePercent! < 0
-                                          ? accentColorRed
-                                          : Colors.grey,
-                                  size: 12,
-                                ),
-                                const SizedBox(width: 4), // Already const
-                                Text(
-                                  '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%', // from helpers.dart
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: asset.changePercent! > 0
-                                        ? accentColorGreen
-                                        : asset.changePercent! < 0
-                                            ? accentColorRed
-                                            : Colors.grey,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: numericPrice),
+                        duration:
+                            const Duration(milliseconds: 600), // Already const
+                        curve: Curves.easeInOutQuart, // Already const
+                        builder: (context, value, child) {
+                          final priceText = formatPrice(
+                            // from helpers.dart
+                            value,
+                            currentLocale.languageCode,
+                          );
+                          return AutoSizeText(
+                            priceText,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontFamily: containsPersian(
+                                      priceText) // from helpers.dart
+                                  ? 'Vazirmatn'
+                                  : 'SF-Pro',
+                            ),
+                            maxLines: 1,
+                            minFontSize: 18,
+                            maxFontSize: 28,
+                            stepGranularity: 0.1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: currentLocale.languageCode == 'en'
+                                ? TextAlign.left
+                                : TextAlign.right,
+                          );
+                        },
                       ),
                     ),
-                  const SizedBox(height: 4), // Already const
-                  AnimatedAlign(
-                    alignment: currentLocale.languageCode == 'en'
-                        ? Alignment.centerLeft
-                        : Alignment.centerRight,
-                    duration:
-                        const Duration(milliseconds: 400), // Already const
-                    curve: const Cubic(0.77, 0, 0.175, 1), // Already const
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0.0, end: numericPrice),
+                    AnimatedAlign(
+                      alignment: currentLocale.languageCode == 'en'
+                          ? Alignment.centerLeft
+                          : Alignment.centerRight,
                       duration:
-                          const Duration(milliseconds: 600), // Already const
-                      curve: Curves.easeInOutQuart, // Already const
-                      builder: (context, value, child) {
-                        final priceText = formatPrice(
-                          // from helpers.dart
-                          value,
-                          currentLocale.languageCode,
-                        );
-                        return AutoSizeText(
-                          priceText,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontFamily:
-                                containsPersian(priceText) // from helpers.dart
-                                    ? 'Vazirmatn'
-                                    : 'SF-Pro',
-                          ),
-                          maxLines: 1,
-                          minFontSize: 18,
-                          maxFontSize: 28,
-                          stepGranularity: 0.1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: currentLocale.languageCode == 'en'
-                              ? TextAlign.left
-                              : TextAlign.right,
-                        );
-                      },
-                    ),
-                  ),
-                  AnimatedAlign(
-                    alignment: currentLocale.languageCode == 'en'
-                        ? Alignment.centerLeft
-                        : Alignment.centerRight,
-                    duration:
-                        const Duration(milliseconds: 400), // Already const
-                    curve: const Cubic(0.77, 0, 0.175, 1), // Already const
-                    child: Text(
-                      displayUnit,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontFamily:
-                            containsPersian(displayUnit) // from helpers.dart
-                                ? 'Vazirmatn'
-                                : 'SF-Pro',
+                          const Duration(milliseconds: 400), // Already const
+                      curve: const Cubic(0.77, 0, 0.175, 1), // Already const
+                      child: Text(
+                        displayUnit,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontFamily:
+                              containsPersian(displayUnit) // from helpers.dart
+                                  ? 'Vazirmatn'
+                                  : 'SF-Pro',
+                        ),
+                        textAlign: currentLocale.languageCode == 'en'
+                            ? TextAlign.left
+                            : TextAlign.right,
                       ),
-                      textAlign: currentLocale.languageCode == 'en'
-                          ? TextAlign.left
-                          : TextAlign.right,
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

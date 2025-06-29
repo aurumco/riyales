@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:web_smooth_scroll/web_smooth_scroll.dart';
 
-import '../../config/app_config.dart';
 import '../../models/asset_models.dart' as models;
 import '../../providers/locale_provider.dart';
 import '../../providers/favorites_provider.dart';
@@ -42,6 +41,7 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
   final bool showSearchBar;
   final bool isSearchActive;
   final TabController? tabController;
+  final bool useCardAnimation;
 
   const AssetListPage({
     super.key,
@@ -57,6 +57,7 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
     this.showSearchBar = false,
     this.isSearchActive = false,
     this.tabController,
+    this.useCardAnimation = true,
   });
 
   @override
@@ -65,16 +66,16 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
 
 class AssetListPageState<T extends models.Asset>
     extends State<AssetListPage<T>> {
-  static const double _maxSmoothnessDelta = 0.2; // Max increase from default
+  // Changed: Made public
+  // static const double _maxRadiusDelta = 13.5; // Removed unused field
+  // static const double _maxSmoothnessDelta = 0.75; // Removed unused field
   final ScrollController _scrollController = ScrollController();
+  // StreamSubscription for connection status is no longer managed here, parent handles data refresh on reconnect.
   Timer? _errorRetryTimer; // Kept for retrying non-connection errors if any
 
-  double _defaultRadius = 21.0;
-  double _defaultSmoothness = 0.7;
+  // double _defaultRadius = 21.0; // Removed unused field
+  // double _defaultSmoothness = 0.9; // Removed unused field
 
-  bool _searchIndexBuilt = false;
-  final Map<String, Set<int>> _bigramIndex = {};
-  final Map<String, Set<int>> _trigramIndex = {};
   int _lastFullDataLength = 0;
   SortMode _sortMode = SortMode.defaultOrder;
 
@@ -82,36 +83,6 @@ class AssetListPageState<T extends models.Asset>
   bool _isSearchActive = false;
 
   // _getDataNotifier, _fetchDataForCurrentType, _loadMoreDataForCurrentType removed as actions are now passed via callbacks.
-
-  void _buildSearchIndex(List<T> assets) {
-    _bigramIndex.clear();
-    _trigramIndex.clear();
-    for (int i = 0; i < assets.length; i++) {
-      final asset = assets[i];
-      String text =
-          '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
-      if (asset is models.CurrencyAsset) {
-        text += ' ${asset.nameEn.toLowerCase()}';
-      } else if (asset is models.GoldAsset) {
-        text += ' ${asset.nameEn.toLowerCase()}';
-      } else if (asset is models.CryptoAsset) {
-        text += ' ${asset.nameFa.toLowerCase()}';
-      } else if (asset is models.StockAsset) {
-        text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
-      }
-      text = text.replaceAll(RegExp(r'\s+'), ' ');
-      for (int j = 0; j <= text.length - 2; j++) {
-        _bigramIndex
-            .putIfAbsent(text.substring(j, j + 2), () => <int>{})
-            .add(i);
-      }
-      for (int j = 0; j <= text.length - 3; j++) {
-        _trigramIndex
-            .putIfAbsent(text.substring(j, j + 3), () => <int>{})
-            .add(i);
-      }
-    }
-  }
 
   @override
   void initState() {
@@ -122,27 +93,6 @@ class AssetListPageState<T extends models.Asset>
         widget.onInitialize();
       }
     });
-
-    // After the first frame, get the default corner settings from the theme config
-    // and set them in our provider. This establishes the baseline for animations.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final appConfig = context.read<AppConfig>();
-        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-        final themeConfig = isDarkMode
-            ? appConfig.themeOptions.dark
-            : appConfig.themeOptions.light;
-
-        // The user wants 0.7, which may differ from the config. We prioritize the user's request.
-        _defaultRadius = themeConfig.cardBorderRadius;
-        _defaultSmoothness = 0.7;
-
-        // Update the provider with the initial correct values for this page.
-        final settingsNotifier = context.read<CardCornerSettingsNotifier>();
-        settingsNotifier.updateRadius(_defaultRadius);
-        settingsNotifier.updateSmoothness(_defaultSmoothness);
-      }
-    });
   }
 
   @override
@@ -151,7 +101,6 @@ class AssetListPageState<T extends models.Asset>
     if (widget.fullItemsListForSearch.length != _lastFullDataLength ||
         widget.fullItemsListForSearch != oldWidget.fullItemsListForSearch) {
       // Also check if list instance changed
-      _searchIndexBuilt = false;
       _lastFullDataLength = widget.fullItemsListForSearch.length;
     }
   }
@@ -160,28 +109,6 @@ class AssetListPageState<T extends models.Asset>
     final pos = _scrollController.position.pixels;
     if (pos >= _scrollController.position.maxScrollExtent * 0.85) {
       widget.onLoadMore();
-    }
-
-    if (mounted) {
-      final settingsNotifier = context.read<CardCornerSettingsNotifier>();
-
-      // Increase smoothness when pulling to refresh (overscroll with negative pixels)
-      if (pos < 0) {
-        // Calculate how far the user has pulled down as a ratio (0.0 to 1.0)
-        final pullRatio = math.min(
-            1.0, -pos / 100.0); // 100.0 is the distance for full effect
-        // Interpolate the smoothness between the default and the max value
-        final dynamicSmoothness =
-            _defaultSmoothness + (_maxSmoothnessDelta * pullRatio);
-
-        // Update the provider. All listening cards will rebuild.
-        settingsNotifier.updateSmoothness(dynamicSmoothness);
-      } else {
-        // When not pulling, if the smoothness is not at its default, reset it.
-        if (settingsNotifier.settings.smoothness != _defaultSmoothness) {
-          settingsNotifier.updateSmoothness(_defaultSmoothness);
-        }
-      }
     }
   }
 
@@ -315,46 +242,25 @@ class AssetListPageState<T extends models.Asset>
         List<T>.from(widget.items); // Use a copy for filtering/sorting
 
     if (searchQueryNotifier.query.length >= 2) {
-      if (!_searchIndexBuilt && widget.fullItemsListForSearch.isNotEmpty) {
-        _buildSearchIndex(widget.fullItemsListForSearch);
-        _searchIndexBuilt = true;
-      }
       final queryLower = searchQueryNotifier.query.toLowerCase();
-      List<T> filtered = [];
-      if (queryLower.length == 2) {
-        final indices = _bigramIndex[queryLower] ?? <int>{};
-        final sortedIdx = indices.toList()..sort();
-        if (widget.fullItemsListForSearch.isNotEmpty) {
-          filtered = sortedIdx
-              .where((i) => i < widget.fullItemsListForSearch.length)
-              .map((i) => widget.fullItemsListForSearch[i])
-              .toList();
+      dataToProcess = widget.fullItemsListForSearch.where((asset) {
+        // Concatenate all searchable fields into a single string.
+        String searchableText =
+            '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
+
+        if (asset is models.CurrencyAsset) {
+          searchableText += ' ${asset.nameEn.toLowerCase()}';
+        } else if (asset is models.GoldAsset) {
+          searchableText += ' ${asset.nameEn.toLowerCase()}';
+        } else if (asset is models.CryptoAsset) {
+          searchableText += ' ${asset.nameFa.toLowerCase()}';
+        } else if (asset is models.StockAsset) {
+          searchableText +=
+              ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
         }
-      } else {
-        Set<int>? resultSet;
-        for (int k = 0; k <= queryLower.length - 3; k++) {
-          final gram = queryLower.substring(k, k + 3);
-          final gramSet = _trigramIndex[gram] ?? <int>{};
-          if (resultSet == null) {
-            resultSet = gramSet.toSet();
-          } else {
-            resultSet = resultSet.intersection(gramSet);
-          }
-          if (resultSet.isEmpty) {
-            break;
-          }
-        }
-        if (resultSet != null &&
-            resultSet.isNotEmpty &&
-            widget.fullItemsListForSearch.isNotEmpty) {
-          final sortedIdx = resultSet.toList()..sort();
-          filtered = sortedIdx
-              .where((i) => i < widget.fullItemsListForSearch.length)
-              .map((i) => widget.fullItemsListForSearch[i])
-              .toList();
-        }
-      }
-      dataToProcess = filtered; // Update dataToProcess with filtered results
+        // Perform a simple and fast 'contains' check.
+        return searchableText.contains(queryLower);
+      }).toList();
     }
 
     // Apply sorting
@@ -442,8 +348,28 @@ class AssetListPageState<T extends models.Asset>
             final bool showIndicator =
                 refreshState == RefreshIndicatorMode.refresh ||
                     refreshState == RefreshIndicatorMode.armed ||
-                    refreshState == RefreshIndicatorMode.drag &&
-                        pulledExtent > 40.0;
+                    (refreshState == RefreshIndicatorMode.drag &&
+                        pulledExtent > 40.0);
+
+            // Dynamic update of card corner smoothness during pull-to-refresh
+            final settingsNotifier = context.read<CardCornerSettingsNotifier>();
+            const double defaultSmooth = 0.7;
+            const double maxSmooth = 0.9;
+            double targetSmooth;
+            if (refreshState == RefreshIndicatorMode.refresh) {
+              targetSmooth = maxSmooth;
+            } else if (refreshState == RefreshIndicatorMode.armed ||
+                refreshState == RefreshIndicatorMode.drag) {
+              final double pullRatio =
+                  math.min(1.0, pulledExtent / refreshTriggerPullDistance);
+              targetSmooth =
+                  defaultSmooth + (maxSmooth - defaultSmooth) * pullRatio;
+            } else {
+              targetSmooth = defaultSmooth;
+            }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              settingsNotifier.updateSmoothness(targetSmooth);
+            });
 
             // Add extra space above and below the indicator
             return Container(
@@ -519,13 +445,17 @@ class AssetListPageState<T extends models.Asset>
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final asset = sortedDisplayData[index];
-                    return AnimatedCardBuilder(
-                      index: index,
-                      child: AssetCard(
-                        asset: asset,
-                        assetType: widget.assetType,
-                      ),
+                    final card = AssetCard(
+                      asset: asset,
+                      assetType: widget.assetType,
                     );
+                    if (widget.useCardAnimation) {
+                      return AnimatedCardBuilder(
+                        index: index,
+                        child: card,
+                      );
+                    }
+                    return card;
                   },
                   childCount: sortedDisplayData.length,
                   addAutomaticKeepAlives: false,

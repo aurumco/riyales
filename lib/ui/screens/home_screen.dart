@@ -492,6 +492,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                       showSearchBar: showSearchBar,
                       isSearchActive: isSearchActive,
                       tabController: _tabController,
+                      useCardAnimation: false,
                     ),
                   );
                 });
