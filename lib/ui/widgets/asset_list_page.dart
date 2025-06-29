@@ -78,6 +78,7 @@ class AssetListPageState<T extends models.Asset>
 
   int _lastFullDataLength = 0;
   SortMode _sortMode = SortMode.defaultOrder;
+  List<String>? _searchableStrings;
 
   bool _didInitialFill = false;
   bool _isSearchActive = false;
@@ -100,12 +101,33 @@ class AssetListPageState<T extends models.Asset>
     super.didUpdateWidget(oldWidget);
     if (widget.fullItemsListForSearch.length != _lastFullDataLength ||
         widget.fullItemsListForSearch != oldWidget.fullItemsListForSearch) {
-      // Also check if list instance changed
+      // Rebuild searchable strings when full list changes
       _lastFullDataLength = widget.fullItemsListForSearch.length;
+      _searchableStrings = widget.fullItemsListForSearch.map((asset) {
+        // Precompute all searchable fields into lowercase single string
+        var text =
+            '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
+        if (asset is models.CurrencyAsset) {
+          text += ' ${asset.nameEn.toLowerCase()}';
+        } else if (asset is models.GoldAsset) {
+          text += ' ${asset.nameEn.toLowerCase()}';
+        } else if (asset is models.CryptoAsset) {
+          text += ' ${asset.nameFa.toLowerCase()}';
+        } else if (asset is models.StockAsset) {
+          text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
+        }
+        return text.replaceAll(RegExp(r'\s+'), ' ');
+      }).toList();
     }
   }
 
   void _onScroll() {
+    // If a search is active, all results are already in the list.
+    // Don't trigger pagination.
+    if (_isSearchActive) {
+      return;
+    }
+
     final pos = _scrollController.position.pixels;
     if (pos >= _scrollController.position.maxScrollExtent * 0.85) {
       widget.onLoadMore();
@@ -238,29 +260,19 @@ class AssetListPageState<T extends models.Asset>
       );
     }
 
-    List<T> dataToProcess =
-        List<T>.from(widget.items); // Use a copy for filtering/sorting
+    List<T> dataToProcess;
 
-    if (searchQueryNotifier.query.length >= 2) {
+    if (searchQueryNotifier.query.length >= 2 && _searchableStrings != null) {
       final queryLower = searchQueryNotifier.query.toLowerCase();
-      dataToProcess = widget.fullItemsListForSearch.where((asset) {
-        // Concatenate all searchable fields into a single string.
-        String searchableText =
-            '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
-
-        if (asset is models.CurrencyAsset) {
-          searchableText += ' ${asset.nameEn.toLowerCase()}';
-        } else if (asset is models.GoldAsset) {
-          searchableText += ' ${asset.nameEn.toLowerCase()}';
-        } else if (asset is models.CryptoAsset) {
-          searchableText += ' ${asset.nameFa.toLowerCase()}';
-        } else if (asset is models.StockAsset) {
-          searchableText +=
-              ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
+      final List<T> filtered = [];
+      for (int i = 0; i < _searchableStrings!.length; i++) {
+        if (_searchableStrings![i].contains(queryLower)) {
+          filtered.add(widget.fullItemsListForSearch[i]);
         }
-        // Perform a simple and fast 'contains' check.
-        return searchableText.contains(queryLower);
-      }).toList();
+      }
+      dataToProcess = filtered;
+    } else {
+      dataToProcess = List<T>.from(widget.items);
     }
 
     // Apply sorting

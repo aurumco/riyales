@@ -93,19 +93,11 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     final controller = _findScrollController(tabIndex);
     if (controller != null && controller.hasClients) {
       void listener() {
-        if (_isSearchActiveNotifier.value) {
-          if (controller.offset <= 0) {
-            if (!_showSearchBarNotifier.value) {
-              if (mounted) {
-                _toggleSearchBar(true);
-              }
-            }
-          } else {
-            if (_showSearchBarNotifier.value) {
-              if (mounted) {
-                _toggleSearchBar(false);
-              }
-            }
+        // Maintain search bar visibility regardless of scroll
+        if (_isSearchActiveNotifier.value && controller.offset <= 0) {
+          // If scrolled to top and search bar was hidden, open it
+          if (!_showSearchBarNotifier.value && mounted) {
+            _toggleSearchBar(true);
           }
         }
       }

@@ -15,13 +15,11 @@ import '../../providers/data_providers/stock_tse_ifb_data_provider.dart';
 import '../../providers/data_providers/stock_debt_securities_data_provider.dart';
 import '../../providers/data_providers/stock_futures_data_provider.dart';
 import '../../providers/data_providers/stock_housing_facilities_data_provider.dart';
-import '../../providers/search_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../localization/l10n_utils.dart';
 import '../../utils/color_utils.dart';
-import '../../utils/helpers.dart';
 import 'asset_list_page.dart';
 import '../../services/analytics_service.dart';
+import './search/shimmering_search_field.dart';
 
 // Stock Page with Sub-Tabs
 class StockPage extends StatefulWidget {
@@ -464,90 +462,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
             ? const Duration(milliseconds: 300) // Already const
             : const Duration(milliseconds: 200), // Already const
         child: widget.isSearchActive
-            ? Builder(
-                builder: (context) {
-                  final searchQueryNotifier =
-                      context.watch<SearchQueryNotifier>(); // Using Provider
-                  final searchText = searchQueryNotifier.query;
-                  final localeNotifier =
-                      context.watch<LocaleNotifier>(); // For RTL check
-                  final isRTL = localeNotifier.locale.languageCode == 'fa' ||
-                      containsPersian(searchText);
-
-                  final textColor =
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[300]
-                          : Colors.grey[700];
-                  final placeholderColor =
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[600]
-                          : Colors.grey[500];
-                  final iconColor =
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[400]
-                          : Colors.grey[600];
-                  final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
-
-                  return Container(
-                    decoration: ShapeDecoration(
-                      color: (Theme.of(context).brightness == Brightness.dark)
-                          ? const Color(0xFF161616)
-                          : Colors.white,
-                      shape: SmoothRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        smoothness: 0.7,
-                      ),
-                    ),
-                    child: CupertinoTextField(
-                      controller: TextEditingController(text: searchText)
-                        ..selection = TextSelection.fromPosition(
-                          TextPosition(offset: searchText.length),
-                        ),
-                      onChanged: (v) => context
-                          .read<SearchQueryNotifier>()
-                          .query = v, // Using Provider
-                      placeholder:
-                          AppLocalizations.of(context).searchPlaceholder,
-                      placeholderStyle: TextStyle(
-                        color: placeholderColor,
-                        fontFamily: fontFamily,
-                      ),
-                      prefix: Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                            start: 18), // Made const
-                        child: Icon(CupertinoIcons.search,
-                            size: 20, color: iconColor),
-                      ),
-                      suffix: searchText.isNotEmpty
-                          ? CupertinoButton(
-                              padding: const EdgeInsetsDirectional.only(
-                                  end: 18), // Made const
-                              minSize: 30,
-                              child: Icon(CupertinoIcons.clear,
-                                  size: 18, color: iconColor),
-                              onPressed: () => context
-                                  .read<SearchQueryNotifier>()
-                                  .query = '', // Using Provider
-                            )
-                          : null,
-                      textAlign: isRTL ? TextAlign.right : TextAlign.left,
-                      padding: EdgeInsetsDirectional.only(
-                        start: 9,
-                        end: searchText.isNotEmpty ? 28 : 12,
-                        top: 11,
-                        bottom: 11,
-                      ),
-                      style: TextStyle(
-                        color: textColor,
-                        fontFamily: fontFamily,
-                      ),
-                      cursorColor: iconColor,
-                      decoration:
-                          null, // No decoration to avoid double background
-                    ),
-                  );
-                },
-              )
+            ? const ShimmeringSearchField()
             : const SizedBox(),
       ),
     );
