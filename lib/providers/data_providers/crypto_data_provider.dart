@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math; // Ensure this import is present and correct
 import 'package:flutter/foundation.dart';
 import '../../../models/asset_models.dart';
 import '../../../config/app_config.dart';
@@ -13,28 +14,21 @@ class CryptoDataNotifier extends ChangeNotifier {
 
   bool isLoading = false;
   String? error;
-  List<CryptoAsset> cryptoAssets = []; // Public list for current items
+  List<CryptoAsset> cryptoAssets = [];
 
-  // int _currentlyLoadedCount = 0; // Replaced by items.length for loadMore
   List<CryptoAsset> _fullDataList = [];
-  // Timer? _updateTimer; // Removed
 
   bool hasDataBeenFetchedOnce = false;
   DateTime? lastFetchTime;
   bool _isLoadingMore = false;
-  // bool _isCurrentlyShowingFavorites = false; // Consider if needed for fetchDataIfStale
 
-  // Public getter for the full data list
   List<CryptoAsset> get fullDataList => _fullDataList;
-  // Public getter for the paginated/currently visible items
   List<CryptoAsset> get items => cryptoAssets;
 
   CryptoDataNotifier(
       {required this.apiService,
       required this.appConfig,
-      required this.connectionService}) {
-    // Initial fetch removed to defer loading until tab is activated
-  }
+      required this.connectionService});
 
   Future<void> fetchInitialData(
       {bool isRefresh = false,
@@ -43,21 +37,20 @@ class CryptoDataNotifier extends ChangeNotifier {
     final bool isSpecialFetch = (favoriteIds != null && favoriteIds.isNotEmpty);
 
     if (isLoadMore) {
-      // Load more should not apply if we are showing a special list like favorites
-      if (isSpecialFetch ||
-          _isLoadingMore ||
-          (_fullDataList.isNotEmpty &&
-              cryptoAssets.length >= _fullDataList.length)) {
+      if (isSpecialFetch || _isLoadingMore || cryptoAssets.length >= _fullDataList.length) {
+        if (_isLoadingMore && cryptoAssets.length >= _fullDataList.length) {
+            _isLoadingMore = false;
+        }
         return;
       }
+
       _isLoadingMore = true;
-      // notifyListeners(); // Optional
 
       final currentLength = cryptoAssets.length;
-      final int end =
-          (currentLength + appConfig.itemsPerLazyLoad > _fullDataList.length)
-              ? _fullDataList.length
-              : currentLength + appConfig.itemsPerLazyLoad;
+      final itemsToLoad = appConfig.itemsPerLazyLoad;
+      // Corrected usage of math.min
+      int end = math.min(currentLength + itemsToLoad, _fullDataList.length);
+
       if (currentLength < end) {
         cryptoAssets.addAll(_fullDataList.sublist(currentLength, end));
       }
@@ -87,7 +80,6 @@ class CryptoDataNotifier extends ChangeNotifier {
       if (!isOnline) {
         error = "Offline";
         if (!isRefresh && !isSpecialFetch && !hasDataBeenFetchedOnce) {
-          // Check !hasDataBeenFetchedOnce for initial offline
           hasDataBeenFetchedOnce = false;
         }
       } else {
@@ -101,26 +93,11 @@ class CryptoDataNotifier extends ChangeNotifier {
         }
 
         if (isSpecialFetch) {
-          // Filter for favorites and directly assign to cryptoAssets
-          // This assumes favoriteIds contains the asset.id
           cryptoAssets = fetchedAssets
               .where((asset) => favoriteIds.contains(asset.id))
-              .toList(); // Removed !
-          // _isCurrentlyShowingFavorites = true; // Set flag if needed
+              .toList();
         } else {
-          // _isCurrentlyShowingFavorites = false; // Reset flag
-          final List<String> priorityList =
-              appConfig.priorityCrypto; // Use pre-loaded list
-          // try { // Remove old fetching logic
-          //   final dynamic priorityResponse = await apiService
-          //       .fetchData(appConfig.apiEndpoints.priorityAssetsUrl);
-          //   if (priorityResponse is Map<String, dynamic>) {
-          //     priorityList = List<String>.from(
-          //         priorityResponse['crypto'] as List<dynamic>? ?? []);
-          //   }
-          // } catch (_) {
-          //   // Failed to load priority list
-          // }
+          final List<String> priorityList = appConfig.priorityCrypto;
 
           final List<CryptoAsset> iconAssets = [];
           for (final key in cryptoIconMap.keys) {
@@ -136,11 +113,10 @@ class CryptoDataNotifier extends ChangeNotifier {
             for (final name in priorityList) {
               final lowerName = name.toLowerCase();
               final assetsToPrio = fetchedAssets.where(
-                  (a) => // Renamed to avoid conflict
+                  (a) =>
                       a.name.toLowerCase() == lowerName &&
                       !usedAssetIds.contains(a.id));
               for (final assetToPrio in assetsToPrio) {
-                // Renamed to avoid conflict
                 sortedList.add(assetToPrio);
                 usedAssetIds.add(assetToPrio.id);
               }
@@ -153,15 +129,12 @@ class CryptoDataNotifier extends ChangeNotifier {
           cryptoAssets =
               _fullDataList.take(appConfig.initialItemsToLoad).toList();
         }
-        error = null; // Clear error if data fetch was successful
+        error = null;
       }
 
       if (error == null && !isSpecialFetch) {
         hasDataBeenFetchedOnce = true;
         lastFetchTime = DateTime.now();
-        // if (!isRefresh) { // Removed call to _startAutoRefresh
-        //   _startAutoRefresh();
-        // }
       }
     } catch (e) {
       error = e.toString();
@@ -175,37 +148,17 @@ class CryptoDataNotifier extends ChangeNotifier {
     }
   }
 
-  // void loadMore() { // Integrated
-  // }
-
   Future<void> fetchDataIfStaleOrNeverFetched(
       {Duration staleness = const Duration(minutes: 5)}) async {
-    // If currently showing favorites, an explicit refresh (pull-to-refresh) or re-selecting favorites
-    // would be the way to update them, not this staleness check for the main list.
-    // if (_isCurrentlyShowingFavorites) return;
-
     if (!hasDataBeenFetchedOnce ||
         lastFetchTime == null ||
         DateTime.now().difference(lastFetchTime!) > staleness) {
-      // Passing null for favoriteIds to ensure it fetches the main list
       await fetchInitialData(isRefresh: true, favoriteIds: null);
     }
   }
 
-  // void _startAutoRefresh() { // Removed method
-  //   _updateTimer?.cancel();
-  //   final updateIntervalMs = appConfig.priceUpdateIntervalMinutes * 60 * 1000;
-  //   if (updateIntervalMs > 0) {
-  //     _updateTimer =
-  //         Timer.periodic(Duration(milliseconds: updateIntervalMs), (timer) {
-  //       fetchInitialData(isRefresh: true);
-  //     });
-  //   }
-  // }
-
   @override
   void dispose() {
-    // _updateTimer?.cancel(); // Removed timer cancellation
     super.dispose();
   }
 }

@@ -73,7 +73,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     final iconColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
     final fontFamily = isRTL ? 'Vazirmatn' : 'SF-Pro';
 
-    final placeholderText = Text(
+    final placeholderTextWidget = Text(
       l10n.searchPlaceholder,
       style: TextStyle(
           color: placeholderColor, fontFamily: fontFamily, fontSize: 16),
@@ -91,92 +91,98 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
             Colors.grey[500]!,
           ];
 
-    return Container(
-      height: 48,
-      decoration: ShapeDecoration(
-        color: isDarkMode ? const Color(0xFF161616) : Colors.white,
-        shape: SmoothRectangleBorder(
-            borderRadius: BorderRadius.circular(12), smoothness: 0.7),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // The actual text field
-          CupertinoTextField(
-            controller: TextEditingController(text: searchText)
-              ..selection = TextSelection.fromPosition(
-                  TextPosition(offset: searchText.length)),
-            onChanged: (v) => context.read<SearchQueryNotifier>().query = v,
-            focusNode: _focusNode,
-            placeholder: '', // Placeholder is handled by the shimmer widget
-            prefix: Padding(
-                padding: const EdgeInsetsDirectional.only(start: 18),
-                child: Icon(CupertinoIcons.search, size: 20, color: iconColor)),
-            suffix: searchText.isNotEmpty
-                ? CupertinoButton(
-                    padding: const EdgeInsetsDirectional.only(end: 18),
-                    minSize: 30,
-                    child:
-                        Icon(CupertinoIcons.clear, size: 18, color: iconColor),
-                    onPressed: () =>
-                        context.read<SearchQueryNotifier>().query = '',
-                  )
-                : null,
-            textAlign: isRTL ? TextAlign.right : TextAlign.left,
-            padding: EdgeInsetsDirectional.only(
-                start: 9,
-                end: searchText.isNotEmpty ? 28 : 12,
-                top: 11,
-                bottom: 11),
-            style: TextStyle(color: textColor, fontFamily: fontFamily),
-            cursorColor: isDarkMode ? Colors.grey[400] : Colors.grey[700],
-            decoration: const BoxDecoration(color: Colors.transparent),
-          ),
-          // Shimmering placeholder
-          if (searchText.isEmpty && _isShimmering)
-            Align(
-              alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 45.0),
-                child: AnimatedBuilder(
-                  animation: CurvedAnimation(
-                      parent: _shimmerController, curve: Curves.easeInOut),
-                  builder: (context, child) {
-                    final animationValue = _shimmerController.value;
-                    final beginX = isRTL
-                        ? 2.0 - (animationValue * 3.5)
-                        : -2.0 + (animationValue * 3.5);
-                    final endX = isRTL
-                        ? 1.0 - (animationValue * 3.5)
-                        : -1.0 + (animationValue * 3.5);
+    return GestureDetector(
+      onTap: () {
+        if (!_focusNode.hasFocus) {
+          FocusScope.of(context).requestFocus(_focusNode);
+        }
+      },
+      child: Container(
+        height: 48,
+        decoration: ShapeDecoration(
+          color: isDarkMode ? const Color(0xFF161616) : Colors.white,
+          shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(12), smoothness: 0.7),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Shimmering placeholder (drawn first, so it's behind)
+            if (searchText.isEmpty && _isShimmering)
+              Align(
+                alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 45.0),
+                  child: AnimatedBuilder(
+                    animation: CurvedAnimation(
+                        parent: _shimmerController, curve: Curves.easeInOut),
+                    builder: (context, child) {
+                      final animationValue = _shimmerController.value;
+                      final beginX = isRTL
+                          ? 2.0 - (animationValue * 3.5)
+                          : -2.0 + (animationValue * 3.5);
+                      final endX = isRTL
+                          ? 1.0 - (animationValue * 3.5)
+                          : -1.0 + (animationValue * 3.5);
 
-                    final gradient = LinearGradient(
-                      colors: shimmerColors,
-                      stops: const [0.0, 0.5, 1.0],
-                      begin: Alignment(beginX, 0),
-                      end: Alignment(endX, 0),
-                    );
-                    return ShaderMask(
-                      blendMode: BlendMode.srcIn,
-                      shaderCallback: (bounds) => gradient.createShader(
-                          Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
-                      child: child,
-                    );
-                  },
-                  child: placeholderText,
+                      final gradient = LinearGradient(
+                        colors: shimmerColors,
+                        stops: const [0.0, 0.5, 1.0],
+                        begin: Alignment(beginX, 0),
+                        end: Alignment(endX, 0),
+                      );
+                      return ShaderMask(
+                        blendMode: BlendMode.srcIn,
+                        shaderCallback: (bounds) => gradient.createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
+                        child: child,
+                      );
+                    },
+                    child: placeholderTextWidget,
+                  ),
                 ),
               ),
-            ),
-          // Static placeholder when not shimmering
-          if (searchText.isEmpty && !_isShimmering)
-            Align(
-              alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 45.0),
-                child: placeholderText,
+            // Static placeholder when not shimmering (drawn after shimmer, also behind text field)
+            if (searchText.isEmpty && !_isShimmering)
+              Align(
+                alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 45.0),
+                  child: placeholderTextWidget,
+                ),
               ),
+            // The actual text field (drawn last, so it's on top and interactive)
+            CupertinoTextField(
+              controller: TextEditingController(text: searchText)
+                ..selection = TextSelection.fromPosition(
+                    TextPosition(offset: searchText.length)),
+              onChanged: (v) => context.read<SearchQueryNotifier>().query = v,
+              focusNode: _focusNode,
+              placeholder: '', // Placeholder is visually handled by the widgets above
+              prefix: Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 18),
+                  child: Icon(CupertinoIcons.search, size: 20, color: iconColor)),
+              suffix: searchText.isNotEmpty
+                  ? CupertinoButton(
+                      padding: const EdgeInsetsDirectional.only(end: 18),
+                      minSize: 30,
+                      child: Icon(CupertinoIcons.clear, size: 18, color: iconColor),
+                      onPressed: () =>
+                          context.read<SearchQueryNotifier>().query = '',
+                    )
+                  : null,
+              textAlign: isRTL ? TextAlign.right : TextAlign.left,
+              padding: EdgeInsetsDirectional.only(
+                  start: 9,
+                  end: searchText.isNotEmpty ? 28 : 12,
+                  top: 11,
+                  bottom: 11),
+              style: TextStyle(color: textColor, fontFamily: fontFamily),
+              cursorColor: isDarkMode ? Colors.grey[400] : Colors.grey[700],
+              decoration: const BoxDecoration(color: Colors.transparent), // Essential for placeholders behind to be visible
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
