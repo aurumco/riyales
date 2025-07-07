@@ -538,22 +538,26 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             child: ValueListenableBuilder<bool>(
               valueListenable: _isSearchActiveNotifier,
               builder: (context, isSearchActive, child) {
+                // Extracted IconButton to a separate const widget if possible, or a private method
+                // For now, let's assume the Icon can be const if its color logic is simplified or passed
+                final icon = Icon(
+                  isSearchActive // From builder
+                      ? CupertinoIcons.clear
+                      : CupertinoIcons.search,
+                  key: ValueKey<bool>(isSearchActive), // From builder
+                  color: _showSearchBarNotifier
+                          .value // Using notifier's value directly
+                      ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
+                      : (isDarkMode ? Colors.white : Colors.black),
+                  size: 28,
+                );
+
                 return IconButton(
                   icon: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     transitionBuilder: (Widget child, Animation<double> anim) =>
                         ScaleTransition(scale: anim, child: child),
-                    child: Icon(
-                      isSearchActive // From builder
-                          ? CupertinoIcons.clear
-                          : CupertinoIcons.search,
-                      key: ValueKey<bool>(isSearchActive), // From builder
-                      color: _showSearchBarNotifier
-                              .value // Using notifier's value directly
-                          ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
-                          : (isDarkMode ? Colors.white : Colors.black),
-                      size: 28,
-                    ),
+                    child: icon, // Use the extracted icon
                   ),
                   onPressed: () {
                     AnalyticsService.instance
@@ -606,9 +610,9 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 ? Alignment.centerLeft
                 : Alignment.center,
             duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutQuart, // Already const
+            curve: Curves.easeInOutQuart,
             child: Padding(
-              padding: const EdgeInsets.all(8.0), // Already const
+              padding: const EdgeInsets.all(8.0),
               child: ValueListenableBuilder<bool>(
                 valueListenable: _isSearchActiveNotifier,
                 builder: (context, isSearchActive, child) {
@@ -626,17 +630,16 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           builder: (_) => const SettingsSheet());
                     },
                     child:
-                        child, // The Container is passed as child to the builder
+                        child,
                   );
                 },
-                child: Container(
-                  // This is the child for ValueListenableBuilder
+                // Made the child of ValueListenableBuilder const as it does not depend on isSearchActive
+                child: const SizedBox( // Replaced Container with SizedBox for simplicity if only for Icon
                   width: 40,
                   height: 40,
-                  decoration:
-                      const BoxDecoration(shape: BoxShape.circle), // Made const
+                  // decoration: BoxDecoration(shape: BoxShape.circle), // Removed if not strictly needed for tap target
                   child: Icon(CupertinoIcons.person_crop_circle,
-                      size: 28, color: Theme.of(context).colorScheme.onSurface),
+                      size: 28), // Color will be inherited from IconTheme or default
                 ),
               ),
             ),
@@ -646,17 +649,17 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             ? null
             : PreferredSize(
                 preferredSize:
-                    const Size.fromHeight(56.0 + 2.0), // Already const
+                    const Size.fromHeight(56.0 + 2.0),
                 child: Padding(
                   padding: const EdgeInsets.only(
-                      left: 8.0, right: 8.0, bottom: 2.0), // Made const
+                      left: 8.0, right: 8.0, bottom: 2.0),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final isMobile = constraints.maxWidth < 600;
                       final horizontalMargin = isMobile ? 4.0 : 0.0;
                       final AutoSizeGroup tabLabelGroup = AutoSizeGroup();
                       final BorderRadius tabBorderRadius =
-                          BorderRadius.circular(// Made const
+                          BorderRadius.circular(
                               20.0);
                       return Row(
                         mainAxisSize:
@@ -699,13 +702,13 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                             child: Center(
                               child: Builder(builder: (context) {
                                 Widget autoText = AutoSizeText(
-                                  label,
-                                  style: isSelected
+                                  label, // Dynamic
+                                  style: isSelected // Dynamic
                                       ? selectedTextStyle
                                       : unselectedTextStyle,
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
-                                  group: tabLabelGroup,
+                                  group: tabLabelGroup, // Dynamic
                                   minFontSize: 8,
                                   overflow: TextOverflow.ellipsis,
                                 );
@@ -722,31 +725,31 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           Widget segment;
                           if (isSelected) {
                             segment = SmoothCard(
-                              smoothness: themeConfig.cardCornerSmoothness,
-                              borderRadius: tabBorderRadius,
+                              smoothness: themeConfig.cardCornerSmoothness, // Dynamic
+                              borderRadius: tabBorderRadius, // Dynamic
                               elevation: 0,
-                              color: segmentActiveBackground,
-                              child: tabContent,
+                              color: segmentActiveBackground, // Dynamic
+                              child: tabContent, // Dynamic
                             );
                           } else {
                             segment = SmoothCard(
-                              smoothness: themeConfig.cardCornerSmoothness,
-                              borderRadius: tabBorderRadius,
+                              smoothness: themeConfig.cardCornerSmoothness, // Dynamic
+                              borderRadius: tabBorderRadius, // Dynamic
                               elevation: 0,
-                              color: Colors.transparent, // Card is transparent
+                              color: Colors.transparent,
                               child: ClipPath(
                                 clipper: ShapeBorderClipper(
-                                  shape: SmoothRectangleBorder(
+                                  shape: SmoothRectangleBorder( // Dynamic
                                     borderRadius: tabBorderRadius,
                                     smoothness:
                                         themeConfig.cardCornerSmoothness,
                                   ),
                                 ),
                                 child: BackdropFilter(
-                                  filter: ImageFilter.blur(
+                                  filter: ImageFilter.blur( // Dynamic
                                       sigmaX: 15.0, sigmaY: 15.0),
                                   child: Container(
-                                    decoration: BoxDecoration(
+                                    decoration: BoxDecoration( // Dynamic
                                       color: isDarkMode
                                           ? const Color.fromARGB(
                                                   255, 90, 90, 90)
@@ -756,7 +759,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                               .withAlpha(252),
                                       borderRadius: BorderRadius.circular(20.0),
                                     ),
-                                    child: tabContent,
+                                    child: tabContent, // Dynamic
                                   ),
                                 ),
                               ),
@@ -766,7 +769,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           final wrapped = GestureDetector(
                             onTap: onTabTap,
                             onLongPress: () {
-                              Vibration.vibrate(duration: 30);
+                              if (!kIsWeb) Vibration.vibrate(duration: 30);
                               final isFa = Localizations.localeOf(context)
                                       .languageCode ==
                                   'fa';
@@ -788,8 +791,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                           ? Brightness.dark
                                           : Brightness.light),
                                   child: CupertinoActionSheet(
-                                    title: Text(isFa ? 'مرتب‌سازی' : 'Sort By',
-                                        style: TextStyle(
+                                    title: Text(isFa ? 'مرتب‌سازی' : 'Sort By', // Cannot be const
+                                        style: TextStyle( // Cannot be const
                                             fontFamily:
                                                 isFa ? 'Vazirmatn' : 'SF-Pro',
                                             fontSize: 17,
@@ -825,8 +828,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                               ?.setSortMode(sortOptions[i]);
                                           Navigator.of(context).pop();
                                         },
-                                        child: Text(optionLabels[i],
-                                            style: TextStyle(
+                                        child: Text(optionLabels[i], // Cannot be const
+                                            style: TextStyle( // Cannot be const
                                                 fontFamily: isFa
                                                     ? 'Vazirmatn'
                                                     : 'SF-Pro',
@@ -840,8 +843,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                     cancelButton: CupertinoActionSheetAction(
                                       onPressed: () =>
                                           Navigator.of(context).pop(),
-                                      child: Text(isFa ? 'انصراف' : 'Cancel',
-                                          style: TextStyle(
+                                      child: Text(isFa ? 'انصراف' : 'Cancel', // Cannot be const
+                                          style: TextStyle( // Cannot be const
                                               fontFamily:
                                                   isFa ? 'Vazirmatn' : 'SF-Pro',
                                               fontSize: 17,
@@ -906,8 +909,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 CrossAxisAlignment.start, // Align row contents from top
             mainAxisAlignment: MainAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            spacing: 0,
-            children: [
+            children: [ // Removed const from children as spacing is not used here
               // Wrap NavigationRail in a Column with the same top padding as search field to align with cards
               Padding(
                 padding: EdgeInsets.only(
@@ -918,10 +920,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                 child: Theme(
                   data: Theme.of(context).copyWith(
                     // Disable all hover and touch feedback effects
-                    highlightColor: Colors.transparent, // Already const
-                    splashColor: Colors.transparent, // Already const
-                    hoverColor: Colors.transparent, // Already const
-                    splashFactory: NoSplash.splashFactory, // Already const
+                    highlightColor: Colors.transparent,
+                    splashColor: Colors.transparent,
+                    hoverColor: Colors.transparent,
+                    splashFactory: NoSplash.splashFactory,
                   ),
                   child: NavigationRail(
                     // ======== VISUAL PROPERTIES ========
@@ -947,12 +949,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                         -1.0, // Align tabs from top (-1.0) to bottom (1.0)
 
                     // ======== TEXT & ICON STYLING ========
-                    selectedIconTheme: IconThemeData(
+                    selectedIconTheme: IconThemeData( // Cannot be const
                       color:
                           isDarkMode ? tealGreen.withAlpha(230) : Colors.white,
                       size: 22, // Size of icons
                     ),
-                    selectedLabelTextStyle: TextStyle(
+                    selectedLabelTextStyle: TextStyle( // Cannot be const
                       color: isDarkMode
                           ? tealGreen.withAlpha(230)
                           : tealGreen.withAlpha(430),
@@ -962,11 +964,11 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                               ? 'Vazirmatn'
                               : 'SF-Pro',
                     ),
-                    unselectedIconTheme: IconThemeData(
+                    unselectedIconTheme: IconThemeData( // Cannot be const
                       color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                       size: 22,
                     ),
-                    unselectedLabelTextStyle: TextStyle(
+                    unselectedLabelTextStyle: TextStyle( // Cannot be const
                       color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                       fontWeight: FontWeight.w500,
                       fontFamily:
@@ -1001,7 +1003,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onLongPress: () => _showSortSheet(0),
                           onDoubleTap: () => _showSortSheet(0),
                           child: const Icon(CupertinoIcons.money_dollar,
-                              size: 22), // Already const
+                              size: 22),
                         ),
                         label: GestureDetector(
                           behavior: HitTestBehavior.translucent,
@@ -1009,8 +1011,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onDoubleTap: () => _showSortSheet(0),
                           child: Padding(
                             padding:
-                                const EdgeInsets.only(bottom: 22), // Made const
-                            child: Text(l10n.tabCurrency),
+                                const EdgeInsets.only(bottom: 22),
+                            child: Text(l10n.tabCurrency), // Cannot be const
                           ),
                         ),
                       ),
@@ -1020,7 +1022,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onLongPress: () => _showSortSheet(1),
                           onDoubleTap: () => _showSortSheet(1),
                           child: const Icon(CupertinoIcons.sparkles,
-                              size: 22), // Already const
+                              size: 22),
                         ),
                         label: GestureDetector(
                           behavior: HitTestBehavior.translucent,
@@ -1028,8 +1030,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onDoubleTap: () => _showSortSheet(1),
                           child: Padding(
                             padding:
-                                const EdgeInsets.only(bottom: 22), // Made const
-                            child: Text(l10n.tabGold),
+                                const EdgeInsets.only(bottom: 22),
+                            child: Text(l10n.tabGold), // Cannot be const
                           ),
                         ),
                       ),
@@ -1039,7 +1041,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onLongPress: () => _showSortSheet(2),
                           onDoubleTap: () => _showSortSheet(2),
                           child: const Icon(
-                              CupertinoIcons.bitcoin_circle, // Already const
+                              CupertinoIcons.bitcoin_circle,
                               size: 22),
                         ),
                         label: GestureDetector(
@@ -1048,30 +1050,30 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                           onDoubleTap: () => _showSortSheet(2),
                           child: Padding(
                             padding:
-                                const EdgeInsets.only(bottom: 22), // Made const
-                            child: Text(l10n.tabCrypto),
+                                const EdgeInsets.only(bottom: 22),
+                            child: Text(l10n.tabCrypto), // Cannot be const
                           ),
                         ),
                       ),
                       NavigationRailDestination(
                         icon: const Icon(Icons.trending_up,
-                            size: 22), // Already const
+                            size: 22),
                         label: Padding(
                           padding:
-                              const EdgeInsets.only(bottom: 22), // Made const
-                          child: Text(l10n.tabStock),
+                              const EdgeInsets.only(bottom: 22),
+                          child: Text(l10n.tabStock), // Cannot be const
                         ),
                       ),
                       // Download button for desktop web users
                       if (_isDesktopWeb)
                         NavigationRailDestination(
                           icon: const Icon(
-                              CupertinoIcons.cloud_download, // Already const
+                              CupertinoIcons.cloud_download,
                               size: 22),
                           label: Padding(
                             padding:
-                                const EdgeInsets.only(bottom: 22), // Made const
-                            child: Text(isRTL ? "دانلود" : "App"),
+                                const EdgeInsets.only(bottom: 22),
+                            child: Text(isRTL ? "دانلود" : "App"), // Cannot be const
                           ),
                         ),
                     ],
@@ -1104,7 +1106,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       offlineBuilder: (status) {
         return Scaffold(
           appBar: AppBar(
-            title: Text(l10n.riyalesAppTitle),
+            title: Text(l10n.riyalesAppTitle), // Cannot be const
             actions: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -1122,7 +1124,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                         showCupertinoModalPopup(
                             context: context,
                             builder: (_) =>
-                                const SettingsSheet()); // Already const
+                                const SettingsSheet());
                       },
                       child: child, // Use child from builder
                     );
@@ -1132,7 +1134,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                     width: 40,
                     height: 40,
                     decoration: const BoxDecoration(
-                        shape: BoxShape.circle), // Already const
+                        shape: BoxShape.circle),
                     child: Icon(CupertinoIcons.person_crop_circle,
                         size: 28,
                         color: Theme.of(context).colorScheme.onSurface),
@@ -1142,8 +1144,8 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             ],
           ),
           body: Center(
-              child: ErrorPlaceholder(
-                  status: status)), // ErrorPlaceholder not const
+              child: ErrorPlaceholder( // ErrorPlaceholder not const
+                  status: status)),
         );
       },
     );
@@ -1268,7 +1270,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
 
   void _showSortSheet(int index) {
     // Show sorting options for asset tabs
-    Vibration.vibrate(duration: 30);
+    if (!kIsWeb) Vibration.vibrate(duration: 30);
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final sortOptions = [
       SortMode.defaultOrder,

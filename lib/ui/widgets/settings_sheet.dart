@@ -40,13 +40,11 @@ class SettingsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // WidgetRef ref removed
-    context.watch<ThemeNotifier>();
-    final localeNotifier = context.watch<LocaleNotifier>();
-    final locale = localeNotifier.locale;
-    final currencyUnitNotifier = context.watch<CurrencyUnitNotifier>();
-    final currencyUnit = currencyUnitNotifier.unit;
-    final appConfig = context.watch<AppConfig>();
+    // Optimized context.watch to context.select for specific values
+    // final themeMode = context.select<ThemeNotifier, ThemeMode>((notifier) => notifier.themeMode); // Unused variable
+    final locale = context.select<LocaleNotifier, Locale>((notifier) => notifier.locale);
+    final currencyUnit = context.select<CurrencyUnitNotifier, CurrencyUnit>((notifier) => notifier.unit);
+    final appConfig = context.watch<AppConfig>(); // Keep watch for AppConfig as it's used widely
     final l10n = AppLocalizations.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     // Detect mobile web users (only on web and on Android or iOS);
@@ -103,8 +101,8 @@ class SettingsSheet extends StatelessWidget {
           CupertinoActionSheetAction(
             onPressed: () {}, // Empty callback to make it non-dismissible
             isDefaultAction: false,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 4), // Already const
+            child: Padding( // Changed Container to Padding
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -136,7 +134,7 @@ class SettingsSheet extends StatelessWidget {
           CupertinoActionSheetAction(
             onPressed: () {
               // Show iOS-style picker for language selection
-              _showLanguagePicker(context, localeNotifier, appConfig, l10n);
+              _showLanguagePicker(context, appConfig, l10n); // Removed localeNotifier
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -181,8 +179,7 @@ class SettingsSheet extends StatelessWidget {
             onPressed: () {
               // Show iOS-style picker for currency unit selection
               // ref is no longer passed; context is available in _showCurrencyUnitPicker
-              _showCurrencyUnitPicker(
-                  context, currencyUnitNotifier, locale, l10n);
+              _showCurrencyUnitPicker(context, locale, l10n); // Removed currencyUnitNotifier
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -407,10 +404,11 @@ class SettingsSheet extends StatelessWidget {
 // Helper method to show language picker in iOS style
 void _showLanguagePicker(
   BuildContext context, // BuildContext is already available
-  LocaleNotifier localeNotifier, // Pass Notifier directly
+  // LocaleNotifier localeNotifier, // Pass Notifier directly - Now using context.read
   AppConfig appConfig,
   AppLocalizations l10n,
 ) {
+  final localeNotifier = context.read<LocaleNotifier>(); // Access notifier via context.read
   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
   final currentLocale = localeNotifier.locale; // Get locale from Notifier
 
@@ -506,10 +504,11 @@ void _showLanguagePicker(
 // Helper method to show currency unit picker in iOS style
 void _showCurrencyUnitPicker(
   BuildContext context, // BuildContext is available
-  CurrencyUnitNotifier currencyUnitNotifier, // Pass Notifier
+  // CurrencyUnitNotifier currencyUnitNotifier, // Pass Notifier - Now using context.read
   Locale currentLocale, // Keep for font decisions based on language
   AppLocalizations l10n,
 ) {
+  final currencyUnitNotifier = context.read<CurrencyUnitNotifier>(); // Access notifier via context.read
   final isDarkMode = Theme.of(context).brightness == Brightness.dark;
   final currentUnit =
       currencyUnitNotifier.unit; // Get current unit from Notifier

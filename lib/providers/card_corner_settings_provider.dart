@@ -26,10 +26,10 @@ class CardCornerSettingsNotifier extends ChangeNotifier {
 
   // Constructor now requires AppConfig
   CardCornerSettingsNotifier(this.appConfig) {
-    // Initialize with defaults: radius from AppConfig, fixed smoothness of 0.7
+    // Initialize with defaults: radius from AppConfig, fixed smoothness of 0.75
     _settings = CardCornerSettings(
       radius: appConfig.themeOptions.light.cardBorderRadius,
-      smoothness: 0.7,
+      smoothness: 0.75, // Increased from 0.7 to 0.75
     );
     // Then attempt to load saved preferences, which might override defaults
     _loadSettings();

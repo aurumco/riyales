@@ -14,6 +14,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../models/asset_models.dart' as models;
 import '../../models/crypto_icon_info.dart';
 import '../../config/app_config.dart'; // For AppConfig type
+import '../widgets/asset_list_page.dart'; // Re-added import for AssetType
 import '../../providers/locale_provider.dart';
 import '../../providers/currency_unit_provider.dart'; // For CurrencyUnit enum and Notifier
 import '../../providers/favorites_provider.dart';
@@ -22,10 +23,12 @@ import '../../providers/card_corner_settings_provider.dart';
 import '../../localization/l10n_utils.dart';
 import '../../utils/color_utils.dart';
 import '../../utils/helpers.dart';
-import './common/dynamic_glow.dart'; // Corrected import path
-import 'asset_list_page.dart'; // For AssetType enum (already moved)
+import './common/dynamic_glow.dart';
+import './common/asset_card_badges.dart';
 import '../../services/analytics_service.dart';
-import 'package:equatable/equatable.dart'; // Added explicit import
+import 'package:equatable/equatable.dart';
+// Import the new widget
+// Removed: import '../widgets/asset_list_page.dart';
 
 // Define manual crypto icon mapping constant at top level before AssetCard
 // Manually map cryptos to their asset icons by name
@@ -311,10 +314,11 @@ class AssetCard extends StatelessWidget {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     // Selectors for AppConfig
-    final themeConfig = context.select<AppConfig, ThemeConfig>(
-        (config) => isDarkMode ? config.themeOptions.dark : config.themeOptions.light);
-    final cryptoIconFilterConfig = context.select<AppConfig, CryptoIconFilterConfig>(
-        (config) => config.cryptoIconFilter);
+    final themeConfig = context.select<AppConfig, ThemeConfig>((config) =>
+        isDarkMode ? config.themeOptions.dark : config.themeOptions.light);
+    final cryptoIconFilterConfig =
+        context.select<AppConfig, CryptoIconFilterConfig>(
+            (config) => config.cryptoIconFilter);
 
     final tealGreen = hexToColor(themeConfig.accentColorGreen);
 
@@ -323,35 +327,38 @@ class AssetCard extends StatelessWidget {
         (notifier) => notifier.isFavorite(asset.id));
 
     // Selector for LocaleNotifier
-    final currentLocale = context.select<LocaleNotifier, Locale>(
-        (notifier) => notifier.locale);
+    final currentLocale =
+        context.select<LocaleNotifier, Locale>((notifier) => notifier.locale);
 
     // Selector for CurrencyUnitNotifier
     final currencyUnit = context.select<CurrencyUnitNotifier, CurrencyUnit>(
         (notifier) => notifier.unit);
 
     // Selector for CardCornerSettingsNotifier
-    final cornerSettings = context.select<CardCornerSettingsNotifier, CardCornerSettings>(
-        (notifier) => notifier.settings);
+    final cornerSettings =
+        context.select<CardCornerSettingsNotifier, CardCornerSettings>(
+            (notifier) => notifier.settings);
 
     // Data for price conversion
-    final priceConversionData = context.select<CurrencyDataNotifier, _PriceConversionRates>(
-      (notifier) {
-        if (notifier.items.isEmpty) {
-          return const _PriceConversionRates(usdToToman: 0, eurToToman: 0, ratesAvailable: false);
-        }
-        num usdRate = 0;
-        num eurRate = 0;
-        try {
-         usdRate = notifier.items.firstWhere((c) => c.symbol == 'USD').price;
-         eurRate = notifier.items.firstWhere((c) => c.symbol == 'EUR').price;
-        } catch (e) {
-          // Handle case where USD/EUR might not be in the list, though unlikely for core function
-          return const _PriceConversionRates(usdToToman: 0, eurToToman: 0, ratesAvailable: false);
-        }
-        return _PriceConversionRates(usdToToman: usdRate, eurToToman: eurRate, ratesAvailable: true);
+    final priceConversionData =
+        context.select<CurrencyDataNotifier, _PriceConversionRates>((notifier) {
+      if (notifier.items.isEmpty) {
+        // Use the new const constructor
+        return const _PriceConversionRates.defaultValues();
       }
-    );
+      num usdRate = 0;
+      num eurRate = 0;
+      try {
+        usdRate = notifier.items.firstWhere((c) => c.symbol == 'USD').price;
+        eurRate = notifier.items.firstWhere((c) => c.symbol == 'EUR').price;
+      } catch (e) {
+        // Handle case where USD/EUR might not be in the list, though unlikely for core function
+        // Use the new const constructor
+        return const _PriceConversionRates.defaultValues();
+      }
+      return _PriceConversionRates(
+          usdToToman: usdRate, eurToToman: eurRate, ratesAvailable: true);
+    });
 
     double numericPrice = 0.0;
     String displayUnit = '';
@@ -374,35 +381,46 @@ class AssetCard extends StatelessWidget {
       }
     } else if (asset is models.StockAsset) {
       originalUnitSymbol = "ریال"; // Stocks are in Rial
-      priceToConvert = asset.price / 10; // Convert Rial to Toman for internal consistency if needed
+      priceToConvert = asset.price /
+          10; // Convert Rial to Toman for internal consistency if needed
       // If currencyUnit is Toman, this is fine. If USD/EUR, further conversion happens below.
     }
 
     if (priceConversionData.ratesAvailable) {
       num finalPrice = priceToConvert;
       if (currencyUnit == CurrencyUnit.toman) {
-        if (originalUnitSymbol.toLowerCase() == "usd" || originalUnitSymbol.toLowerCase() == "دلار") {
+        if (originalUnitSymbol.toLowerCase() == "usd" ||
+            originalUnitSymbol.toLowerCase() == "دلار") {
           finalPrice = priceToConvert * priceConversionData.usdToToman;
-        } else if (originalUnitSymbol.toLowerCase() == "eur" || originalUnitSymbol.toLowerCase() == "یورو") {
+        } else if (originalUnitSymbol.toLowerCase() == "eur" ||
+            originalUnitSymbol.toLowerCase() == "یورو") {
           finalPrice = priceToConvert * priceConversionData.eurToToman;
         }
         // If originalUnitSymbol is "تومان" or "ریال" (already converted to Toman for stocks), no change.
         displayUnit = l10n.currencyUnitToman;
         numericPrice = finalPrice.toDouble();
       } else if (currencyUnit == CurrencyUnit.usd) {
-        if (originalUnitSymbol.toLowerCase() == "toman" || originalUnitSymbol.toLowerCase() == "تومان" || originalUnitSymbol.toLowerCase() == "ریال") {
+        if (originalUnitSymbol.toLowerCase() == "toman" ||
+            originalUnitSymbol.toLowerCase() == "تومان" ||
+            originalUnitSymbol.toLowerCase() == "ریال") {
           finalPrice = priceToConvert / priceConversionData.usdToToman;
-        } else if (originalUnitSymbol.toLowerCase() == "eur" || originalUnitSymbol.toLowerCase() == "یورو") {
-          finalPrice = (priceToConvert * priceConversionData.eurToToman) / priceConversionData.usdToToman;
+        } else if (originalUnitSymbol.toLowerCase() == "eur" ||
+            originalUnitSymbol.toLowerCase() == "یورو") {
+          finalPrice = (priceToConvert * priceConversionData.eurToToman) /
+              priceConversionData.usdToToman;
         }
         // No change if original is USD
         displayUnit = l10n.currencyUnitUSD;
         numericPrice = finalPrice.toDouble();
       } else if (currencyUnit == CurrencyUnit.eur) {
-        if (originalUnitSymbol.toLowerCase() == "toman" || originalUnitSymbol.toLowerCase() == "تومان" || originalUnitSymbol.toLowerCase() == "ریال") {
+        if (originalUnitSymbol.toLowerCase() == "toman" ||
+            originalUnitSymbol.toLowerCase() == "تومان" ||
+            originalUnitSymbol.toLowerCase() == "ریال") {
           finalPrice = priceToConvert / priceConversionData.eurToToman;
-        } else if (originalUnitSymbol.toLowerCase() == "usd" || originalUnitSymbol.toLowerCase() == "دلار") {
-          finalPrice = (priceToConvert * priceConversionData.usdToToman) / priceConversionData.eurToToman;
+        } else if (originalUnitSymbol.toLowerCase() == "usd" ||
+            originalUnitSymbol.toLowerCase() == "دلار") {
+          finalPrice = (priceToConvert * priceConversionData.usdToToman) /
+              priceConversionData.eurToToman;
         }
         // No change if original is EUR
         displayUnit = l10n.currencyUnitEUR;
@@ -417,25 +435,43 @@ class AssetCard extends StatelessWidget {
               : (asset as dynamic).unit ?? '');
     }
 
-
     Widget iconWidget;
-    if (assetType == AssetType.crypto && (asset as models.CryptoAsset).iconUrl != null) {
+    if (assetType == AssetType.crypto &&
+        (asset as models.CryptoAsset).iconUrl != null) {
       final double contrastValue = (1 + cryptoIconFilterConfig.contrast + 0.2);
       final matrix = <double>[
-        contrastValue, 0, 0, 0, cryptoIconFilterConfig.brightness * 255,
-        0, contrastValue, 0, 0, cryptoIconFilterConfig.brightness * 255,
-        0, 0, contrastValue, 0, cryptoIconFilterConfig.brightness * 255,
-        0, 0, 0, 1, 0,
+        contrastValue,
+        0,
+        0,
+        0,
+        cryptoIconFilterConfig.brightness * 255,
+        0,
+        contrastValue,
+        0,
+        0,
+        cryptoIconFilterConfig.brightness * 255,
+        0,
+        0,
+        contrastValue,
+        0,
+        cryptoIconFilterConfig.brightness * 255,
+        0,
+        0,
+        0,
+        1,
+        0,
       ];
       final defaultGlow = isDarkMode
           ? const ui.Color.fromARGB(255, 116, 158, 177)
           : const ui.Color.fromARGB(255, 94, 150, 255);
 
-      final String cryptoName = (asset as models.CryptoAsset).name.toLowerCase();
+      final String cryptoName =
+          (asset as models.CryptoAsset).name.toLowerCase();
       final CryptoIconInfo? cryptoIconInfo = cryptoIconMap[cryptoName];
 
       if (cryptoIconInfo != null) {
-        final ImageProvider<Object> localIconProvider = AssetImage(cryptoIconInfo.iconPath);
+        final ImageProvider<Object> localIconProvider =
+            AssetImage(cryptoIconInfo.iconPath);
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_local_icon'),
           imageProvider: localIconProvider,
@@ -454,13 +490,15 @@ class AssetCard extends StatelessWidget {
       } else {
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_network_icon'),
-          imageProvider: CachedNetworkImageProvider((asset as models.CryptoAsset).iconUrl!),
+          imageProvider: CachedNetworkImageProvider(
+              (asset as models.CryptoAsset).iconUrl!),
           defaultGlowColor: defaultGlow,
           size: 32.0,
           child: ColorFiltered(
             colorFilter: ColorFilter.matrix(matrix),
             child: CachedNetworkImage(
-              cacheManager: CacheManager(Config('cryptoCache', stalePeriod: const Duration(days: 30))),
+              cacheManager: CacheManager(
+                  Config('cryptoCache', stalePeriod: const Duration(days: 30))),
               imageUrl: (asset as models.CryptoAsset).iconUrl!,
               width: 32,
               height: 32,
@@ -469,41 +507,65 @@ class AssetCard extends StatelessWidget {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+                  image:
+                      DecorationImage(image: imageProvider, fit: BoxFit.cover),
                 ),
               ),
               placeholder: (context, url) => Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.transparent),
+                decoration: const BoxDecoration(
+                    shape: BoxShape.circle, color: Colors.transparent),
                 child: const CupertinoActivityIndicator(radius: 8),
               ),
               errorWidget: (context, url, error) => Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.transparent),
-                child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
+                decoration: const BoxDecoration(
+                    shape: BoxShape.circle, color: Colors.transparent),
+                child:
+                    const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
               ),
             ),
           ),
         );
       }
-    } else if (assetType == AssetType.currency && asset is models.CurrencyAsset) {
-      String currencyCode = (asset as models.CurrencyAsset).symbol.toLowerCase();
+    } else if (assetType == AssetType.currency &&
+        asset is models.CurrencyAsset) {
+      String currencyCode =
+          (asset as models.CurrencyAsset).symbol.toLowerCase();
       String countryCode = getCurrencyCountryCode(currencyCode);
       String flagPath = 'assets/icons/flags/$countryCode.svg';
 
       // flagColors map remains as it's static data
       final Map<String, Color> flagColors = {
-        'us': const Color(0xFFB7082A), 'eu': const Color(0xFF0153B4), 'ae': const Color(0xFF6DA445),
-        'gb': const Color(0xFFD80027), 'jp': const Color(0xFFD80027), 'kw': const Color(0xFF6DA445),
-        'au': const Color(0xFF0654B5), 'ca': const Color(0xFFD80027), 'cn': const Color(0xFFD80127),
-        'tr': const Color(0xFFD80027), 'sa': const Color(0xFF527538), 'ch': const Color(0xFFD9042B),
-        'in': const Color(0xFFFE9B17), 'pk': const Color(0xFF486F2D), 'iq': const Color(0xFFA30221),
-        'sy': const Color(0xFF486F2D), 'se': const Color(0xFF0D59AE), 'qa': const Color(0xFF741B46),
-        'om': const Color(0xFF709C42), 'bh': const Color(0xFFD80027), 'af': const Color(0xFF486F2D),
-        'my': const Color(0xFF105BAD), 'th': const Color(0xFF0153B4), 'ru': const Color(0xFFD80027),
-        'az': const Color(0xFF6DA445), 'am': const Color(0xFFFF9811), 'ge': const Color(0xFFD9082C),
+        'us': const Color(0xFFB7082A),
+        'eu': const Color(0xFF0153B4),
+        'ae': const Color(0xFF6DA445),
+        'gb': const Color(0xFFD80027),
+        'jp': const Color(0xFFD80027),
+        'kw': const Color(0xFF6DA445),
+        'au': const Color(0xFF0654B5),
+        'ca': const Color(0xFFD80027),
+        'cn': const Color(0xFFD80127),
+        'tr': const Color(0xFFD80027),
+        'sa': const Color(0xFF527538),
+        'ch': const Color(0xFFD9042B),
+        'in': const Color(0xFFFE9B17),
+        'pk': const Color(0xFF486F2D),
+        'iq': const Color(0xFFA30221),
+        'sy': const Color(0xFF486F2D),
+        'se': const Color(0xFF0D59AE),
+        'qa': const Color(0xFF741B46),
+        'om': const Color(0xFF709C42),
+        'bh': const Color(0xFFD80027),
+        'af': const Color(0xFF486F2D),
+        'my': const Color(0xFF105BAD),
+        'th': const Color(0xFF0153B4),
+        'ru': const Color(0xFFD80027),
+        'az': const Color(0xFF6DA445),
+        'am': const Color(0xFFFF9811),
+        'ge': const Color(0xFFD9082C),
       };
       final flagColor = flagColors[countryCode] ?? tealGreen;
 
@@ -514,13 +576,17 @@ class AssetCard extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: flagColor.withAlpha((255 * 0.5).round()), blurRadius: 60, spreadRadius: 6),
+            BoxShadow(
+                color: flagColor.withAlpha((255 * 0.5).round()),
+                blurRadius: 60,
+                spreadRadius: 6),
           ],
         ),
         child: ClipOval(
           child: ColorFiltered(
             colorFilter: const ColorFilter.matrix([
-              1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1.1, 0, // 10% contrast
+              1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1.1,
+              0, // 10% contrast
             ]),
             child: SvgPicture.asset(
               flagPath,
@@ -528,9 +594,12 @@ class AssetCard extends StatelessWidget {
               height: 32,
               fit: BoxFit.cover,
               placeholderBuilder: (BuildContext context) => CircleAvatar(
-                backgroundColor: Colors.grey[300],
+                backgroundColor:
+                    Colors.grey[300], // Corrected to Colors.grey[300]
                 child: Text(
-                  (asset as models.CurrencyAsset).symbol.substring(0, 1),
+                  (asset as models.CurrencyAsset)
+                      .symbol
+                      .substring(0, 1), // Restored original logic
                   style: TextStyle(color: Colors.grey[700], fontSize: 12),
                 ),
               ),
@@ -547,10 +616,12 @@ class AssetCard extends StatelessWidget {
         defaultGlowColor: const Color(0x4DFFFF00), // yellow with 0.3 opacity
         size: 32.0,
         child: ClipOval(
-          child: Image.asset(iconPath, width: 32, height: 32, fit: BoxFit.cover),
+          child:
+              Image.asset(iconPath, width: 32, height: 32, fit: BoxFit.cover),
         ),
       );
-    } else { // Fallback for stocks or missing icons
+    } else {
+      // Fallback for stocks or missing icons
       final stockColor = isDarkMode
           ? const ui.Color.fromARGB(255, 116, 158, 177)
           : const ui.Color.fromARGB(255, 94, 150, 255);
@@ -560,23 +631,30 @@ class AssetCard extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: stockColor.withAlpha((255 * 0.5).round()), blurRadius: 60, spreadRadius: 6),
+            // This list cannot be const if stockColor is not const
+            BoxShadow(
+                color: stockColor.withAlpha((255 * 0.5).round()),
+                blurRadius: 60,
+                spreadRadius: 6),
           ],
         ),
         child: CircleAvatar(
           radius: 16,
           backgroundColor: theme.colorScheme.surfaceContainerLow,
           child: Text(
+            // This Text cannot be const
             asset.symbol.substring(0, math.min(asset.symbol.length, 1)),
-            style: theme.textTheme.labelMedium?.copyWith(fontFamily: 'Vazirmatn'),
+            style:
+                theme.textTheme.labelMedium?.copyWith(fontFamily: 'Vazirmatn'),
           ),
         ),
       );
     }
 
-    String assetName = currentLocale.languageCode == 'fa' && asset is models.CryptoAsset
-        ? (asset as models.CryptoAsset).nameFa
-        : asset.name;
+    String assetName =
+        currentLocale.languageCode == 'fa' && asset is models.CryptoAsset
+            ? (asset as models.CryptoAsset).nameFa
+            : asset.name;
     if (currentLocale.languageCode == 'fa' && asset is models.CurrencyAsset) {
       assetName = asset.name;
     }
@@ -590,11 +668,10 @@ class AssetCard extends StatelessWidget {
     bool hasPersianChars = containsPersian(assetName);
     String nameFontFamily = hasPersianChars ? 'Vazirmatn' : 'SF-Pro';
 
-    final accentColorGreen = tealGreen; // Already derived from themeConfig
+    final accentColorGreen = tealGreen;
     final accentColorRed = isDarkMode
         ? hexToColor(themeConfig.accentColorRed)
         : hexToColor(themeConfig.accentColorRed);
-
 
     return GestureDetector(
       onTap: () {
@@ -609,20 +686,22 @@ class AssetCard extends StatelessWidget {
           'asset_type': assetType.toString().split('.').last,
           'asset_id': asset.id,
         });
-        // context.read<FavoritesNotifier>() still works outside Selector's builder
-        // for event handlers if it's just calling methods.
-        Provider.of<FavoritesNotifier>(context, listen: false).toggleFavorite(asset.id);
+        Provider.of<FavoritesNotifier>(context, listen: false)
+            .toggleFavorite(asset.id);
       },
       child: SmoothCard(
         smoothness: cornerSettings.smoothness,
         borderRadius: BorderRadius.circular(cornerSettings.radius),
         elevation: 0,
-        color: isDarkMode ? const Color(0xFF161616) : hexToColor(themeConfig.cardColor),
+        color: isDarkMode
+            ? const Color(0xFF161616)
+            : hexToColor(themeConfig.cardColor),
         child: SmoothClipRRect(
           borderRadius: BorderRadius.circular(cornerSettings.radius),
           smoothness: cornerSettings.smoothness,
           child: Container(
             decoration: BoxDecoration(
+              // Cannot be const if theme changes
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.center,
@@ -648,10 +727,11 @@ class AssetCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: AutoSizeText(
-                            assetName,
+                            assetName, // Dynamic
                             style: theme.textTheme.titleMedium?.copyWith(
+                              // Dynamic
                               fontWeight: FontWeight.bold,
-                              fontFamily: nameFontFamily,
+                              fontFamily: nameFontFamily, // Dynamic
                             ),
                             maxLines: 1,
                             minFontSize: 14,
@@ -662,8 +742,12 @@ class AssetCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // Builder removed, logic integrated directly
-                    _buildBadges(context, theme, isFavorite, tealGreen, isDarkMode, assetType, asset.symbol),
+                    AssetCardBadges(
+                        isFavorite: isFavorite,
+                        tealGreen: tealGreen,
+                        isDarkMode: isDarkMode,
+                        assetType: assetType,
+                        assetSymbol: asset.symbol),
                     const Spacer(),
                     if (asset.changePercent != null)
                       AnimatedAlign(
@@ -680,8 +764,10 @@ class AssetCard extends StatelessWidget {
                           children: currentLocale.languageCode == 'en'
                               ? [
                                   Text(
+                                    // Dynamic
                                     '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
                                     style: theme.textTheme.bodySmall?.copyWith(
+                                      // Dynamic
                                       color: asset.changePercent! > 0
                                           ? accentColorGreen
                                           : asset.changePercent! < 0
@@ -692,6 +778,7 @@ class AssetCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Icon(
+                                    // Dynamic
                                     asset.changePercent! > 0
                                         ? CupertinoIcons.arrow_up_right
                                         : asset.changePercent! < 0
@@ -707,6 +794,7 @@ class AssetCard extends StatelessWidget {
                                 ]
                               : [
                                   Icon(
+                                    // Dynamic
                                     asset.changePercent! > 0
                                         ? CupertinoIcons.arrow_up_right
                                         : asset.changePercent! < 0
@@ -721,8 +809,10 @@ class AssetCard extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
+                                    // Dynamic
                                     '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
                                     style: theme.textTheme.bodySmall?.copyWith(
+                                      // Dynamic
                                       color: asset.changePercent! > 0
                                           ? accentColorGreen
                                           : asset.changePercent! < 0
@@ -746,12 +836,16 @@ class AssetCard extends StatelessWidget {
                         duration: const Duration(milliseconds: 600),
                         curve: Curves.easeInOutQuart,
                         builder: (context, value, child) {
-                          final priceText = formatPrice(value, currentLocale.languageCode);
+                          final priceText =
+                              formatPrice(value, currentLocale.languageCode);
                           return AutoSizeText(
-                            priceText,
+                            priceText, // Dynamic
                             style: theme.textTheme.headlineSmall?.copyWith(
+                              // Dynamic
                               fontWeight: FontWeight.bold,
-                              fontFamily: containsPersian(priceText) ? 'Vazirmatn' : 'SF-Pro',
+                              fontFamily: containsPersian(priceText)
+                                  ? 'Vazirmatn'
+                                  : 'SF-Pro', // Dynamic
                             ),
                             maxLines: 1,
                             minFontSize: 18,
@@ -772,10 +866,14 @@ class AssetCard extends StatelessWidget {
                       duration: const Duration(milliseconds: 400),
                       curve: const Cubic(0.77, 0, 0.175, 1),
                       child: Text(
+                        // Dynamic
                         displayUnit,
                         style: theme.textTheme.labelMedium?.copyWith(
+                          // Dynamic
                           color: theme.colorScheme.onSurfaceVariant,
-                          fontFamily: containsPersian(displayUnit) ? 'Vazirmatn' : 'SF-Pro',
+                          fontFamily: containsPersian(displayUnit)
+                              ? 'Vazirmatn'
+                              : 'SF-Pro', // Dynamic
                         ),
                         textAlign: currentLocale.languageCode == 'en'
                             ? TextAlign.left
@@ -787,83 +885,6 @@ class AssetCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadges(BuildContext context, ThemeData theme, bool isFavorite, Color tealGreen, bool isDarkMode, AssetType assetType, String assetSymbol) {
-    Widget? pinBadgeWidget;
-    if (isFavorite) {
-      pinBadgeWidget = Container(
-        height: 16,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isDarkMode
-              ? tealGreen.withAlpha(38)
-              : theme.colorScheme.secondaryContainer.withAlpha(128),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Icon(
-          CupertinoIcons.eye_fill,
-          size: 11,
-          color: isDarkMode
-              ? tealGreen.withAlpha(230)
-              : theme.colorScheme.onSecondaryContainer,
-        ),
-      );
-    }
-
-    Widget? symbolBadgeInnerWidget;
-    if (assetType == AssetType.currency || assetType == AssetType.gold) {
-      symbolBadgeInnerWidget = Container(
-        height: 16,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isDarkMode
-              ? tealGreen.withAlpha(38)
-              : theme.colorScheme.secondaryContainer.withAlpha(128),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          assetSymbol,
-          style: TextStyle(
-            fontFamily: 'CourierPrime',
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: isDarkMode
-                ? tealGreen.withAlpha(230)
-                : theme.colorScheme.onSecondaryContainer,
-          ),
-        ),
-      );
-    }
-
-    if (pinBadgeWidget == null && symbolBadgeInnerWidget == null) {
-      return const SizedBox.shrink();
-    }
-
-    List<Widget> badgeChildren = [];
-    if (pinBadgeWidget != null) {
-      badgeChildren.add(pinBadgeWidget);
-    }
-    if (symbolBadgeInnerWidget != null) {
-      if (pinBadgeWidget != null) {
-        badgeChildren.add(const SizedBox(width: 5));
-      }
-      badgeChildren.add(symbolBadgeInnerWidget);
-    }
-
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: badgeChildren,
         ),
       ),
     );
@@ -884,4 +905,10 @@ class _PriceConversionRates extends Equatable {
 
   @override
   List<Object?> get props => [usdToToman, eurToToman, ratesAvailable];
+
+  // Added const constructor for potential optimization if an instance with default values is frequently used.
+  const _PriceConversionRates.defaultValues()
+      : usdToToman = 0,
+        eurToToman = 0,
+        ratesAvailable = false;
 }

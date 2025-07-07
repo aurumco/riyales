@@ -37,11 +37,11 @@ class FavoritesNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final bool hasVibrator =
-          await Vibration.hasVibrator(); // Made bool? to align with package
-      if (hasVibrator) {
-        // Added null check
-        Vibration.vibrate(duration: 30);
+      if (!kIsWeb) {
+        final bool hasVibratorNullable = await Vibration.hasVibrator();
+        if (hasVibratorNullable) {
+          Vibration.vibrate(duration: 30);
+        }
       }
     } catch (e) {
       // Vibration failed, log if necessary

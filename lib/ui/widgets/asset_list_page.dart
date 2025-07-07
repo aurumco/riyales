@@ -23,7 +23,7 @@ import './common/animated_card_builder.dart';
 import './common/error_placeholder.dart';
 import './common/alert_card.dart';
 import './search/shimmering_search_field.dart';
-import '../../config/app_config.dart'; // For AppConfig access
+// import '../../config/app_config.dart'; // For AppConfig access - Removed as AppConfig is not directly used here after recent refactors
 // import '../../providers/data_providers/crypto_data_provider.dart'; // Removed unused import
 
 enum AssetType { currency, gold, crypto, stock }
@@ -74,19 +74,26 @@ class AssetListPageState<T extends models.Asset>
   int _lastFullDataLength = 0;
   SortMode _sortMode = SortMode.defaultOrder;
   List<String>? _searchableStrings;
-  String _lastSearchQuery = '';
+  // String _lastSearchQuery = ''; // Unused field
 
   // Internal flag to manage if search filtering logic is active.
   // widget.isSearchActive is from parent and controls UI elements like search bar visibility.
-  bool _internalIsSearchActive = false;
+  // bool _internalIsSearchActive = false; // Unused field
 
-  List<T> _fullSearchResults = [];
-  List<T> _paginatedSearchResults = [];
-  bool _isLoadingMoreSearchResults = false;
+  // List<T> _fullSearchResults = []; // Removed, filtering is now in build
+  // List<T> _paginatedSearchResults = []; // Removed, pagination for search handled in build
+  final bool _isLoadingMoreSearchResults =
+      false; // Made final as it's not reassigned
 
-  List<T> _sortedWidgetItems = [];
-  FavoritesNotifier? _favoritesNotifierCache;
+  // List<T> _sortedWidgetItems = []; // Removed, sorting is now in build
+  FavoritesNotifier? _favoritesNotifierCache; // Kept for sorting
   bool _didInitialFill = false;
+
+  // Added from old code for pull-to-refresh smoothness effect
+  static const double _maxRadiusDelta = 13.5;
+  static const double _maxSmoothnessDelta = 0.75;
+  double _defaultRadius = 21.0; // Default, will be updated from Notifier
+  double _defaultSmoothness = 0.7; // Default, will be updated from Notifier
 
   @override
   void initState() {
@@ -94,26 +101,28 @@ class AssetListPageState<T extends models.Asset>
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _favoritesNotifierCache = Provider.of<FavoritesNotifier>(context, listen: false);
+        _favoritesNotifierCache =
+            Provider.of<FavoritesNotifier>(context, listen: false);
+        final settings = context.read<CardCornerSettingsNotifier>().settings;
+        _defaultRadius = settings.radius;
+        _defaultSmoothness = settings.smoothness;
+
+        // Initial data fetch is handled by the parent DataNotifier's onInitialize callback.
         if (widget.items.isEmpty && !widget.isSearchActive) {
+          // isSearchActive from parent
           widget.onInitialize();
-        } else {
-          _sortedWidgetItems = _sortList(List<T>.from(widget.items));
-           if (mounted) setState(() {});
         }
       }
     });
   }
 
-  List<T> _sortList(List<T> listToSort) {
-    if (_favoritesNotifierCache == null && mounted) {
-      _favoritesNotifierCache = Provider.of<FavoritesNotifier>(context, listen: false);
-    }
-    if (_favoritesNotifierCache == null) {
+  List<T> _sortList(List<T> listToSort, FavoritesNotifier? favoritesNotifier) {
+    // Updated to accept favoritesNotifier as a parameter.
+    if (favoritesNotifier == null) {
       return List<T>.from(listToSort);
     }
 
-    final favorites = _favoritesNotifierCache!.favorites;
+    final favorites = favoritesNotifier.favorites;
     List<T> sortedList;
 
     switch (_sortMode) {
@@ -126,12 +135,10 @@ class AssetListPageState<T extends models.Asset>
           ..sort((a, b) => a.price.compareTo(b.price));
         break;
       default:
-        final favoriteItems = listToSort
-            .where((item) => favorites.contains(item.id))
-            .toList();
-        final nonFavoriteItems = listToSort
-            .where((item) => !favorites.contains(item.id))
-            .toList();
+        final favoriteItems =
+            listToSort.where((item) => favorites.contains(item.id)).toList();
+        final nonFavoriteItems =
+            listToSort.where((item) => !favorites.contains(item.id)).toList();
         sortedList = [...favoriteItems, ...nonFavoriteItems];
     }
     return sortedList;
@@ -140,58 +147,38 @@ class AssetListPageState<T extends models.Asset>
   @override
   void didUpdateWidget(covariant AssetListPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final currentSearchQuery = Provider.of<SearchQueryNotifier>(context, listen: false).query;
+    // final currentSearchQuery = Provider.of<SearchQueryNotifier>(context).query; // No longer needed here
     bool needsStateUpdate = false;
 
     if (_favoritesNotifierCache == null && mounted) {
-      _favoritesNotifierCache = Provider.of<FavoritesNotifier>(context, listen: false);
+      // Cache favoritesNotifier if not already done.
+      _favoritesNotifierCache =
+          Provider.of<FavoritesNotifier>(context, listen: false);
     }
 
-    // 1. Handle changes in the source list for non-search display
-    if (widget.items != oldWidget.items && !_internalIsSearchActive) {
-      _sortedWidgetItems = _sortList(List<T>.from(widget.items));
+    // 1. Handle changes in the source list (widget.items)
+    //    This is important if the underlying data provider fetches new data
+    //    and we are NOT in a search state.
+    //    The build method will handle sorting and displaying these items.
+    if (widget.items != oldWidget.items) {
+      // If items changed and we are not searching, we might need a rebuild if sort order is important
+      // or if other derived state depends on widget.items directly.
+      // However, since filtering/sorting is in build, this might just be for _didInitialFill or similar.
       needsStateUpdate = true;
     }
 
     // 2. Handle changes in the full list used for searching
+    //    This is crucial for rebuilding _searchableStrings.
     if (widget.fullItemsListForSearch.length != _lastFullDataLength ||
         widget.fullItemsListForSearch != oldWidget.fullItemsListForSearch) {
       _lastFullDataLength = widget.fullItemsListForSearch.length;
       _rebuildSearchableStrings();
-      // If a search is currently active, re-apply it to the new full list
-      if (_internalIsSearchActive) {
-        _filterAndPaginateSearchResults(currentSearchQuery, isNewQuery: true);
-        // This method calls setState, so further setState in this didUpdateWidget might be redundant for this path
-      } else {
-        needsStateUpdate = true; // Data changed, might affect non-search view if items also changed
-      }
+      // No need to re-filter here, build() will do it.
+      needsStateUpdate = true;
     }
 
-    // 3. Handle changes in the search query itself
-    if (currentSearchQuery != _lastSearchQuery) {
-      _lastSearchQuery = currentSearchQuery;
-      bool newSearchActiveState = currentSearchQuery.length >= 2;
-
-      if (_internalIsSearchActive != newSearchActiveState || newSearchActiveState) {
-        _internalIsSearchActive = newSearchActiveState;
-        if (_internalIsSearchActive) {
-          if (_searchableStrings == null) { // Ensure searchable strings are available
-             _rebuildSearchableStrings();
-          }
-          _filterAndPaginateSearchResults(currentSearchQuery, isNewQuery: true);
-        } else {
-          _resetSearchState(); // Resets and calls setState
-        }
-      }
-      // If query changed, sub-methods (_filterAndPaginateSearchResults or _resetSearchState)
-      // already call setState. So, no explicit 'needsStateUpdate = true' here for query change alone.
-    }
-    // This 'else if' block is removed to simplify. The primary driver for search UI
-    // should be the query text. Parent's `widget.isSearchActive` controls search bar visibility.
-    // If search bar is hidden by parent, it should also clear the query in SearchQueryNotifier.
-    /* else if (widget.isSearchActive != oldWidget.isSearchActive) {
-        // ... complex syncing logic removed for simplification ...
-    } */
+    // 3. Search query changes are handled by context.watch in build method directly.
+    //    No need for specific logic here to handle query changes.
 
     if (needsStateUpdate && mounted) {
       setState(() {});
@@ -203,104 +190,69 @@ class AssetListPageState<T extends models.Asset>
       var text =
           '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
       if (asset is models.CurrencyAsset) {
-        // Base 'text' has asset.name (Persian for CurrencyAsset) and asset.symbol.
-        // Add asset.nameEn. ID is asset.symbol.
-        if (asset.nameEn.isNotEmpty && asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
+        if (asset.nameEn.isNotEmpty &&
+            asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
           text += ' ${asset.nameEn.toLowerCase()}';
         }
       } else if (asset is models.GoldAsset) {
-        // Base 'text' has asset.name (Persian for GoldAsset) and asset.symbol.
-        // Add asset.nameEn. ID is asset.symbol.
-         if (asset.nameEn.isNotEmpty && asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
+        if (asset.nameEn.isNotEmpty &&
+            asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
           text += ' ${asset.nameEn.toLowerCase()}';
         }
       } else if (asset is models.CryptoAsset) {
-        // Base 'text' has asset.name (English for CryptoAsset), asset.symbol, and asset.id (derived from English name).
-        // Only need to add asset.nameFa if it's different and not empty.
-        if (asset.nameFa.isNotEmpty && asset.nameFa.toLowerCase() != asset.name.toLowerCase()) {
+        if (asset.nameFa.isNotEmpty &&
+            asset.nameFa.toLowerCase() != asset.name.toLowerCase()) {
           text += ' ${asset.nameFa.toLowerCase()}';
         }
       } else if (asset is models.StockAsset) {
-        // Base 'text' has asset.name (short name l18) and asset.symbol (also l18).
-        // Add l30 (full name) and isin. ID is isin.
-        if (asset.l30.isNotEmpty && asset.l30.toLowerCase() != asset.name.toLowerCase()) {
+        if (asset.l30.isNotEmpty &&
+            asset.l30.toLowerCase() != asset.name.toLowerCase()) {
           text += ' ${asset.l30.toLowerCase()}';
         }
-        // ISIN is already part of asset.id for StockAsset, but explicit add if needed for direct search on ISIN term
-        // if (asset.isin.isNotEmpty && !text.contains(asset.isin.toLowerCase())) {
-        //   text += ' ${asset.isin.toLowerCase()}';
-        // }
       }
       return text.replaceAll(RegExp(r'\s+'), ' ').trim();
     }).toList();
   }
 
-  void _filterAndPaginateSearchResults(String query, {bool isNewQuery = false}) {
-    if (_searchableStrings == null && widget.fullItemsListForSearch.isNotEmpty) {
-      _rebuildSearchableStrings();
-    }
-    if (_searchableStrings == null || (_isLoadingMoreSearchResults && !isNewQuery)) return;
+  // _filterAndPaginateSearchResults removed as filtering is in build.
+  // Pagination for crypto search results is also handled in build.
 
-
-    if (isNewQuery) {
-      final queryLower = query.toLowerCase();
-      List<T> tempFullResults = [];
-      for (int i = 0; i < _searchableStrings!.length; i++) {
-        if (_searchableStrings![i].contains(queryLower)) {
-          tempFullResults.add(widget.fullItemsListForSearch[i]);
-        }
-      }
-      _fullSearchResults = _sortList(tempFullResults);
-      _paginatedSearchResults = [];
-    }
-
-    if (widget.assetType == AssetType.crypto) {
-      _isLoadingMoreSearchResults = true;
-      final appConfig = Provider.of<AppConfig>(context, listen: false);
-      final int itemsToLoad = (isNewQuery || _paginatedSearchResults.isEmpty)
-          ? appConfig.initialItemsToLoad
-          : appConfig.itemsPerLazyLoad;
-      final currentLength = _paginatedSearchResults.length;
-      final int end = math.min(currentLength + itemsToLoad, _fullSearchResults.length);
-
-      if (currentLength < end) {
-        _paginatedSearchResults.addAll(_fullSearchResults.sublist(currentLength, end));
-      }
-      _isLoadingMoreSearchResults = false;
-    } else {
-      _paginatedSearchResults = List<T>.from(_fullSearchResults);
-    }
-
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _resetSearchState() {
-    _fullSearchResults = [];
-    _paginatedSearchResults = [];
-    _internalIsSearchActive = false;
-    _sortedWidgetItems = _sortList(List<T>.from(widget.items));
-    if (mounted) {
-      setState(() {});
-    }
-  }
+  // _resetSearchState removed as it's implicitly handled by build method
+  // when search query is empty.
 
   void _onScroll() {
     final pos = _scrollController.position.pixels;
     final maxScroll = _scrollController.position.maxScrollExtent;
+    final searchQuery =
+        Provider.of<SearchQueryNotifier>(context, listen: false).query;
 
-    if (pos >= maxScroll * 0.85 && !_isLoadingMoreSearchResults) {
-      if (_internalIsSearchActive && widget.assetType == AssetType.crypto) {
-        // Handling pagination for active search results in crypto tab
-        if (_paginatedSearchResults.length < _fullSearchResults.length) {
-          _filterAndPaginateSearchResults(_lastSearchQuery, isNewQuery: false);
+    // Only paginate for normal list view (not during active search)
+    if (pos >= maxScroll * 0.85 &&
+        !_isLoadingMoreSearchResults &&
+        searchQuery.isEmpty) {
+      widget.onLoadMore();
+    }
+
+    // Logic for pull-to-refresh smoothness effect (from old code)
+    if (mounted) {
+      final settingsNotifier = context.read<CardCornerSettingsNotifier>();
+      if (pos < 0) {
+        // User is pulling down
+        final factor = (-pos / 100).clamp(0.0, 1.0); // Normalize pull distance
+        final newSmooth = _defaultSmoothness + _maxSmoothnessDelta * factor;
+        final newRadius = _defaultRadius + _maxRadiusDelta * factor;
+        settingsNotifier
+            .updateSmoothness(newSmooth.clamp(0.0, 1.0)); // Clamp smoothness
+        settingsNotifier.updateRadius(
+            newRadius.clamp(0.0, 100.0)); // Clamp radius (adjust max as needed)
+      } else {
+        // Reset to default when not pulling or scrolling normally
+        if (settingsNotifier.settings.smoothness != _defaultSmoothness) {
+          settingsNotifier.updateSmoothness(_defaultSmoothness);
         }
-      } else if (!_internalIsSearchActive) {
-        // Handling pagination for normal list view (no search active)
-        // The specific check for CryptoDataNotifier.hasMoreScrollableItems is removed
-        // as the notifier itself now correctly limits loading to its full list.
-        widget.onLoadMore();
+        if (settingsNotifier.settings.radius != _defaultRadius) {
+          settingsNotifier.updateRadius(_defaultRadius);
+        }
       }
     }
   }
@@ -328,41 +280,80 @@ class AssetListPageState<T extends models.Asset>
     final width = MediaQuery.of(context).size.width;
     final orientation = MediaQuery.of(context).orientation;
     const double baseAspectRatio = 0.8;
-    if (width < 600 && orientation == Orientation.portrait) return baseAspectRatio;
+    if (width < 600 && orientation == Orientation.portrait) {
+      return baseAspectRatio;
+    }
     return math.max(0.75, baseAspectRatio * 0.9);
   }
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_didInitialFill && !widget.isLoading && (_sortedWidgetItems.isNotEmpty || _paginatedSearchResults.isNotEmpty) ) {
-        _didInitialFill = true;
-        final itemsCurrentlyConsidered = _internalIsSearchActive ? _paginatedSearchResults : _sortedWidgetItems;
-        final fullListConsidered = _internalIsSearchActive ? _fullSearchResults : widget.fullItemsListForSearch;
+    // Ensure _favoritesNotifierCache is initialized
+    _favoritesNotifierCache ??=
+        Provider.of<FavoritesNotifier>(context, listen: false);
 
-        final columnCount = _getOptimalColumnCount(context);
-        final remainder = itemsCurrentlyConsidered.length % columnCount;
-        if (fullListConsidered.length > itemsCurrentlyConsidered.length && remainder != 0) {
-          if (_internalIsSearchActive && widget.assetType == AssetType.crypto) {
-             if (!_isLoadingMoreSearchResults && _paginatedSearchResults.length < _fullSearchResults.length) {
-                _filterAndPaginateSearchResults(_lastSearchQuery, isNewQuery: false);
-             }
-          } else if (!_internalIsSearchActive) {
-            widget.onLoadMore();
-          }
-        }
-      }
-    });
-
-    context.watch<SearchQueryNotifier>(); // Ensures build re-runs on query change for UI updates
+    final favoritesNotifier =
+        context.watch<FavoritesNotifier>(); // Watch for sorting changes
+    final searchQueryNotifier = context
+        .watch<SearchQueryNotifier>(); // Ensures build re-runs on query change
     final l10n = AppLocalizations.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final localeNotifier = context.watch<LocaleNotifier>();
     final isRTL = localeNotifier.locale.languageCode == 'fa';
     final alertProvider = context.watch<AlertProvider>();
 
-    // _internalIsSearchActive is now primarily managed by didUpdateWidget.
-    // The build method just uses its current value.
+    final String currentSearchQuery = searchQueryNotifier.query;
+    final bool isCurrentlySearching = currentSearchQuery.isNotEmpty;
+
+    List<T> itemsToDisplay;
+
+    if (isCurrentlySearching) {
+      if (_searchableStrings == null &&
+          widget.fullItemsListForSearch.isNotEmpty) {
+        // This should ideally be built in didUpdateWidget or initState if fullItemsListForSearch is available then.
+        // Building it here might be slightly inefficient if build is called frequently for other reasons.
+        _rebuildSearchableStrings();
+      }
+      if (_searchableStrings != null) {
+        final queryLower = currentSearchQuery.toLowerCase();
+        List<T> filteredResults = [];
+        for (int i = 0; i < _searchableStrings!.length; i++) {
+          if (_searchableStrings![i].contains(queryLower)) {
+            filteredResults.add(widget.fullItemsListForSearch[i]);
+          }
+        }
+        itemsToDisplay = _sortList(filteredResults, favoritesNotifier);
+
+        // Handle crypto pagination for search results (if needed, or load all)
+        if (widget.assetType == AssetType.crypto) {
+          // For simplicity, let's assume crypto search loads all results for now.
+          // If pagination is needed, the logic from _filterAndPaginateSearchResults would be adapted here.
+        }
+      } else {
+        itemsToDisplay =
+            []; // Should not happen if fullItemsListForSearch is populated
+      }
+    } else {
+      itemsToDisplay = _sortList(List<T>.from(widget.items), favoritesNotifier);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // This logic is for filling the last row if not searching.
+      if (mounted &&
+          !_didInitialFill &&
+          !widget.isLoading &&
+          !isCurrentlySearching &&
+          itemsToDisplay.isNotEmpty) {
+        _didInitialFill = true;
+        final columnCount = _getOptimalColumnCount(context);
+        final remainder = itemsToDisplay.length % columnCount;
+        // Check against widget.fullItemsListForSearch or a similar source for "has more"
+        if (widget.fullItemsListForSearch.length > itemsToDisplay.length &&
+            remainder != 0) {
+          widget.onLoadMore();
+        }
+      }
+    });
 
     final alert = (widget.assetType == AssetType.currency &&
             alertProvider.alert != null &&
@@ -371,7 +362,8 @@ class AssetListPageState<T extends models.Asset>
         ? alertProvider.alert
         : null;
 
-    if (widget.error != null && !widget.error!.toLowerCase().contains('offline')) {
+    if (widget.error != null &&
+        !widget.error!.toLowerCase().contains('offline')) {
       _errorRetryTimer?.cancel();
       _errorRetryTimer = Timer(const Duration(seconds: 5), () {
         if (mounted) widget.onRefresh();
@@ -380,19 +372,20 @@ class AssetListPageState<T extends models.Asset>
       _errorRetryTimer?.cancel();
     }
 
-    final bool noItemsToDisplay = _internalIsSearchActive ? _paginatedSearchResults.isEmpty : _sortedWidgetItems.isEmpty;
-
-    if (widget.isLoading && noItemsToDisplay) {
+    if (widget.isLoading && itemsToDisplay.isEmpty) {
+      // Check itemsToDisplay
       return const Center(child: CupertinoActivityIndicator());
     }
 
-    if (widget.error != null && noItemsToDisplay) {
-      final isConnectionError = widget.error!.toLowerCase().contains('offline') ||
-                                widget.error!.toLowerCase().contains('dioexception') ||
-                                widget.error!.toLowerCase().contains('socketexception');
+    if (widget.error != null && itemsToDisplay.isEmpty) {
+      // Check itemsToDisplay
+      final isConnectionError =
+          widget.error!.toLowerCase().contains('offline') ||
+              widget.error!.toLowerCase().contains('dioexception') ||
+              widget.error!.toLowerCase().contains('socketexception');
       if (isConnectionError) {
         final status = widget.error!.toLowerCase().contains('offline') &&
-                       !widget.error!.toLowerCase().contains('dioexception')
+                !widget.error!.toLowerCase().contains('dioexception')
             ? ConnectionStatus.internetDown
             : ConnectionStatus.serverDown;
         return Center(child: ErrorPlaceholder(status: status));
@@ -400,26 +393,30 @@ class AssetListPageState<T extends models.Asset>
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text("${l10n.errorGeneric}: ${widget.error}", textAlign: TextAlign.center,
-              style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87)),
+          child: Text("${l10n.errorGeneric}: ${widget.error}",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black87)),
         ),
       );
     }
 
-    List<T> finalDisplayList;
-    if (_internalIsSearchActive) {
-      finalDisplayList = (widget.assetType == AssetType.crypto)
-          ? _paginatedSearchResults
-          : _fullSearchResults;
-    } else {
-      finalDisplayList = _sortedWidgetItems;
-    }
+    // List<T> finalDisplayList; // Renamed to itemsToDisplay and calculated above
+    // if (_internalIsSearchActive) {
+    //   finalDisplayList = (widget.assetType == AssetType.crypto)
+    //       ? _paginatedSearchResults
+    //       : _fullSearchResults;
+    // } else {
+    //   finalDisplayList = _sortedWidgetItems;
+    // }
 
-    if (finalDisplayList.isEmpty && !widget.isLoading) {
+    if (itemsToDisplay.isEmpty && !widget.isLoading) {
       return Center(
         child: Text(
-          _internalIsSearchActive ? l10n.searchNoResults : l10n.listNoData,
-          style: TextStyle(fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro', fontSize: 16,
+          isCurrentlySearching ? l10n.searchNoResults : l10n.listNoData,
+          style: TextStyle(
+              fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+              fontSize: 16,
               color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
         ),
       );
@@ -429,56 +426,71 @@ class AssetListPageState<T extends models.Asset>
     final aspectRatio = _getCardAspectRatio(context);
 
     final searchBar = AnimatedContainer(
-      duration: widget.showSearchBar ? const Duration(milliseconds: 400) : const Duration(milliseconds: 300),
+      duration: widget.showSearchBar
+          ? const Duration(milliseconds: 400)
+          : const Duration(milliseconds: 300),
       curve: Curves.easeInOutQuart,
       height: widget.showSearchBar ? 48.0 : 0.0,
-      margin: widget.showSearchBar ? const EdgeInsets.only(top: 10.0, bottom: 4.0) : EdgeInsets.zero,
+      margin: widget.showSearchBar
+          ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
+          : EdgeInsets.zero,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: AnimatedOpacity(
         opacity: widget.showSearchBar ? 1.0 : 0.0,
-        duration: widget.showSearchBar ? const Duration(milliseconds: 300) : const Duration(milliseconds: 200),
-        child: widget.isSearchActive
-            ? const ShimmeringSearchField()
-            : const SizedBox(),
+        duration: widget.showSearchBar
+            ? const Duration(milliseconds: 300)
+            : const Duration(milliseconds: 200),
+        child:
+            widget.isSearchActive // This is widget.isSearchActive (from parent)
+                ? const ShimmeringSearchField()
+                : const SizedBox(),
       ),
     );
 
     Widget scrollableContent = CustomScrollView(
       controller: _scrollController,
-      physics: (kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS ||
-                           defaultTargetPlatform == TargetPlatform.windows ||
-                           defaultTargetPlatform == TargetPlatform.linux))
+      physics: (kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.macOS ||
+                  defaultTargetPlatform == TargetPlatform.windows ||
+                  defaultTargetPlatform == TargetPlatform.linux))
           ? const NeverScrollableScrollPhysics() // WebSmoothScroll handles physics
-          : const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          : const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics()),
       slivers: [
         CupertinoSliverRefreshControl(
           refreshTriggerPullDistance: 80.0,
           refreshIndicatorExtent: 70.0,
-          builder: (BuildContext context, RefreshIndicatorMode refreshState, double pulledExtent,
-              double refreshTriggerPullDistance, double refreshIndicatorExtent) {
-            final bool showIndicator = refreshState == RefreshIndicatorMode.refresh ||
-                                      refreshState == RefreshIndicatorMode.armed ||
-                                      (refreshState == RefreshIndicatorMode.drag && pulledExtent > 40.0);
-            final settingsNotifier = context.read<CardCornerSettingsNotifier>();
-            const double defaultSmooth = 0.7;
-            const double maxSmooth = 0.9;
-            double targetSmooth;
-            if (refreshState == RefreshIndicatorMode.refresh) {
-              targetSmooth = maxSmooth;
-            } else if (refreshState == RefreshIndicatorMode.armed || refreshState == RefreshIndicatorMode.drag) {
-              final double pullRatio = math.min(1.0, pulledExtent / refreshTriggerPullDistance);
-              targetSmooth = defaultSmooth + (maxSmooth - defaultSmooth) * pullRatio;
-            } else {
-              targetSmooth = defaultSmooth;
-            }
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if(mounted) settingsNotifier.updateSmoothness(targetSmooth);
-            });
+          builder: (BuildContext context,
+              RefreshIndicatorMode refreshState,
+              double pulledExtent,
+              double refreshTriggerPullDistance,
+              double refreshIndicatorExtent) {
+            final bool showIndicator =
+                refreshState == RefreshIndicatorMode.refresh ||
+                    refreshState == RefreshIndicatorMode.armed ||
+                    (refreshState == RefreshIndicatorMode.drag &&
+                        pulledExtent > 40.0);
+            // final settingsNotifier = context.read<CardCornerSettingsNotifier>(); // Unused variable
+            // const double defaultSmooth = 0.7; // Unused variable
+            // const double maxSmooth = 0.9; // Unused variable
+            // double targetSmooth; // Unused variable
+            // if (refreshState == RefreshIndicatorMode.refresh) {
+            //   targetSmooth = maxSmooth;
+            // } else if (refreshState == RefreshIndicatorMode.armed || refreshState == RefreshIndicatorMode.drag) {
+            //   final double pullRatio = math.min(1.0, pulledExtent / refreshTriggerPullDistance);
+            //   targetSmooth = defaultSmooth + (maxSmooth - defaultSmooth) * pullRatio;
+            // } else {
+            //   targetSmooth = defaultSmooth;
+            // }
+            // WidgetsBinding.instance.addPostFrameCallback((_) { // Removed: smoothness is now handled by _onScroll
+            //   if(mounted) settingsNotifier.updateSmoothness(targetSmooth);
+            // });
             return Container(
               height: pulledExtent,
               alignment: Alignment.bottomCenter,
-              padding: EdgeInsets.only(top: widget.topPadding + 30.0, bottom: 30.0),
+              padding:
+                  EdgeInsets.only(top: widget.topPadding + 30.0, bottom: 30.0),
               child: AnimatedOpacity(
                 opacity: showIndicator ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 250),
@@ -504,23 +516,27 @@ class AssetListPageState<T extends models.Asset>
               transitionBuilder: (child, animation) {
                 return FadeTransition(
                   opacity: animation,
-                  child: SizeTransition(sizeFactor: animation, axisAlignment: -1.0, child: child),
+                  child: SizeTransition(
+                      sizeFactor: animation, axisAlignment: -1.0, child: child),
                 );
               },
-              child: !_internalIsSearchActive
-                  ? AlertCard(
-                      key: ValueKey(alert.color),
-                      alert: alert,
-                      onAction: (action) {
-                        ActionHandler.handle(context, action, widget.tabController);
-                      },
-                    )
-                  : const SizedBox.shrink(key: ValueKey('alert_hidden')),
+              child:
+                  !isCurrentlySearching // Use isCurrentlySearching based on query
+                      ? AlertCard(
+                          key: ValueKey(alert.color),
+                          alert: alert,
+                          onAction: (action) {
+                            ActionHandler.handle(
+                                context, action, widget.tabController);
+                          },
+                        )
+                      : const SizedBox.shrink(key: ValueKey('alert_hidden')),
             ),
           ),
-        if (finalDisplayList.isNotEmpty)
+        if (itemsToDisplay.isNotEmpty)
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(8.0, !_internalIsSearchActive && alert != null ? 2.0 : 8.0, 8.0, 8.0),
+            padding: EdgeInsets.fromLTRB(8.0,
+                !isCurrentlySearching && alert != null ? 2.0 : 8.0, 8.0, 8.0),
             sliver: Directionality(
               textDirection: ui.TextDirection.ltr,
               child: SliverGrid(
@@ -532,14 +548,18 @@ class AssetListPageState<T extends models.Asset>
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final asset = finalDisplayList[index];
-                    final card = AssetCard(asset: asset, assetType: widget.assetType);
+                    final asset = itemsToDisplay[index]; // Use itemsToDisplay
+                    // Added ValueKey for better list item management
+                    final card = AssetCard(
+                        key: ValueKey(asset.id),
+                        asset: asset,
+                        assetType: widget.assetType);
                     if (widget.useCardAnimation) {
                       return AnimatedCardBuilder(index: index, child: card);
                     }
                     return card;
                   },
-                  childCount: finalDisplayList.length,
+                  childCount: itemsToDisplay.length, // Use itemsToDisplay
                   addAutomaticKeepAlives: false,
                   addRepaintBoundaries: true,
                 ),
@@ -552,8 +572,12 @@ class AssetListPageState<T extends models.Asset>
               height: MediaQuery.of(context).size.height * 0.5,
               child: Center(
                 child: Text(
-                  _internalIsSearchActive ? l10n.searchNoResults : l10n.listNoData,
-                  style: TextStyle(fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro', fontSize: 16,
+                  isCurrentlySearching
+                      ? l10n.searchNoResults
+                      : l10n.listNoData, // Use isCurrentlySearching
+                  style: TextStyle(
+                      fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+                      fontSize: 16,
                       color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                 ),
               ),
@@ -568,13 +592,12 @@ class AssetListPageState<T extends models.Asset>
         (defaultTargetPlatform == TargetPlatform.macOS ||
             defaultTargetPlatform == TargetPlatform.windows ||
             defaultTargetPlatform == TargetPlatform.linux)) {
-
       // WebSmoothScroll wraps the basic scrollableContent (CustomScrollView)
       Widget webSmoothScrolledContent = WebSmoothScroll(
         key: Key('${widget.assetType.name}WebScroll'),
         controller: _scrollController,
-        scrollSpeed: 1.1, // Keep the adjusted speed
-        scrollAnimationLength: 500,
+        scrollSpeed: 1.35, // Keep the adjusted speed
+        scrollAnimationLength: 930,
         curve: Curves.easeOutCubic,
         child: scrollableContent,
       );
@@ -592,33 +615,10 @@ class AssetListPageState<T extends models.Asset>
 
   void setSortMode(SortMode mode) {
     if (_sortMode == mode && mounted) return;
-
     _sortMode = mode;
-
-    _sortedWidgetItems = _sortList(List<T>.from(widget.items));
-
-    if (_internalIsSearchActive && _fullSearchResults.isNotEmpty) {
-      _fullSearchResults = _sortList(List<T>.from(_fullSearchResults));
-
-      if (widget.assetType == AssetType.crypto) {
-        _paginatedSearchResults = [];
-
-        _isLoadingMoreSearchResults = true;
-        final appConfig = Provider.of<AppConfig>(context, listen: false);
-        final int itemsToLoad = appConfig.initialItemsToLoad;
-        final int end = math.min(itemsToLoad, _fullSearchResults.length);
-        if (end > 0) {
-          _paginatedSearchResults.addAll(_fullSearchResults.sublist(0, end));
-        }
-        _isLoadingMoreSearchResults = false;
-
-      } else {
-        _paginatedSearchResults = List<T>.from(_fullSearchResults);
-      }
-    }
-
+    // No need to manually sort here, build method will re-sort.
     if (mounted) {
-      setState(() {});
+      setState(() {}); // Trigger rebuild to apply new sort mode.
     }
   }
 }

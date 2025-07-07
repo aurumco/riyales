@@ -157,8 +157,8 @@ class CryptoDataNotifier extends ChangeNotifier {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  // @override // Removed unnecessary override
+  // void dispose() {
+  //   super.dispose();
+  // }
 }

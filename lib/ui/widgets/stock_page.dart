@@ -197,7 +197,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
 
   // Show sorting options bottom sheet for stock tabs
   void _showSortSheet(int index) {
-    Vibration.vibrate(duration: 30);
+    if (!kIsWeb) Vibration.vibrate(duration: 30);
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final sortOptions = [
       SortMode.defaultOrder,
