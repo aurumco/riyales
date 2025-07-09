@@ -91,7 +91,7 @@ class AssetListPageState<T extends models.Asset>
 
   // --- Added for crypto search pagination ---
   int _searchPage = 1;
-  static const int _searchPageSizeCrypto = 400;
+  static const int _searchPageSizeCrypto = 200;
   String _lastSearchQuery = '';
   List<T> _currentFilteredResults = [];
 
@@ -577,14 +577,21 @@ class AssetListPageState<T extends models.Asset>
                   (context, index) {
                     final asset = itemsToDisplay[index]; // Use itemsToDisplay
                     // Added ValueKey for better list item management
-                    final card = AssetCard(
-                        key: ValueKey(asset.id),
+                    // Limit expensive per-card animations to the first 40 visible items
+                    if (widget.useCardAnimation && index < 40) {
+                      return AnimatedCardBuilder(
+                        index: index,
+                        child: AssetCard(
+                          asset: asset,
+                          assetType: widget.assetType,
+                        ),
+                      );
+                    } else {
+                      return AssetCard(
                         asset: asset,
-                        assetType: widget.assetType);
-                    if (widget.useCardAnimation) {
-                      return AnimatedCardBuilder(index: index, child: card);
+                        assetType: widget.assetType,
+                      );
                     }
-                    return card;
                   },
                   childCount: itemsToDisplay.length, // Use itemsToDisplay
                   addAutomaticKeepAlives: false,
