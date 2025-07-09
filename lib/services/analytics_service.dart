@@ -33,6 +33,9 @@ class _AggregatedEvent {
 }
 
 class AnalyticsService {
+  // Set this to true only when you actually need verbose console output while debugging.
+  // In production builds (or web release), leaving this as false keeps the console clean.
+  static const bool _enableLogs = false;
   AnalyticsService._privateConstructor();
   static final AnalyticsService instance =
       AnalyticsService._privateConstructor();
@@ -73,9 +76,7 @@ class AnalyticsService {
       );
     }
 
-    if (kDebugMode) {
-      print(
-          '[AnalyticsService] Event logged: $eventType. Total for this event: ${_eventBuffer[eventKey]?.count}');
+    if (kDebugMode && _enableLogs) {
     }
   }
 
@@ -116,18 +117,13 @@ class AnalyticsService {
 
       await prefs.setStringList(_storedEventsKey, updatedEventsJson);
 
-      if (kDebugMode) {
-        print(
-            '[AnalyticsService] Saved ${_eventBuffer.length} events to persistent storage.');
-        print(
-            '[AnalyticsService] Total events in storage: ${updatedEventsJson.length}');
+      if (kDebugMode && _enableLogs) {
       }
 
       // Clear in-memory buffer after saving
       _eventBuffer.clear();
     } catch (e) {
-      if (kDebugMode) {
-        print('[AnalyticsService] Error saving events: $e');
+      if (kDebugMode && _enableLogs) {
       }
     }
   }
@@ -139,8 +135,7 @@ class AnalyticsService {
       final storedEventsJson = prefs.getStringList(_storedEventsKey) ?? [];
 
       if (storedEventsJson.isEmpty) {
-        if (kDebugMode) {
-          print('[AnalyticsService] No previously stored events to send.');
+        if (kDebugMode && _enableLogs) {
         }
         return;
       }
@@ -150,9 +145,7 @@ class AnalyticsService {
           .map((json) => _AggregatedEvent.fromJson(jsonDecode(json)))
           .toList();
 
-      if (kDebugMode) {
-        print(
-            '[AnalyticsService] Sending ${events.length} stored events from previous session.');
+      if (kDebugMode && _enableLogs) {
       }
 
       // Format events for API
@@ -161,8 +154,7 @@ class AnalyticsService {
       final body = jsonEncode({'events': eventList});
       final apiKey = await _getApiKey();
 
-      if (kDebugMode) {
-        print('[AnalyticsService] Body: $body');
+      if (kDebugMode && _enableLogs) {
       }
 
       // Send events to server
@@ -183,21 +175,15 @@ class AnalyticsService {
         await prefs.setString(
             _lastSendTimeKey, DateTime.now().toIso8601String());
 
-        if (kDebugMode) {
-          print(
-              '[AnalyticsService] Successfully sent stored events from previous session.');
-          print('[AnalyticsService] Response: ${response.body}');
+        if (kDebugMode && _enableLogs) {
         }
       } else {
-        if (kDebugMode) {
-          print(
-              '[AnalyticsService] Failed to send stored events. Status: ${response.statusCode}, Body: ${response.body}');
+        if (kDebugMode && _enableLogs) {
         }
         // Keep events in storage to try again next time
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('[AnalyticsService] Error sending stored events: $e');
+      if (kDebugMode && _enableLogs) {
       }
     }
   }
