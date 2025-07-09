@@ -30,6 +30,21 @@ import 'package:equatable/equatable.dart';
 // Import the new widget
 // Removed: import '../widgets/asset_list_page.dart';
 
+// Create a dedicated cache manager with smaller capacity for crypto icons
+class CryptoIconCacheManager extends CacheManager {
+  static const key = 'cryptoIconCache';
+  
+  static final CryptoIconCacheManager _instance = CryptoIconCacheManager._();
+  factory CryptoIconCacheManager() => _instance;
+  
+  CryptoIconCacheManager._() : super(Config(
+    key,
+    stalePeriod: const Duration(days: 7),
+    maxNrOfCacheObjects: 100, // Limit cache size
+    repo: JsonCacheInfoRepository(databaseName: key),
+  ));
+}
+
 // Define manual crypto icon mapping constant at top level before AssetCard
 // Manually map cryptos to their asset icons by name
 const Map<String, CryptoIconInfo> cryptoIconMap = {
@@ -497,8 +512,7 @@ class AssetCard extends StatelessWidget {
           child: ColorFiltered(
             colorFilter: ColorFilter.matrix(matrix),
             child: CachedNetworkImage(
-              cacheManager: CacheManager(
-                  Config('cryptoCache', stalePeriod: const Duration(days: 30))),
+              cacheManager: CryptoIconCacheManager(),
               imageUrl: (asset as models.CryptoAsset).iconUrl!,
               width: 32,
               height: 32,
@@ -511,17 +525,19 @@ class AssetCard extends StatelessWidget {
                       DecorationImage(image: imageProvider, fit: BoxFit.cover),
                 ),
               ),
+              // Use a simple colored container as placeholder instead of spinner
               placeholder: (context, url) => Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: Colors.transparent),
-                child: const CupertinoActivityIndicator(radius: 8),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                  shape: BoxShape.circle,
+                ),
               ),
               errorWidget: (context, url, error) => Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                     shape: BoxShape.circle, color: Colors.transparent),
                 child:
                     const Icon(CupertinoIcons.exclamationmark_circle, size: 16),

@@ -11,9 +11,9 @@ import 'package:riyales/config/constants.dart';
 import 'package:uuid/uuid.dart';
 
 class DeviceInfoService {
-  final Dio _dio = Dio();
-  // Set to true to see verbose logs in the console during development
+  // Set this to false to disable all console logging from this service
   static const bool _enableLogs = false;
+  final Dio _dio = Dio();
   static const String _deviceInfoSentKey = 'device_info_sent';
   static const String _apiKeyKey = 'ryls_api_key';
   static const String _installTimestampKey = 'ryls_install_timestamp';
@@ -25,7 +25,7 @@ class DeviceInfoService {
       final String uuid = const Uuid().v4();
       apiKey = 'RYLS-$uuid';
       await prefs.setString(_apiKeyKey, apiKey);
-      if (kDebugMode && _enableLogs) {
+      if (kDebugMode) {
         print('[DeviceInfoService] Generated and saved new API Key: $apiKey');
       }
     }
@@ -36,12 +36,12 @@ class DeviceInfoService {
     final prefs = await SharedPreferences.getInstance();
     final bool alreadySent = prefs.getBool(_deviceInfoSentKey) ?? false;
 
-    if (alreadySent && !_enableLogs) { // If logs are enabled, send every time for debugging
-      return; // Otherwise, skip if already sent
-    }
-
-    if (alreadySent && kDebugMode && _enableLogs) {
-      print('[DeviceInfoService] Already sent, but sending again because logs are enabled.');
+    if (alreadySent) {
+      if (kDebugMode && _enableLogs) {
+        print(
+            '[DeviceInfoService] Device info already sent previously. Skipping.');
+      }
+      return;
     }
 
     try {
