@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:palette_generator/palette_generator.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Dynamic glow effect widget using palette_generator
 class DynamicGlow extends StatefulWidget {
@@ -28,11 +29,14 @@ class _DynamicGlowState extends State<DynamicGlow> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      // On web using CanvasKit, skip glow and palette generation for performance
+      _glowColor = widget.preferredGlowColor ?? widget.defaultGlowColor;
+      return;
+    }
     if (widget.preferredGlowColor != null) {
-      // If preferred color exists
       _glowColor = widget.preferredGlowColor;
     } else {
-      // Otherwise, initialize with default and try to generate from image
       _glowColor = widget.defaultGlowColor;
       _initPalette();
     }
@@ -89,6 +93,10 @@ class _DynamicGlowState extends State<DynamicGlow> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      // No glow on web
+      return widget.child;
+    }
     final glow = _glowColor ?? widget.defaultGlowColor;
     return Container(
       width: widget.size,
