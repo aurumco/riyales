@@ -47,7 +47,6 @@ dependencies:
   package_info_plus: ^8.3.0
   universal_html: ^2.2.4
   http: ^1.4.0
-  tapsell_plus: ^2.3.2
 
 dev_dependencies:
   flutter_test:

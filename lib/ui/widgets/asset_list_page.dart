@@ -89,6 +89,12 @@ class AssetListPageState<T extends models.Asset>
   FavoritesNotifier? _favoritesNotifierCache; // Kept for sorting
   bool _didInitialFill = false;
 
+  // --- Added for crypto search pagination ---
+  int _searchPage = 1;
+  static const int _searchPageSizeCrypto = 400;
+  String _lastSearchQuery = '';
+  List<T> _currentFilteredResults = [];
+
   // Added from old code for pull-to-refresh smoothness effect
   static const double _maxRadiusDelta = 13.5;
   static const double _maxSmoothnessDelta = 0.75;
@@ -226,11 +232,21 @@ class AssetListPageState<T extends models.Asset>
     final searchQuery =
         Provider.of<SearchQueryNotifier>(context, listen: false).query;
 
-    // Only paginate for normal list view (not during active search)
-    if (pos >= maxScroll * 0.85 &&
-        !_isLoadingMoreSearchResults &&
-        searchQuery.isEmpty) {
-      widget.onLoadMore();
+    if (pos >= maxScroll * 0.85) {
+      if (searchQuery.isEmpty) {
+        // Normal list pagination
+        if (!_isLoadingMoreSearchResults) {
+          widget.onLoadMore();
+        }
+      } else if (widget.assetType == AssetType.crypto) {
+        // Pagination for crypto search results
+        if (_currentFilteredResults.length >
+            _searchPage * _searchPageSizeCrypto) {
+          setState(() {
+            _searchPage++;
+          });
+        }
+      }
     }
 
     // Logic for pull-to-refresh smoothness effect (from old code)
@@ -303,6 +319,13 @@ class AssetListPageState<T extends models.Asset>
     final alertProvider = context.watch<AlertProvider>();
 
     final String currentSearchQuery = searchQueryNotifier.query;
+
+    // Reset pagination when query changes
+    if (currentSearchQuery != _lastSearchQuery) {
+      _lastSearchQuery = currentSearchQuery;
+      _searchPage = 1;
+    }
+
     final bool isCurrentlySearching = currentSearchQuery.isNotEmpty;
 
     List<T> itemsToDisplay;
@@ -322,12 +345,16 @@ class AssetListPageState<T extends models.Asset>
             filteredResults.add(widget.fullItemsListForSearch[i]);
           }
         }
-        itemsToDisplay = _sortList(filteredResults, favoritesNotifier);
+        // Sort once
+        List<T> sortedFiltered = _sortList(filteredResults, favoritesNotifier);
 
-        // Handle crypto pagination for search results (if needed, or load all)
         if (widget.assetType == AssetType.crypto) {
-          // For simplicity, let's assume crypto search loads all results for now.
-          // If pagination is needed, the logic from _filterAndPaginateSearchResults would be adapted here.
+          _currentFilteredResults = sortedFiltered;
+          final int end = math.min(
+              _searchPage * _searchPageSizeCrypto, _currentFilteredResults.length);
+          itemsToDisplay = _currentFilteredResults.sublist(0, end);
+        } else {
+          itemsToDisplay = sortedFiltered;
         }
       } else {
         itemsToDisplay =
