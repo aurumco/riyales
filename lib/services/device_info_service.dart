@@ -12,6 +12,8 @@ import 'package:uuid/uuid.dart';
 
 class DeviceInfoService {
   final Dio _dio = Dio();
+  // Set to true to see verbose logs in the console during development
+  static const bool _enableLogs = false;
   static const String _deviceInfoSentKey = 'device_info_sent';
   static const String _apiKeyKey = 'ryls_api_key';
   static const String _installTimestampKey = 'ryls_install_timestamp';
@@ -23,7 +25,7 @@ class DeviceInfoService {
       final String uuid = const Uuid().v4();
       apiKey = 'RYLS-$uuid';
       await prefs.setString(_apiKeyKey, apiKey);
-      if (kDebugMode) {
+      if (kDebugMode && _enableLogs) {
         print('[DeviceInfoService] Generated and saved new API Key: $apiKey');
       }
     }
@@ -34,12 +36,12 @@ class DeviceInfoService {
     final prefs = await SharedPreferences.getInstance();
     final bool alreadySent = prefs.getBool(_deviceInfoSentKey) ?? false;
 
-    if (alreadySent) {
-      if (kDebugMode) {
-        print(
-            '[DeviceInfoService] Device info already sent previously. Skipping.');
-      }
-      return;
+    if (alreadySent && !_enableLogs) { // If logs are enabled, send every time for debugging
+      return; // Otherwise, skip if already sent
+    }
+
+    if (alreadySent && kDebugMode && _enableLogs) {
+      print('[DeviceInfoService] Already sent, but sending again because logs are enabled.');
     }
 
     try {
@@ -141,7 +143,7 @@ class DeviceInfoService {
         }
       }
 
-      if (kDebugMode) {
+      if (kDebugMode && _enableLogs) {
         print(
             '[DeviceInfoService] Sending payload to ${AppConstants.apiBaseUrl}${AppConstants.deviceEndpoint}');
         final apiKey = await _getApiKey();
@@ -164,18 +166,18 @@ class DeviceInfoService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         await prefs.setBool(_deviceInfoSentKey, true);
-        if (kDebugMode) {
+        if (kDebugMode && _enableLogs) {
           print(
               '[DeviceInfoService] Successfully sent device info: ${response.data}');
         }
       } else {
-        if (kDebugMode) {
+        if (kDebugMode && _enableLogs) {
           print(
               '[DeviceInfoService] Failed to send device info. Status: ${response.statusCode}, Body: ${response.data}');
         }
       }
     } catch (e) {
-      if (kDebugMode) {
+      if (kDebugMode && _enableLogs) {
         print(
             '[DeviceInfoService] An error occurred while sending device info.');
         if (e is DioException) {

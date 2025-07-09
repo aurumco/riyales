@@ -68,39 +68,30 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
 
 class AssetListPageState<T extends models.Asset>
     extends State<AssetListPage<T>> {
+  // --- State variables ---
   final ScrollController _scrollController = ScrollController();
   Timer? _errorRetryTimer;
-
-  int _lastFullDataLength = 0;
   SortMode _sortMode = SortMode.defaultOrder;
-  List<String>? _searchableStrings;
-  // String _lastSearchQuery = ''; // Unused field
+  FavoritesNotifier? _favoritesNotifierCache; // Cache for sorting
 
-  // Internal flag to manage if search filtering logic is active.
-  // widget.isSearchActive is from parent and controls UI elements like search bar visibility.
-  // bool _internalIsSearchActive = false; // Unused field
-
-  // List<T> _fullSearchResults = []; // Removed, filtering is now in build
-  // List<T> _paginatedSearchResults = []; // Removed, pagination for search handled in build
-  final bool _isLoadingMoreSearchResults =
-      false; // Made final as it's not reassigned
-
-  // List<T> _sortedWidgetItems = []; // Removed, sorting is now in build
-  FavoritesNotifier? _favoritesNotifierCache; // Kept for sorting
-  bool _didInitialFill = false;
-
-  // --- Added for crypto search pagination ---
-  int _searchPage = 1;
-  static const int _searchPageSizeCrypto = 24;
+  // --- Search state ---
+  final Map<String, Set<int>> _bigramIndex = {};
+  final Map<String, Set<int>> _trigramIndex = {};
+  bool _searchIndexBuilt = false;
+  int _lastFullDataLength = 0;
   static const int _minSearchChars = 3;
-  String _lastSearchQuery = '';
+
+  // --- Pagination state ---
+  bool _didInitialFill = false;
+  int _searchPage = 1;
+  static const int _searchPageSize = 200;
   List<T> _currentFilteredResults = [];
 
-  // Added from old code for pull-to-refresh smoothness effect
+  // --- UI effect state ---
   static const double _maxRadiusDelta = 13.5;
   static const double _maxSmoothnessDelta = 0.75;
-  double _defaultRadius = 21.0; // Default, will be updated from Notifier
-  double _defaultSmoothness = 0.7; // Default, will be updated from Notifier
+  double _defaultRadius = 21.0;
+  double _defaultSmoothness = 0.7;
 
   @override
   void initState() {
@@ -154,78 +145,58 @@ class AssetListPageState<T extends models.Asset>
   @override
   void didUpdateWidget(covariant AssetListPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // final currentSearchQuery = Provider.of<SearchQueryNotifier>(context).query; // No longer needed here
-    bool needsStateUpdate = false;
-
     if (_favoritesNotifierCache == null && mounted) {
       // Cache favoritesNotifier if not already done.
       _favoritesNotifierCache =
           Provider.of<FavoritesNotifier>(context, listen: false);
     }
-
-    // 1. Handle changes in the source list (widget.items)
-    //    This is important if the underlying data provider fetches new data
-    //    and we are NOT in a search state.
-    //    The build method will handle sorting and displaying these items.
-    if (widget.items != oldWidget.items) {
-      // If items changed and we are not searching, we might need a rebuild if sort order is important
-      // or if other derived state depends on widget.items directly.
-      // However, since filtering/sorting is in build, this might just be for _didInitialFill or similar.
-      needsStateUpdate = true;
-    }
-
-    // 2. Handle changes in the full list used for searching
-    //    This is crucial for rebuilding _searchableStrings.
-    if (widget.fullItemsListForSearch.length != _lastFullDataLength ||
-        widget.fullItemsListForSearch != oldWidget.fullItemsListForSearch) {
+    
+    // If the master list of assets changes, invalidate the search index
+    // so it gets rebuilt on the next search.
+    if (widget.fullItemsListForSearch.length != _lastFullDataLength) {
       _lastFullDataLength = widget.fullItemsListForSearch.length;
-      _rebuildSearchableStrings();
-      // No need to re-filter here, build() will do it.
-      needsStateUpdate = true;
-    }
-
-    // 3. Search query changes are handled by context.watch in build method directly.
-    //    No need for specific logic here to handle query changes.
-
-    if (needsStateUpdate && mounted) {
-      setState(() {});
+      _searchIndexBuilt = false;
     }
   }
 
-  void _rebuildSearchableStrings() {
-    _searchableStrings = widget.fullItemsListForSearch.map((asset) {
-      var text =
+  // Re-implementing the efficient n-gram index builder from the old code
+  void _buildSearchIndex() {
+    _bigramIndex.clear();
+    _trigramIndex.clear();
+    for (int i = 0; i < widget.fullItemsListForSearch.length; i++) {
+      final asset = widget.fullItemsListForSearch[i];
+      // Consolidate all searchable text into one string
+      String text =
           '${asset.name.toLowerCase()} ${asset.symbol.toLowerCase()} ${asset.id.toLowerCase()}';
+
+      // Add asset-specific fields
       if (asset is models.CurrencyAsset) {
-        if (asset.nameEn.isNotEmpty &&
-            asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
-          text += ' ${asset.nameEn.toLowerCase()}';
-        }
+        text += ' ${asset.nameEn.toLowerCase()}';
       } else if (asset is models.GoldAsset) {
-        if (asset.nameEn.isNotEmpty &&
-            asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
-          text += ' ${asset.nameEn.toLowerCase()}';
-        }
+        text += ' ${asset.nameEn.toLowerCase()}';
       } else if (asset is models.CryptoAsset) {
-        if (asset.nameFa.isNotEmpty &&
-            asset.nameFa.toLowerCase() != asset.name.toLowerCase()) {
-          text += ' ${asset.nameFa.toLowerCase()}';
-        }
+        text += ' ${asset.nameFa.toLowerCase()}';
       } else if (asset is models.StockAsset) {
-        if (asset.l30.isNotEmpty &&
-            asset.l30.toLowerCase() != asset.name.toLowerCase()) {
-          text += ' ${asset.l30.toLowerCase()}';
-        }
+        text += ' ${asset.l30.toLowerCase()} ${asset.isin.toLowerCase()}';
       }
-      return text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    }).toList();
+
+      text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+      // Build bigram index (for 2-char queries)
+      for (int j = 0; j <= text.length - 2; j++) {
+        _bigramIndex
+            .putIfAbsent(text.substring(j, j + 2), () => <int>{})
+            .add(i);
+      }
+      // Build trigram index (for >=3-char queries)
+      for (int j = 0; j <= text.length - 3; j++) {
+        _trigramIndex
+            .putIfAbsent(text.substring(j, j + 3), () => <int>{})
+            .add(i);
+      }
+    }
+    _searchIndexBuilt = true;
   }
-
-  // _filterAndPaginateSearchResults removed as filtering is in build.
-  // Pagination for crypto search results is also handled in build.
-
-  // _resetSearchState removed as it's implicitly handled by build method
-  // when search query is empty.
 
   void _onScroll() {
     final pos = _scrollController.position.pixels;
@@ -237,13 +208,11 @@ class AssetListPageState<T extends models.Asset>
     if (pos >= maxScroll * 0.85) {
       if (!searchActive) {
         // Normal list pagination
-        if (!_isLoadingMoreSearchResults) {
-          widget.onLoadMore();
-        }
-      } else if (widget.assetType == AssetType.crypto) {
+        widget.onLoadMore();
+      } else {
         // Pagination for crypto search results
         if (_currentFilteredResults.length >
-            _searchPage * _searchPageSizeCrypto) {
+            _searchPage * _searchPageSize) {
           setState(() {
             _searchPage++;
           });
@@ -321,48 +290,49 @@ class AssetListPageState<T extends models.Asset>
     final alertProvider = context.watch<AlertProvider>();
 
     final String currentSearchQuery = searchQueryNotifier.query;
-
-    // Reset pagination when query changes
-    if (currentSearchQuery != _lastSearchQuery) {
-      _lastSearchQuery = currentSearchQuery;
-      _searchPage = 1;
-    }
-
     final bool isCurrentlySearching = currentSearchQuery.length >= _minSearchChars;
 
     List<T> itemsToDisplay;
 
     if (isCurrentlySearching) {
-      if (_searchableStrings == null &&
-          widget.fullItemsListForSearch.isNotEmpty) {
-        // This should ideally be built in didUpdateWidget or initState if fullItemsListForSearch is available then.
-        // Building it here might be slightly inefficient if build is called frequently for other reasons.
-        _rebuildSearchableStrings();
+      if (!_searchIndexBuilt) {
+        _buildSearchIndex();
       }
-      if (_searchableStrings != null) {
-        final queryLower = currentSearchQuery.toLowerCase();
-        List<T> filteredResults = [];
-        for (int i = 0; i < _searchableStrings!.length; i++) {
-          if (_searchableStrings![i].contains(queryLower)) {
-            filteredResults.add(widget.fullItemsListForSearch[i]);
-          }
-        }
-        // Sort once
-        List<T> sortedFiltered = _sortList(filteredResults, favoritesNotifier);
 
-        if (widget.assetType == AssetType.crypto) {
-          _currentFilteredResults = sortedFiltered;
-          final int end = math.min(
-              _searchPage * _searchPageSizeCrypto, _currentFilteredResults.length);
-          itemsToDisplay = _currentFilteredResults.sublist(0, end);
-        } else {
-          itemsToDisplay = sortedFiltered;
+      final queryLower = currentSearchQuery.toLowerCase();
+      Set<int> indices;
+
+      // Use the n-gram index for fast filtering
+      if (queryLower.length == 2) {
+        indices = _bigramIndex[queryLower] ?? <int>{};
+      } else { // >= 3 chars
+        indices = _trigramIndex[queryLower.substring(0, 3)] ?? <int>{};
+        for (int k = 1; k <= queryLower.length - 3; k++) {
+          indices = indices.intersection(_trigramIndex[queryLower.substring(k, k + 3)] ?? <int>{});
+          if (indices.isEmpty) break;
         }
+      }
+      
+      // Filter further if needed (for queries > 3 chars)
+      _currentFilteredResults = indices
+          .map((i) => widget.fullItemsListForSearch[i])
+          .where((asset) => asset.name.toLowerCase().contains(queryLower) || asset.symbol.toLowerCase().contains(queryLower))
+          .toList();
+      
+      // Sort once
+      _currentFilteredResults = _sortList(_currentFilteredResults, favoritesNotifier);
+
+      if (widget.assetType == AssetType.crypto || widget.assetType == AssetType.stock) {
+        final int end = math.min(
+            _searchPage * _searchPageSize, _currentFilteredResults.length);
+        itemsToDisplay = _currentFilteredResults.sublist(0, end);
       } else {
-        itemsToDisplay =
-            []; // Should not happen if fullItemsListForSearch is populated
+        itemsToDisplay = _currentFilteredResults;
       }
     } else {
+      // This block runs when search is not active
+      _currentFilteredResults = [];
+      _searchPage = 1;
       itemsToDisplay = _sortList(List<T>.from(widget.items), favoritesNotifier);
     }
 
