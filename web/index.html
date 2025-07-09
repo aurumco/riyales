@@ -1,52 +1,44 @@
 <!DOCTYPE html>
-<html lang="fa-IR" dir="rtl">
+<html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  
-  <link rel="manifest" href="manifest.json">
-  <link rel="canonical" href="https://ryls.ir/">
-
-  <!-- SEO Meta Tags -->
-  <title>ریالِس | قیمت لحظه‌ای دلار، یورو، طلا و ارزهای دیجیتال</title>
-  <meta name="description" content="مرجع کامل و لحظه‌ای قیمت دلار، یورو، درهم، سکه طلا، تمام سکه، ۱۸ عیار و انواع ارزهای دیجیتال مانند بیت‌کوین و تتر. با ریالِس، از آخرین تحولات بازار ارز و طلا باخبر شوید.">
-  <meta name="keywords" content="قیمت دلار, قیمت یورو, قیمت سکه, قیمت طلا, نرخ ارز, ریالِس, قیمت لحظه ای, دلار آزاد, سکه امامی, طلای ۱۸ عیار, قیمت تتر, قیمت بیت کوین, بازار ارز, صرافی, ارز دیجیتال, riyales, dollar, gold, crypto">
-  <meta name="robots" content="index, follow">
-  <meta name="author" content="Aurum">
-  <meta name="geo.region" content="IR" />
-  <meta name="geo.placename" content="Iran" />
-
-  <!-- Theme colors -->
+  <!-- <link rel="manifest" href="manifest.json"> -->
+  <!-- Theme colors for browser and PWA status bars -->
   <meta name="theme-color" content="#090909">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="msapplication-navbutton-color" content="#090909">
+  <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker, dollar, euro, riyal, دلار, یورو, ریال, پوند, لیر, روبل, قیمت, نرخ, طلا, بهار آزادی, سکه, سکه امامی, کریپتو, ارز دیجیتال, بیتکوین, اتریوم, تتر, ترون, 24 عیار, 18 عیار, عیار, بانک مرکزی, نرخ دلار, قیمت دلار, قیمت سکه, قیمت لحظه‌ای, نرخ بروز, بورس, سهام, شاخص بورس, شاخص فرابورس, تسهیلات مسکن, اوراق بدهی, ارز, درهم, دینار, ریالس, فرابورس, بورس اوراق بهادار, بورس اوراق بهادار تهران, قیمت دلار, نیمایی, بانکی, فیات, دلار چند, طلا چند, سکه چند, دلار آمریکا, تومان, قیمت هر دلار, سکه یک گرمی, نفت, نفت برنت, نفت اپک, گاز, قیمت نفت, قیمت گاز, فلزات, فلزات گرانبها, نقره, لیر ترکیه, روبل روسیه, دلار کانادا, پوند انگلیس, آخرین قیمت"
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Aurum">
 
-  <!-- PWA & App Meta -->
+  <meta name="description" content="Riyales – Currency, Gold, Crypto & Stock Prices">
+
+  <!-- PWA & status bar styles -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="ریالِس">
+  <meta name="apple-mobile-web-app-title" content="Riyales">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <!-- Open Graph (for Facebook, LinkedIn, etc.) -->
-  <meta property="og:title" content="ریالِس | قیمت لحظه‌ای دلار، یورو، طلا و ارزهای دیجیتال">
-  <meta property="og:description" content="مرجع کامل و لحظه‌ای قیمت دلار، یورو، درهم، سکه طلا و انواع ارزهای دیجیتال. با ریالِس، از آخرین تحولات بازار باخبر شوید.">
-  <meta property="og:image" content="https://ryls.ir/assets/Icon-512.png">
+  <title>Riyales</title>
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="Riyales">
+  <meta property="og:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta property="og:image" content="icons/Icon-maskable-192.png">
   <meta property="og:url" content="https://ryls.ir">
   <meta property="og:type" content="website">
-  <meta property="og:locale" content="fa_IR">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ریالِس | قیمت لحظه‌ای دلار، یورو، طلا و ارزهای دیجیتال">
-  <meta name="twitter:description" content="مرجع کامل و لحظه‌ای قیمت دلار، یورو، سکه طلا و ارزهای دیجیتال.">
-  <meta name="twitter:image" content="https://ryls.ir/assets/Icon-512.png">
-  <meta name="twitter:site" content="@riyales">
+  <meta name="twitter:title" content="Riyales">
+  <meta name="twitter:description" content="Real-time currency, gold, crypto & stock prices">
+  <meta name="twitter:image" content="icons/Icon-maskable-192.png">
 
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json" id="structured-data">
@@ -68,6 +60,9 @@
     }
   }
   </script>
+
+  <!-- Force HTML renderer to avoid GPU memory issues with CanvasKit -->
+  <meta name="flutter-renderer" content="html" />
 
   <style>
     :root {
@@ -145,7 +140,7 @@
             const price = formatPrice(usd.price, ''); // No unit for title
             const title = isFa
               ? `ریالِس، مرجع قیمت ارز و طلا | قیمت دلار ${price} تومان`
-              : `Riyales, the reference for currency and gold prices | Dollar price ${price} Toman`;
+              : `Riyales | Dollar price ${price} Toman`;
             document.title = title;
             document.querySelector('meta[property="og:title"]').setAttribute('content', title);
             document.querySelector('meta[name="twitter:title"]').setAttribute('content', title);
