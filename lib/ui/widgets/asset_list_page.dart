@@ -91,7 +91,8 @@ class AssetListPageState<T extends models.Asset>
 
   // --- Added for crypto search pagination ---
   int _searchPage = 1;
-  static const int _searchPageSizeCrypto = 200;
+  static const int _searchPageSizeCrypto = 24;
+  static const int _minSearchChars = 3;
   String _lastSearchQuery = '';
   List<T> _currentFilteredResults = [];
 
@@ -229,11 +230,12 @@ class AssetListPageState<T extends models.Asset>
   void _onScroll() {
     final pos = _scrollController.position.pixels;
     final maxScroll = _scrollController.position.maxScrollExtent;
-    final searchQuery =
+    final searchQueryRaw =
         Provider.of<SearchQueryNotifier>(context, listen: false).query;
+    final bool searchActive = searchQueryRaw.length >= _minSearchChars;
 
     if (pos >= maxScroll * 0.85) {
-      if (searchQuery.isEmpty) {
+      if (!searchActive) {
         // Normal list pagination
         if (!_isLoadingMoreSearchResults) {
           widget.onLoadMore();
@@ -326,7 +328,7 @@ class AssetListPageState<T extends models.Asset>
       _searchPage = 1;
     }
 
-    final bool isCurrentlySearching = currentSearchQuery.isNotEmpty;
+    final bool isCurrentlySearching = currentSearchQuery.length >= _minSearchChars;
 
     List<T> itemsToDisplay;
 
@@ -645,7 +647,43 @@ class AssetListPageState<T extends models.Asset>
     return finalWidgetToReturn;
   }
 
-  ScrollController get scrollController => _scrollController;
+  ScrollController get scrollController import 'dart:async';
+import 'dart:ui' as ui;
+import 'dart:math' as math;
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:web_smooth_scroll/web_smooth_scroll.dart';
+
+import '../../models/asset_models.dart' as models;
+import '../../providers/locale_provider.dart';
+import '../../providers/favorites_provider.dart';
+import '../../providers/search_provider.dart';
+import '../../providers/alert_provider.dart';
+import '../../providers/card_corner_settings_provider.dart';
+import '../../localization/l10n_utils.dart';
+import '../../services/connection_service.dart';
+import '../../services/action_handler.dart';
+import './asset_card.dart';
+import './common/animated_card_builder.dart';
+import './common/error_placeholder.dart';
+import './common/alert_card.dart';
+import './search/shimmering_search_field.dart';
+// import '../../config/app_config.dart'; // For AppConfig access - Removed as AppConfig is not directly used here after recent refactors
+// import '../../providers/data_providers/crypto_data_provider.dart'; // Removed unused import
+
+enum AssetType { currency, gold, crypto, stock }
+
+enum SortMode { defaultOrder, highestPrice, lowestPrice }
+
+class AssetListPage<T extends models.Asset> extends StatefulWidget {
+  final AssetType assetType;
+  final List<T> items;
+  final List<T> fullItemsListForSearch;
+=> _scrollController;
 
   void setSortMode(SortMode mode) {
     if (_sortMode == mode && mounted) return;
