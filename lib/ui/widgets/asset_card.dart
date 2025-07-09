@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../models/asset_models.dart' as models;
 import '../../models/crypto_icon_info.dart';
@@ -44,6 +45,11 @@ class CryptoIconCacheManager extends CacheManager {
     repo: JsonCacheInfoRepository(databaseName: key),
   ));
 }
+
+// Helper to detect if the web build is using CanvasKit or HTML renderer.
+// Flutter defines the compile-time env var FLUTTER_WEB_USE_SKIA=true for CanvasKit builds.
+const bool _isCanvasKit = bool.fromEnvironment('FLUTTER_WEB_USE_SKIA', defaultValue: false);
+bool get _supportsColorFilter => !kIsWeb || _isCanvasKit;
 
 // Define manual crypto icon mapping constant at top level before AssetCard
 // Manually map cryptos to their asset icons by name
@@ -485,11 +491,9 @@ class AssetCard extends StatelessWidget {
       final CryptoIconInfo? cryptoIconInfo = cryptoIconMap[cryptoName];
 
       if (cryptoIconInfo != null) {
-        final ImageProvider<Object> localIconProvider =
-            AssetImage(cryptoIconInfo.iconPath);
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_local_icon'),
-          imageProvider: localIconProvider,
+          imageProvider: AssetImage(cryptoIconInfo.iconPath),
           preferredGlowColor: cryptoIconInfo.color,
           defaultGlowColor: defaultGlow,
           size: 32.0,
@@ -509,41 +513,12 @@ class AssetCard extends StatelessWidget {
               (asset as models.CryptoAsset).iconUrl!),
           defaultGlowColor: defaultGlow,
           size: 32.0,
-          child: ColorFiltered(
-            colorFilter: ColorFilter.matrix(matrix),
-            child: CachedNetworkImage(
-              cacheManager: CryptoIconCacheManager(),
-              imageUrl: (asset as models.CryptoAsset).iconUrl!,
-              width: 32,
-              height: 32,
-              imageBuilder: (context, imageProvider) => Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image:
-                      DecorationImage(image: imageProvider, fit: BoxFit.cover),
-                ),
-              ),
-              // Use a simple colored container as placeholder instead of spinner
-              placeholder: (context, url) => Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-                  shape: BoxShape.circle,
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle, color: Colors.transparent),
-                child:
-                    const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
-              ),
-            ),
-          ),
+          child: (_supportsColorFilter)
+              ? ColorFiltered(
+                  colorFilter: ColorFilter.matrix(matrix),
+                  child: _buildNetworkCryptoImage(isDarkMode, asset as models.CryptoAsset),
+                )
+              : _buildNetworkCryptoImage(isDarkMode, asset as models.CryptoAsset),
         );
       }
     } else if (assetType == AssetType.currency &&
@@ -585,6 +560,32 @@ class AssetCard extends StatelessWidget {
       };
       final flagColor = flagColors[countryCode] ?? tealGreen;
 
+      Widget flagImage = SvgPicture.asset(
+        flagPath,
+        width: 32,
+        height: 32,
+        fit: BoxFit.cover,
+        placeholderBuilder: (BuildContext context) => CircleAvatar(
+          backgroundColor: Colors.grey[300],
+          child: Text(
+            (asset as models.CurrencyAsset).symbol.substring(0, 1),
+            style: TextStyle(color: Colors.grey[700], fontSize: 12),
+          ),
+        ),
+      );
+
+      if (_supportsColorFilter) {
+        flagImage = ColorFiltered(
+          colorFilter: const ColorFilter.matrix([
+            1, 0, 0, 0, 0,
+            0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 0, 1.1, 0,
+          ]),
+          child: flagImage,
+        );
+      }
+
       iconWidget = Container(
         width: 32,
         height: 32,
@@ -593,35 +594,13 @@ class AssetCard extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-                color: flagColor.withAlpha((255 * 0.5).round()),
-                blurRadius: 60,
-                spreadRadius: 6),
+              color: flagColor.withAlpha((255 * 0.5).round()),
+              blurRadius: 60,
+              spreadRadius: 6,
+            ),
           ],
         ),
-        child: ClipOval(
-          child: ColorFiltered(
-            colorFilter: const ColorFilter.matrix([
-              1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1.1,
-              0, // 10% contrast
-            ]),
-            child: SvgPicture.asset(
-              flagPath,
-              width: 32,
-              height: 32,
-              fit: BoxFit.cover,
-              placeholderBuilder: (BuildContext context) => CircleAvatar(
-                backgroundColor:
-                    Colors.grey[300], // Corrected to Colors.grey[300]
-                child: Text(
-                  (asset as models.CurrencyAsset)
-                      .symbol
-                      .substring(0, 1), // Restored original logic
-                  style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                ),
-              ),
-            ),
-          ),
-        ),
+        child: ClipOval(child: flagImage),
       );
     } else if (assetType == AssetType.gold) {
       final symbol = asset.symbol.toUpperCase();
@@ -905,6 +884,37 @@ class AssetCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _buildNetworkCryptoImage(bool isDarkMode, models.CryptoAsset asset) {
+  return CachedNetworkImage(
+    cacheManager: CryptoIconCacheManager(),
+    imageUrl: asset.iconUrl!,
+    width: 32,
+    height: 32,
+    imageBuilder: (context, imageProvider) => Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+      ),
+    ),
+    placeholder: (context, url) => Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+        shape: BoxShape.circle,
+      ),
+    ),
+    errorWidget: (context, url, error) => Container(
+      width: 32,
+      height: 32,
+      decoration: const BoxDecoration(shape: BoxShape.circle),
+      child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
+    ),
+  );
 }
 
 // Helper class for selected price conversion rates
