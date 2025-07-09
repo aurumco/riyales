@@ -512,6 +512,7 @@ class AssetCard extends StatelessWidget {
           imageProvider: CachedNetworkImageProvider(
               (asset as models.CryptoAsset).iconUrl!),
           defaultGlowColor: defaultGlow,
+          preferredGlowColor: defaultGlow,
           size: 32.0,
           child: (_supportsColorFilter)
               ? ColorFiltered(
