@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:io' show Platform;
 import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart'

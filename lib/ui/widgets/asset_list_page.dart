@@ -643,7 +643,7 @@ class AssetListPageState<T extends models.Asset>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      isCurrentlySearching ? Icons.search_off : Icons.list,
+                      isCurrentlySearching ? CupertinoIcons.search : CupertinoIcons.square_grid_2x2,
                       size: 56,
                       color: isDarkMode
                           ? Colors.grey[500]

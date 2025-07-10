@@ -16,8 +16,8 @@ import '../screens/terms_screen.dart'; // Will be created later
 import '../../utils/color_utils.dart';
 import '../../utils/helpers.dart';
 
-// Hardcoded current app version - TODO: consider moving to a config file or build variable
-const String currentAppVersion = '0.140.0';
+// Hardcoded current app version
+const String currentAppVersion = '0.142.1';
 
 // Settings Sheet (minimal bottom sheet)
 class SettingsSheet extends StatelessWidget {
