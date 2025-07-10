@@ -38,8 +38,10 @@ class DeviceInfoService {
 
     if (alreadySent) {
       if (kDebugMode && _enableLogs) {
-        print(
+        if (kDebugMode) {
+          print(
             '[DeviceInfoService] Device info already sent previously. Skipping.');
+        }
       }
       return;
     }
@@ -144,12 +146,20 @@ class DeviceInfoService {
       }
 
       if (kDebugMode && _enableLogs) {
-        print(
+        if (kDebugMode) {
+          print(
             '[DeviceInfoService] Sending payload to ${AppConstants.apiBaseUrl}${AppConstants.deviceEndpoint}');
+        }
         final apiKey = await _getApiKey();
-        print('[DeviceInfoService] API Key: $apiKey');
-        print('[DeviceInfoService] User-Agent: $userAgent');
-        print('[DeviceInfoService] Body: $data');
+        if (kDebugMode) {
+          print('[DeviceInfoService] API Key: $apiKey');
+        }
+        if (kDebugMode) {
+          print('[DeviceInfoService] User-Agent: $userAgent');
+        }
+        if (kDebugMode) {
+          print('[DeviceInfoService] Body: $data');
+        }
       }
 
       final response = await _dio.post(
@@ -167,25 +177,39 @@ class DeviceInfoService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         await prefs.setBool(_deviceInfoSentKey, true);
         if (kDebugMode && _enableLogs) {
-          print(
+          if (kDebugMode) {
+            print(
               '[DeviceInfoService] Successfully sent device info: ${response.data}');
+          }
         }
       } else {
         if (kDebugMode && _enableLogs) {
-          print(
+          if (kDebugMode) {
+            print(
               '[DeviceInfoService] Failed to send device info. Status: ${response.statusCode}, Body: ${response.data}');
+          }
         }
       }
     } catch (e) {
       if (kDebugMode && _enableLogs) {
-        print(
+        if (kDebugMode) {
+          print(
             '[DeviceInfoService] An error occurred while sending device info.');
+        }
         if (e is DioException) {
-          print('DioException: ${e.message}');
-          print('Response Data: ${e.response?.data}');
-          print('Request URI: ${e.requestOptions.uri}');
+          if (kDebugMode) {
+            print('DioException: ${e.message}');
+          }
+          if (kDebugMode) {
+            print('Response Data: ${e.response?.data}');
+          }
+          if (kDebugMode) {
+            print('Request URI: ${e.requestOptions.uri}');
+          }
         } else {
-          print('Generic Error: $e');
+          if (kDebugMode) {
+            print('Generic Error: $e');
+          }
         }
       }
     }

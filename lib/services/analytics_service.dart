@@ -77,8 +77,10 @@ class AnalyticsService {
     }
 
     if (kDebugMode && _enableLogs) {
-      print(
+      if (kDebugMode) {
+        print(
           '[AnalyticsService] Event logged: $eventType. Total for this event: ${_eventBuffer[eventKey]?.count}');
+      }
     }
   }
 
@@ -120,17 +122,23 @@ class AnalyticsService {
       await prefs.setStringList(_storedEventsKey, updatedEventsJson);
 
       if (kDebugMode && _enableLogs) {
-        print(
+        if (kDebugMode) {
+          print(
             '[AnalyticsService] Saved ${_eventBuffer.length} events to persistent storage.');
-        print(
+        }
+        if (kDebugMode) {
+          print(
             '[AnalyticsService] Total events in storage: ${updatedEventsJson.length}');
+        }
       }
 
       // Clear in-memory buffer after saving
       _eventBuffer.clear();
     } catch (e) {
       if (kDebugMode && _enableLogs) {
-        print('[AnalyticsService] Error saving events: $e');
+        if (kDebugMode) {
+          print('[AnalyticsService] Error saving events: $e');
+        }
       }
     }
   }
@@ -143,7 +151,9 @@ class AnalyticsService {
 
       if (storedEventsJson.isEmpty) {
         if (kDebugMode && _enableLogs) {
-          print('[AnalyticsService] No previously stored events to send.');
+          if (kDebugMode) {
+            print('[AnalyticsService] No previously stored events to send.');
+          }
         }
         return;
       }
@@ -154,8 +164,10 @@ class AnalyticsService {
           .toList();
 
       if (kDebugMode && _enableLogs) {
-        print(
+        if (kDebugMode) {
+          print(
             '[AnalyticsService] Sending ${events.length} stored events from previous session.');
+        }
       }
 
       // Format events for API
@@ -165,7 +177,9 @@ class AnalyticsService {
       final apiKey = await _getApiKey();
 
       if (kDebugMode && _enableLogs) {
-        print('[AnalyticsService] Body: $body');
+        if (kDebugMode) {
+          print('[AnalyticsService] Body: $body');
+        }
       }
 
       // Send events to server
@@ -187,20 +201,28 @@ class AnalyticsService {
             _lastSendTimeKey, DateTime.now().toIso8601String());
 
         if (kDebugMode && _enableLogs) {
-          print(
+          if (kDebugMode) {
+            print(
               '[AnalyticsService] Successfully sent stored events from previous session.');
-          print('[AnalyticsService] Response: ${response.body}');
+          }
+          if (kDebugMode) {
+            print('[AnalyticsService] Response: ${response.body}');
+          }
         }
       } else {
         if (kDebugMode && _enableLogs) {
-          print(
+          if (kDebugMode) {
+            print(
               '[AnalyticsService] Failed to send stored events. Status: ${response.statusCode}, Body: ${response.body}');
+          }
         }
         // Keep events in storage to try again next time
       }
     } catch (e) {
       if (kDebugMode && _enableLogs) {
-        print('[AnalyticsService] Error sending stored events: $e');
+        if (kDebugMode) {
+          print('[AnalyticsService] Error sending stored events: $e');
+        }
       }
     }
   }

@@ -25,6 +25,20 @@ class DynamicGlow extends StatefulWidget {
 class _DynamicGlowState extends State<DynamicGlow> {
   Color? _glowColor;
 
+  // Simple in-memory cache to avoid recomputing palette for the same image.
+  // Key is derived from ImageProvider's unique identifier (URL or asset name).
+  static final Map<String, Color> _paletteCache = {};
+
+  String _providerKey(ImageProvider provider) {
+    if (provider is NetworkImage) {
+      return 'network:${provider.url}';
+    } else if (provider is AssetImage) {
+      return 'asset:${provider.assetName}';
+    } else {
+      return provider.hashCode.toString();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -32,13 +46,18 @@ class _DynamicGlowState extends State<DynamicGlow> {
       // If preferred color exists
       _glowColor = widget.preferredGlowColor;
     } else {
-      // Otherwise, initialize with default and try to generate from image
-      _glowColor = widget.defaultGlowColor;
-      _initPalette();
+      // Otherwise, initialize with default or cached color then generate async.
+      final key = _providerKey(widget.imageProvider);
+      if (_paletteCache.containsKey(key)) {
+        _glowColor = _paletteCache[key];
+      } else {
+        _glowColor = widget.defaultGlowColor;
+        _initPalette(key);
+      }
     }
   }
 
-  Future<void> _initPalette() async {
+  Future<void> _initPalette(String cacheKey) async {
     // Only called if preferredGlowColor is null
     try {
       final palette = await PaletteGenerator.fromImageProvider(
@@ -51,6 +70,7 @@ class _DynamicGlowState extends State<DynamicGlow> {
         setState(() {
           _glowColor = color;
         });
+        _paletteCache[cacheKey] = color; // cache result
       }
       // If color is null, _glowColor remains widget.defaultGlowColor (which was set in initState)
     } catch (_) {
@@ -72,10 +92,12 @@ class _DynamicGlowState extends State<DynamicGlow> {
       } else {
         // preferredGlowColor is null, try to generate from imageProvider
         // but first set to default to avoid showing old glow with new image
-        setState(() {
-           _glowColor = widget.defaultGlowColor;
-        });
-        _initPalette();
+        final key = _providerKey(widget.imageProvider);
+        if (_paletteCache.containsKey(key)) {
+          _glowColor = _paletteCache[key];
+        } else {
+          _initPalette(key);
+        }
       }
     } else if (widget.defaultGlowColor != oldWidget.defaultGlowColor && _glowColor == oldWidget.defaultGlowColor) {
       // If only defaultGlowColor changed and we were using it, update to new default.
