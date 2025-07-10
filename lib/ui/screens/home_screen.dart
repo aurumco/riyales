@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'dart:async'; // Added for Timer
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:vibration/vibration.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -130,6 +131,11 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   @override
   void initState() {
     super.initState();
+    // Make status bar transparent to let AppBar blur extend edge-to-edge
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.black,
+    ));
     WidgetsBinding.instance.addObserver(this);
     // Connection status is handled by NetworkAwareWidget, no direct subscription needed here.
     // _setupTabs() is called in didChangeDependencies
@@ -1250,7 +1256,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     );
     final curved = CurvedAnimation(
       parent: controller,
-      curve: Curves.easeInOutQuart,
+      curve: Curves.easeInOut,
     );
     late OverlayEntry entry;
     entry = OverlayEntry(builder: (context) {

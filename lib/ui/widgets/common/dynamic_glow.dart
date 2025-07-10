@@ -51,7 +51,7 @@ class _DynamicGlowState extends State<DynamicGlow> {
       if (_paletteCache.containsKey(key)) {
         _glowColor = _paletteCache[key];
       } else {
-        _glowColor = widget.defaultGlowColor;
+      _glowColor = widget.defaultGlowColor;
         _initPalette(key);
       }
     }

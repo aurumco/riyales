@@ -517,7 +517,7 @@ class AssetCard extends StatelessWidget {
           size: 32.0,
           child: (_supportsColorFilter)
               ? ColorFiltered(
-                  colorFilter: ColorFilter.matrix(matrix),
+            colorFilter: ColorFilter.matrix(matrix),
                   child: _buildNetworkCryptoImage(isDarkMode, asset as models.CryptoAsset),
                 )
               : _buildNetworkCryptoImage(isDarkMode, asset as models.CryptoAsset),
@@ -596,8 +596,8 @@ class AssetCard extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: flagColor.withAlpha((255 * 0.5).round()),
-              blurRadius: 60,
+                color: flagColor.withAlpha((255 * 0.5).round()),
+                blurRadius: 60,
               spreadRadius: 6,
             ),
           ],
