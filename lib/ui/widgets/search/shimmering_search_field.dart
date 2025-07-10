@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../../providers/search_provider.dart';
 import '../../../localization/l10n_utils.dart';
 import '../../../utils/helpers.dart';
+import '../../../utils/browser_utils.dart';
 
 class ShimmeringSearchField extends StatefulWidget {
   const ShimmeringSearchField({super.key});
@@ -54,8 +56,11 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     final isRTL = Localizations.localeOf(context).languageCode == 'fa' ||
         containsPersian(searchText);
 
+    // Detect Firefox on web: disable shimmer due to lack of proper shader support
+    final bool isFirefoxBrowser = kIsWeb && isFirefox();
+
     // Determine if shimmer should be active based on whether user typed anything
-    bool shouldShimmer = searchText.isEmpty;
+    bool shouldShimmer = searchText.isEmpty && !isFirefoxBrowser;
 
     if (shouldShimmer && !_isShimmering) {
       _shimmerController.repeat();
@@ -105,7 +110,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
           alignment: Alignment.center,
           children: [
             // Shimmering placeholder (drawn first, so it's behind)
-            if (searchText.isEmpty && _isShimmering)
+            if (searchText.isEmpty && _isShimmering && !isFirefoxBrowser)
               Align(
                 alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
                 child: Padding(
@@ -140,7 +145,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
                 ),
               ),
             // Static placeholder when not shimmering (drawn after shimmer, also behind text field)
-            if (searchText.isEmpty && !_isShimmering)
+            if (searchText.isEmpty && (!_isShimmering || isFirefoxBrowser))
               Align(
                 alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
                 child: Padding(

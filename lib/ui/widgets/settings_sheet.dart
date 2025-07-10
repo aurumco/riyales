@@ -5,6 +5,7 @@ import 'package:provider/provider.dart'; // Added Provider
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import '../../utils/browser_utils.dart';
 
 import '../../config/app_config.dart';
 import '../../providers/locale_provider.dart';
@@ -87,317 +88,636 @@ class SettingsSheet extends StatelessWidget {
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
       ),
       child: RepaintBoundary(
-        child: CupertinoActionSheet(
-          title: Text(
-            l10n.settingsTitle,
-            style: TextStyle(
-              fontFamily: locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: isDarkMode ? Colors.white : Colors.black,
-            ),
-          ),
-          actions: [
-            // Theme toggle
-            CupertinoActionSheetAction(
-              onPressed: () {}, // Empty callback to make it non-dismissible
-              isDefaultAction: false,
-              child: Padding( // Changed Container to Padding
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.settingsTheme,
-                      style: TextStyle(
-                        fontFamily:
-                            locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                        fontSize: 17,
-                        fontWeight: FontWeight.normal,
-                        color: isDarkMode ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    CupertinoSwitch(
-                      // Reflect actual brightness: system or user override
-                      value: Theme.of(context).brightness == Brightness.dark,
-                      activeTrackColor: tealGreen,
-                      onChanged: (v) => context
-                          .read<ThemeNotifier>()
-                          .setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Language selector
-            // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
-            CupertinoActionSheetAction(
-              onPressed: () {
-                // Show iOS-style picker for language selection
-                _showLanguagePicker(context, appConfig, l10n); // Removed localeNotifier
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.settingsLanguage,
+        child: (kIsWeb && isFirefox())
+            ? Container(
+                color: isDarkMode ? const Color(0xFF2C2C2E) : Colors.white,
+                child: CupertinoActionSheet(
+                  title: Text(
+                    l10n.settingsTitle,
                     style: TextStyle(
-                      fontFamily:
-                          locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                      fontFamily: locale.languageCode == 'fa'
+                          ? 'Vazirmatn'
+                          : 'SF-Pro',
                       fontSize: 17,
-                      fontWeight: FontWeight.normal,
+                      fontWeight: FontWeight.w600,
                       color: isDarkMode ? Colors.white : Colors.black,
                     ),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        locale.languageCode == 'fa' ? 'فارسی' : 'English',
-                        style: TextStyle(
-                          fontFamily: locale.languageCode == 'fa'
-                              ? 'Vazirmatn'
-                              : 'SF-Pro',
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  actions: [
+                    // Theme toggle
+                    CupertinoActionSheetAction(
+                      onPressed: () {}, // Empty callback to make it non-dismissible
+                      isDefaultAction: false,
+                      child: Padding( // Changed Container to Padding
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              l10n.settingsTheme,
+                              style: TextStyle(
+                                fontFamily:
+                                    locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                                fontSize: 17,
+                                fontWeight: FontWeight.normal,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            CupertinoSwitch(
+                              // Reflect actual brightness: system or user override
+                              value: Theme.of(context).brightness == Brightness.dark,
+                              activeTrackColor: tealGreen,
+                              onChanged: (v) => context
+                                  .read<ThemeNotifier>()
+                                  .setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(
-                          width: 8), // Corrected: ensure only one, already const
-                      Icon(
-                        CupertinoIcons.chevron_down,
-                        size: 16,
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Currency unit selector
-            CupertinoActionSheetAction(
-              onPressed: () {
-                // Show iOS-style picker for currency unit selection
-                // ref is no longer passed; context is available in _showCurrencyUnitPicker
-                _showCurrencyUnitPicker(context, locale, l10n); // Removed currencyUnitNotifier
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.settingsCurrencyUnit,
-                    style: TextStyle(
-                      fontFamily:
-                          locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                      fontSize: 17,
-                      fontWeight: FontWeight.normal,
-                      color: isDarkMode ? Colors.white : Colors.black,
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        currencyUnit == CurrencyUnit.toman
-                            ? l10n.currencyUnitToman
-                            : currencyUnit == CurrencyUnit.usd
-                                ? l10n.currencyUnitUSD
-                                : l10n.currencyUnitEUR,
-                        style: TextStyle(
-                          fontFamily: locale.languageCode == 'fa' ||
-                                  (currencyUnit == CurrencyUnit.toman &&
-                                      containsPersian(
-                                        // from utils/helpers.dart
-                                        l10n.currencyUnitToman,
-                                      ))
-                              ? 'Vazirmatn'
-                              : 'SF-Pro',
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+
+                    // Language selector
+                    // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
+                    CupertinoActionSheetAction(
+                      onPressed: () {
+                        // Show iOS-style picker for language selection
+                        _showLanguagePicker(context, appConfig, l10n); // Removed localeNotifier
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.settingsLanguage,
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                locale.languageCode == 'fa' ? 'فارسی' : 'English',
+                                style: TextStyle(
+                                  fontFamily: locale.languageCode == 'fa'
+                                      ? 'Vazirmatn'
+                                      : 'SF-Pro',
+                                  fontSize: 16,
+                                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(
+                                  width: 8), // Corrected: ensure only one, already const
+                              Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 16,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Currency unit selector
+                    CupertinoActionSheetAction(
+                      onPressed: () {
+                        // Show iOS-style picker for currency unit selection
+                        // ref is no longer passed; context is available in _showCurrencyUnitPicker
+                        _showCurrencyUnitPicker(context, locale, l10n); // Removed currencyUnitNotifier
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.settingsCurrencyUnit,
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                currencyUnit == CurrencyUnit.toman
+                                    ? l10n.currencyUnitToman
+                                    : currencyUnit == CurrencyUnit.usd
+                                        ? l10n.currencyUnitUSD
+                                        : l10n.currencyUnitEUR,
+                                style: TextStyle(
+                                  fontFamily: locale.languageCode == 'fa' ||
+                                          (currencyUnit == CurrencyUnit.toman &&
+                                              containsPersian(
+                                                // from utils/helpers.dart
+                                                l10n.currencyUnitToman,
+                                              ))
+                                      ? 'Vazirmatn'
+                                      : 'SF-Pro',
+                                  fontSize: 16,
+                                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(width: 8), // Already const
+                              Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 16,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Download App button for mobile web users
+                    if (isMobileWeb)
+                      CupertinoActionSheetAction(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          launchUrl(Uri.parse('https://dl.ryls.ir'));
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              locale.languageCode == 'fa'
+                                  ? 'دانلود اپلیکیشن'
+                                  : 'Download App',
+                              style: TextStyle(
+                                fontFamily:
+                                    locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                                fontSize: 17,
+                                fontWeight: FontWeight.normal,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            Icon(
+                              locale.languageCode == 'fa'
+                                  ? Icons.keyboard_arrow_left
+                                  : Icons.keyboard_arrow_right,
+                              size: chevronSize,
+                              color: chevronColor,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8), // Already const
-                      Icon(
-                        CupertinoIcons.chevron_down,
-                        size: 16,
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
 
-            // Download App button for mobile web users
-            if (isMobileWeb)
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.pop(context);
-                  launchUrl(Uri.parse('https://dl.ryls.ir'));
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      locale.languageCode == 'fa'
-                          ? 'دانلود اپلیکیشن'
-                          : 'Download App',
-                      style: TextStyle(
-                        fontFamily:
-                            locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                        fontSize: 17,
-                        fontWeight: FontWeight.normal,
-                        color: isDarkMode ? Colors.white : Colors.black,
+                    // Terms and Conditions Button
+                    CupertinoActionSheetAction(
+                      onPressed: () {
+                        Navigator.pop(context); // Close the settings sheet
+                        Navigator.of(context).push(
+                          CupertinoPageRoute(
+                            builder: (context) => const TermsAndConditionsScreen(),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.settingsTerms,
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Icon(
+                            locale.languageCode == 'fa'
+                                ? Icons.keyboard_arrow_left
+                                : Icons.keyboard_arrow_right,
+                            size: chevronSize,
+                            color: chevronColor,
+                          ),
+                        ],
                       ),
                     ),
-                    Icon(
-                      locale.languageCode == 'fa'
-                          ? Icons.keyboard_arrow_left
-                          : Icons.keyboard_arrow_right,
-                      size: chevronSize,
-                      color: chevronColor,
+                    // Contact Us button
+                    CupertinoActionSheetAction(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Build mailto URL manually to avoid '+' encoding for spaces
+                        final subject = locale.languageCode == 'fa'
+                            ? Uri.encodeComponent('درخواست پشتیبانی')
+                            : Uri.encodeComponent('Support Request');
+                        final body = locale.languageCode == 'fa'
+                            ? Uri.encodeComponent('سلام،\n\nلطفاً به من در مورد...')
+                            : Uri.encodeComponent('Hello,\n\nPlease assist me with...');
+                        final emailUrl =
+                            'mailto:info@ryls.ir?subject=$subject&body=$body';
+                        launchUrl(Uri.parse(emailUrl));
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            locale.languageCode == 'fa' ? 'تماس با ما' : 'Contact Us',
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Icon(
+                            locale.languageCode == 'fa'
+                                ? Icons.keyboard_arrow_left
+                                : Icons.keyboard_arrow_right,
+                            size: chevronSize,
+                            color: chevronColor,
+                          ),
+                        ],
+                      ),
                     ),
+                    // Update Button
+                    if (updateAvailable)
+                      CupertinoActionSheetAction(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          // Handle update action based on configuration
+                          // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
+                          final updateInfo = appConfig.updateInfo;
+                          if (updateInfo.updateMode == 'package') {
+                            final pkg = updateInfo.updatePackage;
+                            // Deep link to app store
+                            final storeUri = Uri.parse('market://details?id=$pkg');
+                            if (await canLaunchUrl(storeUri)) {
+                              await launchUrl(storeUri);
+                            } else {
+                              // Fallback web URL for Play Store
+                              final webUri = Uri.parse(
+                                'https://play.google.com/store/apps/details?id=$pkg',
+                              );
+                              await launchUrl(webUri);
+                            }
+                          } else {
+                            final link = updateInfo.updateLink;
+                            final uri = Uri.tryParse(link);
+                            if (uri != null && await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          }
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              updateButtonText,
+                              style: TextStyle(
+                                fontFamily:
+                                    locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                                fontSize: 17,
+                                fontWeight: FontWeight.normal,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            Icon(
+                              locale.languageCode == 'fa'
+                                  ? Icons.keyboard_arrow_left
+                                  : Icons.keyboard_arrow_right,
+                              size: chevronSize,
+                              color: chevronColor,
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
+                  cancelButton: CupertinoActionSheetAction(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      l10n.dialogClose,
+                      style: TextStyle(
+                        fontFamily: locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: tealGreen,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+            )
+            : CupertinoActionSheet(
+                title: Text(
+                  l10n.settingsTitle,
+                  style: TextStyle(
+                    fontFamily: locale.languageCode == 'fa'
+                        ? 'Vazirmatn'
+                        : 'SF-Pro',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+                actions: [
+                  // Theme toggle
+                  CupertinoActionSheetAction(
+                    onPressed: () {}, // Empty callback to make it non-dismissible
+                    isDefaultAction: false,
+                    child: Padding( // Changed Container to Padding
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.settingsTheme,
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          CupertinoSwitch(
+                            // Reflect actual brightness: system or user override
+                            value: Theme.of(context).brightness == Brightness.dark,
+                            activeTrackColor: tealGreen,
+                            onChanged: (v) => context
+                                .read<ThemeNotifier>()
+                                .setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-            // Terms and Conditions Button
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context); // Close the settings sheet
-                Navigator.of(context).push(
-                  CupertinoPageRoute(
-                    builder: (context) => const TermsAndConditionsScreen(),
-                  ),
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.settingsTerms,
-                    style: TextStyle(
-                      fontFamily:
-                          locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                      fontSize: 17,
-                      fontWeight: FontWeight.normal,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  Icon(
-                    locale.languageCode == 'fa'
-                        ? Icons.keyboard_arrow_left
-                        : Icons.keyboard_arrow_right,
-                    size: chevronSize,
-                    color: chevronColor,
-                  ),
-                ],
-              ),
-            ),
-            // Contact Us button
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                // Build mailto URL manually to avoid '+' encoding for spaces
-                final subject = locale.languageCode == 'fa'
-                    ? Uri.encodeComponent('درخواست پشتیبانی')
-                    : Uri.encodeComponent('Support Request');
-                final body = locale.languageCode == 'fa'
-                    ? Uri.encodeComponent('سلام،\n\nلطفاً به من در مورد...')
-                    : Uri.encodeComponent('Hello,\n\nPlease assist me with...');
-                final emailUrl =
-                    'mailto:info@ryls.ir?subject=$subject&body=$body';
-                launchUrl(Uri.parse(emailUrl));
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    locale.languageCode == 'fa' ? 'تماس با ما' : 'Contact Us',
-                    style: TextStyle(
-                      fontFamily:
-                          locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                      fontSize: 17,
-                      fontWeight: FontWeight.normal,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                  Icon(
-                    locale.languageCode == 'fa'
-                        ? Icons.keyboard_arrow_left
-                        : Icons.keyboard_arrow_right,
-                    size: chevronSize,
-                    color: chevronColor,
-                  ),
-                ],
-              ),
-            ),
-            // Update Button
-            if (updateAvailable)
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  // Handle update action based on configuration
+                  // Language selector
                   // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
-                  final updateInfo = appConfig.updateInfo;
-                  if (updateInfo.updateMode == 'package') {
-                    final pkg = updateInfo.updatePackage;
-                    // Deep link to app store
-                    final storeUri = Uri.parse('market://details?id=$pkg');
-                    if (await canLaunchUrl(storeUri)) {
-                      await launchUrl(storeUri);
-                    } else {
-                      // Fallback web URL for Play Store
-                      final webUri = Uri.parse(
-                        'https://play.google.com/store/apps/details?id=$pkg',
-                      );
-                      await launchUrl(webUri);
-                    }
-                  } else {
-                    final link = updateInfo.updateLink;
-                    final uri = Uri.tryParse(link);
-                    if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(uri);
-                    }
-                  }
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      updateButtonText,
-                      style: TextStyle(
-                        fontFamily:
-                            locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                        fontSize: 17,
-                        fontWeight: FontWeight.normal,
-                        color: isDarkMode ? Colors.white : Colors.black,
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      // Show iOS-style picker for language selection
+                      _showLanguagePicker(context, appConfig, l10n); // Removed localeNotifier
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.settingsLanguage,
+                          style: TextStyle(
+                            fontFamily:
+                                locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                            fontSize: 17,
+                            fontWeight: FontWeight.normal,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              locale.languageCode == 'fa' ? 'فارسی' : 'English',
+                              style: TextStyle(
+                                fontFamily: locale.languageCode == 'fa'
+                                    ? 'Vazirmatn'
+                                    : 'SF-Pro',
+                                fontSize: 16,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(
+                                width: 8), // Corrected: ensure only one, already const
+                            Icon(
+                              CupertinoIcons.chevron_down,
+                              size: 16,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Currency unit selector
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      // Show iOS-style picker for currency unit selection
+                      // ref is no longer passed; context is available in _showCurrencyUnitPicker
+                      _showCurrencyUnitPicker(context, locale, l10n); // Removed currencyUnitNotifier
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.settingsCurrencyUnit,
+                          style: TextStyle(
+                            fontFamily:
+                                locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                            fontSize: 17,
+                            fontWeight: FontWeight.normal,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              currencyUnit == CurrencyUnit.toman
+                                  ? l10n.currencyUnitToman
+                                  : currencyUnit == CurrencyUnit.usd
+                                      ? l10n.currencyUnitUSD
+                                      : l10n.currencyUnitEUR,
+                              style: TextStyle(
+                                fontFamily: locale.languageCode == 'fa' ||
+                                        (currencyUnit == CurrencyUnit.toman &&
+                                            containsPersian(
+                                              // from utils/helpers.dart
+                                              l10n.currencyUnitToman,
+                                            ))
+                                    ? 'Vazirmatn'
+                                    : 'SF-Pro',
+                                fontSize: 16,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(width: 8), // Already const
+                            Icon(
+                              CupertinoIcons.chevron_down,
+                              size: 16,
+                              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Download App button for mobile web users
+                  if (isMobileWeb)
+                    CupertinoActionSheetAction(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        launchUrl(Uri.parse('https://dl.ryls.ir'));
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            locale.languageCode == 'fa'
+                                ? 'دانلود اپلیکیشن'
+                                : 'Download App',
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Icon(
+                            locale.languageCode == 'fa'
+                                ? Icons.keyboard_arrow_left
+                                : Icons.keyboard_arrow_right,
+                            size: chevronSize,
+                            color: chevronColor,
+                          ),
+                        ],
                       ),
                     ),
-                    Icon(
-                      locale.languageCode == 'fa'
-                          ? Icons.keyboard_arrow_left
-                          : Icons.keyboard_arrow_right,
-                      size: chevronSize,
-                      color: chevronColor,
+
+                  // Terms and Conditions Button
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the settings sheet
+                      Navigator.of(context).push(
+                        CupertinoPageRoute(
+                          builder: (context) => const TermsAndConditionsScreen(),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.settingsTerms,
+                          style: TextStyle(
+                            fontFamily:
+                                locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                            fontSize: 17,
+                            fontWeight: FontWeight.normal,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        Icon(
+                          locale.languageCode == 'fa'
+                              ? Icons.keyboard_arrow_left
+                              : Icons.keyboard_arrow_right,
+                          size: chevronSize,
+                          color: chevronColor,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                  // Contact Us button
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // Build mailto URL manually to avoid '+' encoding for spaces
+                      final subject = locale.languageCode == 'fa'
+                          ? Uri.encodeComponent('درخواست پشتیبانی')
+                          : Uri.encodeComponent('Support Request');
+                      final body = locale.languageCode == 'fa'
+                          ? Uri.encodeComponent('سلام،\n\nلطفاً به من در مورد...')
+                          : Uri.encodeComponent('Hello,\n\nPlease assist me with...');
+                      final emailUrl =
+                          'mailto:info@ryls.ir?subject=$subject&body=$body';
+                      launchUrl(Uri.parse(emailUrl));
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          locale.languageCode == 'fa' ? 'تماس با ما' : 'Contact Us',
+                          style: TextStyle(
+                            fontFamily:
+                                locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                            fontSize: 17,
+                            fontWeight: FontWeight.normal,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        Icon(
+                          locale.languageCode == 'fa'
+                              ? Icons.keyboard_arrow_left
+                              : Icons.keyboard_arrow_right,
+                          size: chevronSize,
+                          color: chevronColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Update Button
+                  if (updateAvailable)
+                    CupertinoActionSheetAction(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        // Handle update action based on configuration
+                        // appConfig from context.watch with FutureProvider (with initialData & catchError) should not be null.
+                        final updateInfo = appConfig.updateInfo;
+                        if (updateInfo.updateMode == 'package') {
+                          final pkg = updateInfo.updatePackage;
+                          // Deep link to app store
+                          final storeUri = Uri.parse('market://details?id=$pkg');
+                          if (await canLaunchUrl(storeUri)) {
+                            await launchUrl(storeUri);
+                          } else {
+                            // Fallback web URL for Play Store
+                            final webUri = Uri.parse(
+                              'https://play.google.com/store/apps/details?id=$pkg',
+                            );
+                            await launchUrl(webUri);
+                          }
+                        } else {
+                          final link = updateInfo.updateLink;
+                          final uri = Uri.tryParse(link);
+                          if (uri != null && await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          }
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            updateButtonText,
+                            style: TextStyle(
+                              fontFamily:
+                                  locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                              fontSize: 17,
+                              fontWeight: FontWeight.normal,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Icon(
+                            locale.languageCode == 'fa'
+                                ? Icons.keyboard_arrow_left
+                                : Icons.keyboard_arrow_right,
+                            size: chevronSize,
+                            color: chevronColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+                cancelButton: CupertinoActionSheetAction(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    l10n.dialogClose,
+                    style: TextStyle(
+                      fontFamily: locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: tealGreen,
+                    ),
+                  ),
                 ),
               ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              l10n.dialogClose,
-              style: TextStyle(
-                fontFamily: locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: tealGreen,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
