@@ -890,27 +890,29 @@ class AssetCard extends StatelessWidget {
 
 Widget _buildNetworkCryptoImage(bool isDarkMode, models.CryptoAsset asset) {
   if (kIsWeb) {
-    return Image.network(
-      asset.iconUrl!,
-      width: 32,
-      height: 32,
-      fit: BoxFit.cover,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-            shape: BoxShape.circle,
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) => Container(
+    return ClipOval(
+      child: Image.network(
+        asset.iconUrl!,
         width: 32,
         height: 32,
-        decoration: const BoxDecoration(shape: BoxShape.circle),
-        child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+              shape: BoxShape.circle,
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: 32,
+          height: 32,
+          decoration: const BoxDecoration(shape: BoxShape.circle),
+          child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
+        ),
       ),
     );
   } else {
