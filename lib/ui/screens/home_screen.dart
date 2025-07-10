@@ -9,6 +9,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Config
 import '../../config/app_config.dart';
@@ -22,10 +23,6 @@ import '../../providers/search_provider.dart';
 import '../../providers/data_providers/currency_data_provider.dart';
 import '../../providers/data_providers/gold_data_provider.dart';
 import '../../providers/data_providers/crypto_data_provider.dart';
-// import '../../providers/data_providers/stock_tse_ifb_data_provider.dart'; // Removed
-// import '../../providers/data_providers/stock_debt_securities_data_provider.dart'; // Removed
-// import '../../providers/data_providers/stock_futures_data_provider.dart'; // Removed
-// import '../../providers/data_providers/stock_housing_facilities_data_provider.dart'; // Removed
 
 // UI Widgets
 import '../widgets/asset_list_page.dart';
@@ -33,6 +30,7 @@ import '../widgets/stock_page.dart';
 import '../widgets/settings_sheet.dart';
 import '../widgets/common/error_placeholder.dart';
 import '../widgets/common/connection_aware_widgets.dart';
+import 'onboarding_screen.dart';
 
 // Localization
 import '../../localization/l10n_utils.dart';
@@ -137,6 +135,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     // Check if the device is desktop web
     _checkDeviceType();
     _startAutoRefreshTimer(); // Added call to start timer
+    _scheduleOnboarding();
   }
 
   // Function to check device type and set _isDesktopWeb flag
@@ -247,6 +246,23 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
             ?.refreshCurrentSubTabDataIfStale(staleness: staleness);
         break;
     }
+  }
+
+  void _scheduleOnboarding() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      const key = 'onboarding_shown_v1';
+      if (!(prefs.getBool(key) ?? false)) {
+        if (mounted) {
+          // Use pushReplacement to prevent going back without completing onboarding
+          Navigator.of(context).pushReplacement(
+            CupertinoPageRoute(builder: (_) => const OnboardingScreen()),
+          );
+          // The flag will be set in OnboardingScreen when user taps Continue
+        }
+      }
+    });
   }
 
   void _setupTabs() {

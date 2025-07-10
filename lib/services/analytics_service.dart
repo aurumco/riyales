@@ -55,7 +55,7 @@ class AnalyticsService {
       final String uuid = const Uuid().v4();
       apiKey = 'RYLS-$uuid';
       await prefs.setString(_apiKeyKey, apiKey);
-      if (kDebugMode) {
+      if (kDebugMode && _enableLogs) {
         print('[AnalyticsService] Generated and saved new API Key: $apiKey');
       }
     }

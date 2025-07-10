@@ -509,8 +509,10 @@ class AssetCard extends StatelessWidget {
       } else {
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_network_icon'),
-          imageProvider: CachedNetworkImageProvider(
-              (asset as models.CryptoAsset).iconUrl!),
+          imageProvider: (kIsWeb
+                  ? NetworkImage((asset as models.CryptoAsset).iconUrl!)
+                  : CachedNetworkImageProvider((asset as models.CryptoAsset).iconUrl!))
+              as ImageProvider,
           defaultGlowColor: defaultGlow,
           size: 32.0,
           child: (_supportsColorFilter)
@@ -887,34 +889,60 @@ class AssetCard extends StatelessWidget {
 }
 
 Widget _buildNetworkCryptoImage(bool isDarkMode, models.CryptoAsset asset) {
-  return CachedNetworkImage(
-    cacheManager: CryptoIconCacheManager(),
-    imageUrl: asset.iconUrl!,
-    width: 32,
-    height: 32,
-    imageBuilder: (context, imageProvider) => Container(
+  if (kIsWeb) {
+    return Image.network(
+      asset.iconUrl!,
       width: 32,
       height: 32,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+            shape: BoxShape.circle,
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 32,
+        height: 32,
+        decoration: const BoxDecoration(shape: BoxShape.circle),
+        child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
       ),
-    ),
-    placeholder: (context, url) => Container(
+    );
+  } else {
+    return CachedNetworkImage(
+      cacheManager: CryptoIconCacheManager(),
+      imageUrl: asset.iconUrl!,
       width: 32,
       height: 32,
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
-        shape: BoxShape.circle,
+      imageBuilder: (context, imageProvider) => Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+        ),
       ),
-    ),
-    errorWidget: (context, url, error) => Container(
-      width: 32,
-      height: 32,
-      decoration: const BoxDecoration(shape: BoxShape.circle),
-      child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
-    ),
-  );
+      placeholder: (context, url) => Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+          shape: BoxShape.circle,
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        width: 32,
+        height: 32,
+        decoration: const BoxDecoration(shape: BoxShape.circle),
+        child: const Icon(CupertinoIcons.exclamationmark_circle, size: 16),
+      ),
+    );
+  }
 }
 
 // Helper class for selected price conversion rates
