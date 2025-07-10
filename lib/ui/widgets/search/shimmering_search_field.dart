@@ -18,7 +18,8 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     with SingleTickerProviderStateMixin {
   late AnimationController _shimmerController;
   final FocusNode _focusNode = FocusNode();
-  bool _isShimmering = false;
+  bool _isShimmering = true; // Start shimmering by default
+  bool _showCursor = false; // Hide cursor initially until user taps
 
   @override
   void initState() {
@@ -28,33 +29,18 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
       duration: const Duration(milliseconds: 1800),
     );
 
-    _focusNode.addListener(_onFocusChange);
-
     // Start shimmer after a short delay to allow the search bar to animate in
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && !_focusNode.hasFocus) {
-        setState(() {
-          _isShimmering = true;
-        });
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
         _shimmerController.repeat();
       }
     });
   }
 
-  void _onFocusChange() {
-    if (_focusNode.hasFocus) {
-      // Stop the shimmer when the user taps on the field
-      _shimmerController.stop();
-      setState(() {
-        _isShimmering = false;
-      });
-    }
-  }
-
   @override
   void dispose() {
     _shimmerController.dispose();
-    _focusNode.removeListener(_onFocusChange);
+    // No focus listener to remove
     _focusNode.dispose();
     super.dispose();
   }
@@ -67,6 +53,17 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     final searchText = searchQueryNotifier.query;
     final isRTL = Localizations.localeOf(context).languageCode == 'fa' ||
         containsPersian(searchText);
+
+    // Determine if shimmer should be active based on whether user typed anything
+    bool shouldShimmer = searchText.isEmpty;
+
+    if (shouldShimmer && !_isShimmering) {
+      _shimmerController.repeat();
+      _isShimmering = true;
+    } else if (!shouldShimmer && _isShimmering) {
+      _shimmerController.stop();
+      _isShimmering = false;
+    }
 
     final textColor = isDarkMode ? Colors.grey[300] : Colors.grey[700];
     final placeholderColor = isDarkMode ? Colors.grey[500] : Colors.grey[500];
@@ -180,6 +177,13 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
               style: TextStyle(color: textColor, fontFamily: fontFamily),
               cursorColor: isDarkMode ? Colors.grey[400] : Colors.grey[700],
               decoration: const BoxDecoration(color: Colors.transparent), // Essential for placeholders behind to be visible
+              autofocus: true,
+              showCursor: _showCursor,
+              onTap: () {
+                if (!_showCursor) {
+                  setState(() => _showCursor = true);
+                }
+              },
             ),
           ],
         ),

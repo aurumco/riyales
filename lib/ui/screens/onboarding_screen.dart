@@ -192,7 +192,7 @@ class OnboardingScreen extends StatelessWidget {
                       child: child,
                     );
                   },
-                  transitionDuration: const Duration(milliseconds: 300),
+                  transitionDuration: const Duration(milliseconds: 360),
                 ),
               );
             }

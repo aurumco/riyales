@@ -38,6 +38,7 @@ import '../../localization/l10n_utils.dart';
 // Utils
 import '../../utils/color_utils.dart';
 import '../../services/analytics_service.dart';
+import '../../utils/browser_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   // Changed to StatefulWidget
@@ -528,14 +529,21 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 21, sigmaY: 21),
-            child: Container(
-              color: isDarkMode
-                  ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
-                  : Theme.of(context).scaffoldBackgroundColor.withAlpha(180),
-            ),
-          ),
+          child: (kIsWeb && isFirefox())
+              ? Container(
+                  color: isDarkMode
+                      ? const Color(0xFF090909)
+                      : Theme.of(context).scaffoldBackgroundColor,
+                )
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 21, sigmaY: 21),
+                  child: Container(
+                    color: isDarkMode
+                        ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
+                        : Theme.of(context).scaffoldBackgroundColor
+                            .withAlpha(180),
+                  ),
+                ),
         ),
         title: GestureDetector(
           onTap: _onTitleTapped,
@@ -643,6 +651,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                       }
                       showCupertinoModalPopup(
                           context: context,
+                          useRootNavigator: true,
                           builder: (_) => const SettingsSheet());
                     },
                     child:
@@ -761,23 +770,33 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                                         themeConfig.cardCornerSmoothness,
                                   ),
                                 ),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur( // Dynamic
-                                      sigmaX: 15.0, sigmaY: 15.0),
-                                  child: Container(
-                                    decoration: BoxDecoration( // Dynamic
-                                      color: isDarkMode
-                                          ? const Color.fromARGB(
-                                                  255, 90, 90, 90)
-                                              .withAlpha(38)
-                                          : const Color.fromARGB(
-                                                  255, 255, 255, 255)
-                                              .withAlpha(252),
-                                      borderRadius: BorderRadius.circular(20.0),
-                                    ),
-                                    child: tabContent, // Dynamic
-                                  ),
-                                ),
+                                child: (kIsWeb && isFirefox())
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                          color: isDarkMode
+                                              ? const Color.fromARGB(255, 90, 90, 90)
+                                                  .withAlpha(38)
+                                              : const Color.fromARGB(255, 255, 255, 255)
+                                                  .withAlpha(252),
+                                          borderRadius: BorderRadius.circular(20.0),
+                                        ),
+                                        child: tabContent,
+                                      )
+                                    : BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                            sigmaX: 15.0, sigmaY: 15.0),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: isDarkMode
+                                                ? const Color.fromARGB(255, 90, 90, 90)
+                                                    .withAlpha(38)
+                                                : const Color.fromARGB(255, 255, 255, 255)
+                                                    .withAlpha(252),
+                                            borderRadius: BorderRadius.circular(20.0),
+                                          ),
+                                          child: tabContent,
+                                        ),
+                                      ),
                               ),
                             );
                           }
@@ -801,6 +820,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                               ];
                               showCupertinoModalPopup(
                                 context: context,
+                                useRootNavigator: true,
                                 builder: (_) => CupertinoTheme(
                                   data: CupertinoThemeData(
                                       brightness: isDarkMode
@@ -1139,6 +1159,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                         }
                         showCupertinoModalPopup(
                             context: context,
+                            useRootNavigator: true,
                             builder: (_) =>
                                 const SettingsSheet());
                       },
@@ -1308,6 +1329,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     );
     showCupertinoModalPopup(
       context: context,
+      useRootNavigator: true,
       builder: (_) => CupertinoTheme(
         data: CupertinoThemeData(
           brightness: isDark ? Brightness.dark : Brightness.light,

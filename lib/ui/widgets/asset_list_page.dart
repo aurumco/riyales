@@ -477,22 +477,6 @@ class AssetListPageState<T extends models.Asset>
     //   finalDisplayList = _sortedWidgetItems;
     // }
 
-    if (itemsToDisplay.isEmpty && !widget.isLoading) {
-      // Optimize empty state display
-      return Center(
-        child: RepaintBoundary(
-          child: Text(
-            isCurrentlySearching ? l10n.searchNoResults : l10n.listNoData,
-            style: TextStyle(
-              fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
-              fontSize: 16,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-            ),
-          ),
-        ),
-      );
-    }
-
     final columnCount = _getOptimalColumnCount(context);
     final aspectRatio = _getCardAspectRatio(context);
 
@@ -646,18 +630,40 @@ class AssetListPageState<T extends models.Asset>
             ),
           )
         else if (!widget.isLoading)
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.5,
-              child: Center(
-                child: Text(
-                  isCurrentlySearching
-                      ? l10n.searchNoResults
-                      : l10n.listNoData, // Use isCurrentlySearching
-                  style: TextStyle(
-                      fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
-                      fontSize: 16,
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 450),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) => Opacity(opacity: value, child: Transform.scale(scale: 0.9 + 0.1 * value, child: child)),
+                child: Column(
+                  key: ValueKey(isCurrentlySearching ? 'no_results' : 'no_data'),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isCurrentlySearching ? Icons.search_off : Icons.list,
+                      size: 56,
+                      color: isDarkMode
+                          ? Colors.grey[500]
+                          : Colors.grey[700],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      isCurrentlySearching
+                          ? l10n.searchNoResults
+                          : l10n.listNoData,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+                        fontSize: 16,
+                        color: isDarkMode
+                            ? Colors.grey[400]
+                            : Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

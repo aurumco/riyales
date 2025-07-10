@@ -20,6 +20,7 @@ import '../../utils/color_utils.dart';
 import 'asset_list_page.dart';
 import '../../services/analytics_service.dart';
 import './search/shimmering_search_field.dart';
+import '../../utils/browser_utils.dart';
 
 // Stock Page with Sub-Tabs
 class StockPage extends StatefulWidget {
@@ -218,6 +219,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     );
     showCupertinoModalPopup(
       context: context,
+      useRootNavigator: true,
       builder: (_) => CupertinoTheme(
         data: CupertinoThemeData(
           brightness: isDark ? Brightness.dark : Brightness.light,
@@ -518,10 +520,12 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
         // Offset for app bar and main tabs
         SizedBox(height: widget.topPadding),
         ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: stockTabBar,
-          ),
+          child: (kIsWeb && isFirefox())
+              ? stockTabBar
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: stockTabBar,
+                ),
         ),
         searchBar,
         Expanded(
