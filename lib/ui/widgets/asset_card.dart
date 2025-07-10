@@ -490,11 +490,7 @@ class AssetCard extends StatelessWidget {
           (asset as models.CryptoAsset).name.toLowerCase();
       final CryptoIconInfo? cryptoIconInfo = cryptoIconMap[cryptoName];
 
-      // In HTML renderer, prefer network icon directly to avoid any potential missing asset
-      const bool preferNetworkIcon = kIsWeb && !_isCanvasKit;
-
-      if (!preferNetworkIcon && cryptoIconInfo != null) {
-        // Use bundled SVG if available and we're not in html renderer
+      if (cryptoIconInfo != null) {
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_local_icon'),
           imageProvider: AssetImage(cryptoIconInfo.iconPath),
@@ -511,7 +507,6 @@ class AssetCard extends StatelessWidget {
           ),
         );
       } else {
-        // Fall back to network icon (always for html renderer)
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_network_icon'),
           imageProvider: CachedNetworkImageProvider(
