@@ -1,8 +1,8 @@
 name: Web Global
 
 on:
-  # push:
-  #   branches: [main, gh-pages, gh-deploy]
+  # push:--web-renderer html
+  #   branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -47,23 +47,9 @@ jobs:
       - name: Flutter doctor
         run: flutter doctor -v
 
-      # Always build the web app
       - name: Build Web App
-        run: flutter build web --release --web-renderer html
+        run: flutter build web --release --base-href=/ --web-renderer html
         continue-on-error: false
-
-      # Conditionally set base href based on branch
-      - name: Adjust base href for GitHub Pages
-        if: github.ref == 'refs/heads/gh-deploy'
-        run: |
-          sed -i 's|<base href=".*">|<base href="/riyalis/">|' build/web/index.html
-          echo "Adjusted base href to /riyalis/ for GitHub Pages"
-
-      - name: Adjust base href for Other Sites
-        if: github.ref == 'refs/heads/gh-pages'
-        run: |
-          sed -i 's|<base href=".*">|<base href="/">|' build/web/index.html
-          echo "Adjusted base href to / for other sites"
 
       - name: Check Web Output
         run: |
@@ -76,18 +62,14 @@ jobs:
             exit 1
           fi
 
-      # Deploy to GitHub Pages (only for gh-deploy branch)
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/gh-deploy'
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-deploy@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
           publish_branch: gh-deploy
 
-      # Deploy to Cloudflare Pages (only for gh-pages branch)
       - name: Publish to Cloudflare Pages
-        if: github.ref == 'refs/heads/gh-pages'
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -97,6 +79,7 @@ jobs:
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           commit-dirty: true
 
+
   cleanup:
     name: Cleanup
     if: always()
@@ -105,8 +88,8 @@ jobs:
       actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      REPO: ${{ github.repository }}
-      WF: ${{ github.workflow }}
+      REPO:    ${{ github.repository }}
+      WF:      ${{ github.workflow }}
     steps:
       - name: Remove old workflow runs
         run: |
@@ -119,6 +102,7 @@ jobs:
             jq -s 'sort_by(.date) | reverse | .[].id')
           total=$(echo "$runs" | wc -l)
           if [ "$total" -le 9 ]; then exit 0; fi
+          # delete all older than the 9 newest
           to_delete=$(echo "$runs" | tail -n +10)
           echo "$to_delete" | while read id; do
             echo "Deleting run ID: $id"
