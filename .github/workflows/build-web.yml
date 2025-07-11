@@ -1,7 +1,6 @@
-name: Web
+name: Web Global
 
 on:
-  # Runs on push to specific branches or manual trigger
   # push:
   #   branches: [main, gh-pages, gh-deploy]
   workflow_dispatch:
@@ -48,16 +47,23 @@ jobs:
       - name: Flutter doctor
         run: flutter doctor -v
 
-      # Build based on the branch
-      - name: Build Web App for GitHub Pages
-        if: github.ref == 'refs/heads/gh-deploy'
-        run: flutter build web --release --base-href=/riyales/ --web-renderer html
+      # Always build the web app
+      - name: Build Web App
+        run: flutter build web --release --web-renderer html
         continue-on-error: false
 
-      - name: Build Web App for Other Sites
+      # Conditionally set base href based on branch
+      - name: Adjust base href for GitHub Pages
+        if: github.ref == 'refs/heads/gh-deploy'
+        run: |
+          sed -i 's|<base href=".*">|<base href="/riyalis/">|' build/web/index.html
+          echo "Adjusted base href to /riyalis/ for GitHub Pages"
+
+      - name: Adjust base href for Other Sites
         if: github.ref == 'refs/heads/gh-pages'
-        run: flutter build web --release --base-href=/ --web-renderer html
-        continue-on-error: false
+        run: |
+          sed -i 's|<base href=".*">|<base href="/">|' build/web/index.html
+          echo "Adjusted base href to / for other sites"
 
       - name: Check Web Output
         run: |
@@ -113,7 +119,6 @@ jobs:
             jq -s 'sort_by(.date) | reverse | .[].id')
           total=$(echo "$runs" | wc -l)
           if [ "$total" -le 9 ]; then exit 0; fi
-          # delete all older than the 9 newest
           to_delete=$(echo "$runs" | tail -n +10)
           echo "$to_delete" | while read id; do
             echo "Deleting run ID: $id"
