@@ -1,8 +1,6 @@
 name: Web Global
 
 on:
-  # push:--web-renderer html
-  #   branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -62,12 +60,18 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-deploy@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
-          publish_branch: gh-deploy
+      - name: Push to website branch
+        run: |
+          git config user.name "Riyales"
+          git config user.email "info@ryls.ir"
+          git checkout -b website
+          rm -rf *
+          cp -r build/web/* .
+          git add .
+          git commit -m "Deploy web build to website branch"
+          git push origin website --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -78,7 +82,6 @@ jobs:
           directory: build/web
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           commit-dirty: true
-
 
   cleanup:
     name: Cleanup
@@ -102,7 +105,6 @@ jobs:
             jq -s 'sort_by(.date) | reverse | .[].id')
           total=$(echo "$runs" | wc -l)
           if [ "$total" -le 9 ]; then exit 0; fi
-          # delete all older than the 9 newest
           to_delete=$(echo "$runs" | tail -n +10)
           echo "$to_delete" | while read id; do
             echo "Deleting run ID: $id"
