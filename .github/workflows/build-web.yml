@@ -1,8 +1,9 @@
 name: Web
 
 on:
-  # push:--web-renderer html
-  #   branches: [ main ]
+  # Runs on push to specific branches or manual trigger
+  # push:
+  #   branches: [main, gh-pages, gh-deploy]
   workflow_dispatch:
 
 jobs:
@@ -47,8 +48,15 @@ jobs:
       - name: Flutter doctor
         run: flutter doctor -v
 
-      - name: Build Web App
+      # Build based on the branch
+      - name: Build Web App for GitHub Pages
+        if: github.ref == 'refs/heads/gh-deploy'
         run: flutter build web --release --base-href=/riyales/ --web-renderer html
+        continue-on-error: false
+
+      - name: Build Web App for Other Sites
+        if: github.ref == 'refs/heads/gh-pages'
+        run: flutter build web --release --base-href=/ --web-renderer html
         continue-on-error: false
 
       - name: Check Web Output
@@ -62,14 +70,18 @@ jobs:
             exit 1
           fi
 
+      # Deploy to GitHub Pages (only for gh-deploy branch)
       - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/gh-deploy'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          publish_branch: gh-pages
+          publish_branch: gh-deploy
 
+      # Deploy to Cloudflare Pages (only for gh-pages branch)
       - name: Publish to Cloudflare Pages
+        if: github.ref == 'refs/heads/gh-pages'
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -79,7 +91,6 @@ jobs:
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           commit-dirty: true
 
-
   cleanup:
     name: Cleanup
     if: always()
@@ -88,8 +99,8 @@ jobs:
       actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      REPO:    ${{ github.repository }}
-      WF:      ${{ github.workflow }}
+      REPO: ${{ github.repository }}
+      WF: ${{ github.workflow }}
     steps:
       - name: Remove old workflow runs
         run: |
