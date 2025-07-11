@@ -1,4 +1,4 @@
-name: Web Github
+name: Web
 
 on:
   # push:--web-renderer html
@@ -44,9 +44,6 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Flutter doctor
-        run: flutter doctor -v
-
       - name: Build Web App
         run: flutter build web --release --base-href=/riyales/ --web-renderer html
         continue-on-error: false
@@ -62,12 +59,23 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy to GitHub Pages
+      - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
           publish_branch: gh-pages
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: riyales
+          directory: build/web
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          commit-dirty: true
+
 
   cleanup:
     name: Cleanup
