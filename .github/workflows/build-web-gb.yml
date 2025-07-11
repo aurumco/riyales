@@ -1,4 +1,4 @@
-name: Web Github
+name: Web Global
 
 on:
   # push:--web-renderer html
