@@ -46,7 +46,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Build Web App
-        run: flutter build web --release --base-href=/ --web-renderer html
+        run: flutter build web --release --base-href=/ --web-renderer=html
         continue-on-error: false
 
       - name: Check Web Output
@@ -60,24 +60,27 @@ jobs:
             exit 1
           fi
 
-      - name: Setup git worktree for website branch
+      - name: Prepare website worktree
         run: |
-          git worktree add -B website website-dir origin/website || git worktree add -b website website-dir
+          git config --global user.name "Riyales"
+          git config --global user.email "info@ryls.ir"
+          git fetch origin website || true
+          rm -rf website-dir || true
+          git worktree add --force -B website website-dir origin/website || git worktree add --force -b website website-dir
 
-      - name: Copy files to website branch
+      - name: Commit web build to website branch
         run: |
-          rm -rf website-dir/*
-          cp -r build/web/. website-dir/
+          rsync -av --delete build/web/ website-dir/
           cd website-dir
-          git config user.name "Riyales"
-          git config user.email "info@ryls.ir"
+          touch .nojekyll
           git add .
-          git commit -m "Deploy web build to website branch" || echo "No changes to commit"
+          git commit -m "Deploy web build $(date +'%Y-%m-%d %H:%M:%S')" || echo "Nothing to commit"
           git push origin website --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cleanup worktree
+        if: always()
         run: git worktree remove website-dir
 
       - name: Deploy to GitHub Pages
