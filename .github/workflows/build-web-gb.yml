@@ -1,6 +1,8 @@
-name: Web Global
+name: Web Github
 
 on:
+  # push:--web-renderer html
+  #   branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -42,9 +44,6 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Flutter doctor
-        run: flutter doctor -v
-
       - name: Build Web App
         run: flutter build web --release --base-href=/ --web-renderer=html
         continue-on-error: false
@@ -60,35 +59,12 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare website worktree
-        run: |
-          git config --global user.name "Riyales"
-          git config --global user.email "info@ryls.ir"
-          git fetch origin website || true
-          rm -rf website-dir || true
-          git worktree add --force -B website website-dir origin/website || git worktree add --force -b website website-dir
-
-      - name: Commit web build to website branch
-        run: |
-          rsync -av --delete build/web/ website-dir/
-          cd website-dir
-          touch .nojekyll
-          git add .
-          git commit -m "Deploy web build $(date +'%Y-%m-%d %H:%M:%S')" || echo "Nothing to commit"
-          git push origin website --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cleanup worktree
-        if: always()
-        run: git worktree remove website-dir
-
-      - name: Deploy to GitHub Pages
+      - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          publish_branch: gh-pages
+          publish_branch: website
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -99,6 +75,7 @@ jobs:
           directory: build/web
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           commit-dirty: true
+
 
   cleanup:
     name: Cleanup
@@ -122,6 +99,7 @@ jobs:
             jq -s 'sort_by(.date) | reverse | .[].id')
           total=$(echo "$runs" | wc -l)
           if [ "$total" -le 9 ]; then exit 0; fi
+          # delete all older than the 9 newest
           to_delete=$(echo "$runs" | tail -n +10)
           echo "$to_delete" | while read id; do
             echo "Deleting run ID: $id"
