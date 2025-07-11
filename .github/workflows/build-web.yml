@@ -1,4 +1,4 @@
-name: Web
+name: Web Github
 
 on:
   # push:--web-renderer html
@@ -45,7 +45,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web App
-        run: flutter build web --release --base-href=/riyales/ --web-renderer html
+        run: flutter build web --release --base-href=/riyales/ --web-renderer=html
         continue-on-error: false
 
       - name: Check Web Output
@@ -65,17 +65,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
           publish_branch: gh-pages
-
-      - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: riyales
-          directory: build/web
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          commit-dirty: true
-
 
   cleanup:
     name: Cleanup
