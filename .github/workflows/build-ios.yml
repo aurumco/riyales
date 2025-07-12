@@ -99,22 +99,23 @@ jobs:
           # Build iOS without code signing
           flutter build ios --release --no-codesign
           
-          # Create IPA manually from the .app bundle
+          # Create IPA and zip
           mkdir -p build/ios/ipa
+          mkdir -p build/ios/ios-zip
           cd build/ios/iphoneos
           mkdir -p Payload
           cp -r Runner.app Payload/
           zip -r ../ipa/riyales-${{ env.APP_VERSION }}.ipa Payload/
-          # Create a single zip containing both Runner.app and IPA
-          mkdir -p ../ios-zip
+          # Copy Runner.app and IPA to ios-zip folder
           cp -r Runner.app ../ios-zip/
           cp ../ipa/riyales-${{ env.APP_VERSION }}.ipa ../ios-zip/
+          # Create a single zip containing both
           cd ../ios-zip
           zip -r ../riyales-ios-${{ env.APP_VERSION }}.zip .
           cd ../..
           # Verify outputs
-          ls -la build/ios/ipa/
-          ls -la build/ios/
+          ls -la build/ios/ipa
+          ls -la build/ios
 
       - name: Verify IPA and Zip Output
         run: |
