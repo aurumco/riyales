@@ -1,5 +1,10 @@
 name: Release Web
 
+permissions:
+  contents: write
+  packages: write
+  deployments: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,50 +13,72 @@ on:
         required: false
         default: 'false'
 
+env:
+  FLUTTER_VERSION: '3.32.6'
+  DART_VERSION: '3.8.1'
+
 jobs:
-  build-and-deploy-web:
+  build:
     name: Build and Deploy Web
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      deployments: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v3
+      - name: Cache Dart SDK
+        uses: actions/cache@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          path: ${{ runner.tool_cache }}/dart-sdk
+          key: ${{ runner.os }}-dart-${{ env.DART_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-dart-
 
-      - name: Install Flutter
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.tool_cache }}/flutter
+            ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-${{ env.FLUTTER_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-
+            ${{ runner.os }}-flutter-
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_VERSION }}
+
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.6'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
           cache: true
-
-      - name: Check Flutter version
-        run: flutter --version
-
-      - name: Check Dart version
-        run: dart --version
 
       - name: Upgrade Flutter (optional)
         if: github.event.inputs.upgrade_flutter == 'true'
         run: flutter upgrade --force
 
-      - name: Cache Pub Dependencies
+      - name: Check Flutter and Dart versions
+        run: |
+          flutter --version
+          dart --version
+
+      - name: Cache Dart dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-flutter-${{ github.event.inputs.upgrade_flutter == 'true' && 'upgraded' || '3.32.6' }}
-          restore-keys: ${{ runner.os }}-pub-
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-dart-deps-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-dart-deps-
 
       - name: Flutter clean
         run: flutter clean
 
-      - name: Flutter pub get
+      - name: Install dependencies
         run: flutter pub get
 
       - name: Build Web App
@@ -69,6 +96,26 @@ jobs:
             exit 1
           fi
 
+      - name: Zip Web Build
+        run: |
+          cd build/web
+          zip -r ../riyales-web-${{ env.APP_VERSION }}.zip .
+          cd ../..
+          ls -la build/
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: riyales-web
+          path: build/riyales-web-${{ env.APP_VERSION }}.zip
+
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -85,16 +132,47 @@ jobs:
           directory: build/web
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
+  release:
+    name: Publish Release Assets
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v4
+        name: Download Web artifact
+        with:
+          name: riyales-web
+          path: artifacts/web
+
+      - name: Attach Web zip to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ env.APP_VERSION }}
+          name: Release v${{ env.APP_VERSION }}
+          files: artifacts/web/riyales-web-${{ env.APP_VERSION }}.zip
+
   cleanup:
-    name: Cleanup
+    name: Cleanup Old Workflow Runs
     if: always()
     runs-on: ubuntu-latest
     permissions:
       actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      REPO:    ${{ github.repository }}
-      WF:      ${{ github.workflow }}
+      REPO: ${{ github.repository }}
+      WF: ${{ github.workflow }}
     steps:
       - name: Remove old workflow runs
         run: |
