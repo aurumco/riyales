@@ -10,7 +10,7 @@ on:
 
 env:
   FLUTTER_VERSION: '3.32.6'
-  XCODE_VERSION: '16.0'
+  XCODE_VERSION: '16.2'
 jobs:
   build:
     name: Build iOS IPA
