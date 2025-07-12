@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Riyales
+Comment=Currency prices
+Exec=/usr/local/bin/riyales
+Icon=/assets/Icon-512.png
+Version=1.0.0
+Type=Application
+Categories=Utility;Finance;
+Terminal=false
+
