@@ -1,0 +1,179 @@
+name: Release iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      upgrade_flutter:
+        description: 'Upgrade Flutter to the latest stable version (true/false)'
+        required: false
+        default: 'false'
+
+env:
+  FLUTTER_VERSION: '3.32.6'
+  XCODE_VERSION: '16.4'
+jobs:
+  build:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Upgrade Flutter (optional)
+        if: github.event.inputs.upgrade_flutter == 'true'
+        run: flutter upgrade --force
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-flutter-${{ github.event.inputs.upgrade_flutter == 'true' && 'upgraded' || env.FLUTTER_VERSION }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      - name: Cache Pods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pods-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate App Icon
+        run: flutter pub run flutter_launcher_icons:main
+
+      - name: Set up Keychain
+        run: |
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -l build.keychain
+
+      - name: Import Certificate
+        run: |
+          echo "${{ secrets.IOS_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          rm certificate.p12
+
+      - name: Set up Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > profile.mobileprovision
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          rm profile.mobileprovision
+
+      - name: Build iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Create exportOptions.plist
+        run: |
+          cat > exportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>ir.ryls</key>
+              <string>${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Build IPA
+        run: |
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner -sdk iphoneos -configuration Release archive -archivePath $PWD/build/Runner.xcarchive
+          xcodebuild -exportArchive -archivePath $PWD/build/Runner.xcarchive -exportOptionsPlist ../exportOptions.plist -exportPath $PWD/build/Runner.ipa
+
+      - name: Rename IPA
+        run: |
+          mv ios/build/Runner.ipa/Runner.ipa ios/build/Runner.ipa/riyales-${{ env.APP_VERSION }}.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: riyales-ipa
+          path: ios/build/Runner.ipa/riyales-${{ env.APP_VERSION }}.ipa
+
+  release:
+    name: Publish Release Assets
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout repository
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v4
+        name: Download IPA artifact
+        with:
+          name: riyales-ipa
+          path: artifacts/ipa
+
+      - id: create_release
+        name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ env.APP_VERSION }}
+          name: Release v${{ env.APP_VERSION }}
+          files: artifacts/ipa/riyales-${{ env.APP_VERSION }}.ipa
+
+  cleanup:
+    name: Cleanup Old Workflow Runs
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      WF: ${{ github.workflow }}
+    steps:
+      - name: Remove old workflow runs
+        run: |
+          runs=$(gh run list \
+            --repo "$REPO" \
+            --workflow "$WF" \
+            --limit 100 \
+            --json databaseId,status,createdAt \
+            --jq '.[] | select(.status!="in_progress" and .status!="queued") | {id: .databaseId, date: .createdAt}' | \
+            jq -s 'sort_by(.date) | reverse | .[].id')
+          total=$(echo "$runs" | wc -l)
+          if [ "$total" -le 9 ]; then exit 0; fi
+          # Delete all older than the 9 newest
+          to_delete=$(echo "$runs" | tail -n +10)
+          echo "$to_delete" | while read id; do
+            echo "Deleting run ID: $id"
+            gh run delete "$id" --repo "$REPO"
+          done
+        shell: bash
