@@ -99,32 +99,23 @@ jobs:
           # Build iOS without code signing
           flutter build ios --release --no-codesign
           
-          # Create IPA and zip
+          # Create IPA manually from the .app bundle
           mkdir -p build/ios/ipa
-          mkdir -p build/ios/ios-zip
           cd build/ios/iphoneos
           mkdir -p Payload
           cp -r Runner.app Payload/
           zip -r ../ipa/riyales-${{ env.APP_VERSION }}.ipa Payload/
-          # Copy Runner.app and IPA to ios-zip folder
-          cp -r Runner.app ../ios-zip/
-          cp ../ipa/riyales-${{ env.APP_VERSION }}.ipa ../ios-zip/
-          # Create a single zip containing both
-          cd ../ios-zip
-          zip -r ../riyales-ios-${{ env.APP_VERSION }}.zip .
-          cd ../..
+          cd ../../..
           # Verify outputs
-          ls -la build/ios/ipa
-          ls -la build/ios
+          ls -la build/ios/ipa/
 
-      - name: Verify IPA and Zip Output
+      - name: Verify IPA Output
         run: |
-          if [ -f "build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa" ] && [ -f "build/ios/riyales-ios-${{ env.APP_VERSION }}.zip" ]; then
-            echo "IPA and zip files created successfully"
+          if [ -f "build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa" ]; then
+            echo "IPA file created successfully"
             ls -la build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa
-            ls -la build/ios/riyales-ios-${{ env.APP_VERSION }}.zip
           else
-            echo "IPA or zip file creation failed - files not found"
+            echo "IPA file creation failed - file not found"
             exit 1
           fi
 
@@ -132,7 +123,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: riyales-ios
-          path: build/ios/riyales-ios-${{ env.APP_VERSION }}.zip
+          path: build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa
 
   release:
     name: Publish Release Assets
@@ -157,13 +148,13 @@ jobs:
           name: riyales-ios
           path: artifacts/ios
 
-      - name: Attach iOS zip to GitHub Release
+      - name: Attach iOS IPA to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ env.APP_VERSION }}
           name: Release v${{ env.APP_VERSION }}
-          files: artifacts/ios/riyales-ios-${{ env.APP_VERSION }}.zip
+          files: artifacts/ios/riyales-${{ env.APP_VERSION }}.ipa
 
   cleanup:
     name: Cleanup Old Workflow Runs
