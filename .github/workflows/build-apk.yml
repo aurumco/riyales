@@ -6,7 +6,7 @@ on:
       upgrade_flutter:
         description: 'Upgrade Flutter to the latest stable version (true/false)'
         required: false
-        default: 'true'
+        default: 'false'
 
 env:
   SKIP_JDK_VERSION_CHECK: true
