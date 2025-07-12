@@ -34,21 +34,23 @@ import 'package:equatable/equatable.dart';
 // Create a dedicated cache manager with smaller capacity for crypto icons
 class CryptoIconCacheManager extends CacheManager {
   static const key = 'cryptoIconCache';
-  
+
   static final CryptoIconCacheManager _instance = CryptoIconCacheManager._();
   factory CryptoIconCacheManager() => _instance;
-  
-  CryptoIconCacheManager._() : super(Config(
-    key,
-    stalePeriod: const Duration(days: 7),
-    maxNrOfCacheObjects: 100, // Limit cache size
-    repo: JsonCacheInfoRepository(databaseName: key),
-  ));
+
+  CryptoIconCacheManager._()
+      : super(Config(
+          key,
+          stalePeriod: const Duration(days: 7),
+          maxNrOfCacheObjects: 100, // Limit cache size
+          repo: JsonCacheInfoRepository(databaseName: key),
+        ));
 }
 
 // Helper to detect if the web build is using CanvasKit or HTML renderer.
 // Flutter defines the compile-time env var FLUTTER_WEB_USE_SKIA=true for CanvasKit builds.
-const bool _isCanvasKit = bool.fromEnvironment('FLUTTER_WEB_USE_SKIA', defaultValue: false);
+const bool _isCanvasKit =
+    bool.fromEnvironment('FLUTTER_WEB_USE_SKIA', defaultValue: false);
 bool get _supportsColorFilter => !kIsWeb || _isCanvasKit;
 
 // Define manual crypto icon mapping constant at top level before AssetCard
@@ -510,17 +512,19 @@ class AssetCard extends StatelessWidget {
         iconWidget = DynamicGlow(
           key: ValueKey('${asset.id}_network_icon'),
           imageProvider: (kIsWeb
-                  ? NetworkImage((asset as models.CryptoAsset).iconUrl!)
-                  : CachedNetworkImageProvider((asset as models.CryptoAsset).iconUrl!))
-              as ImageProvider,
+              ? NetworkImage((asset as models.CryptoAsset).iconUrl!)
+              : CachedNetworkImageProvider(
+                  (asset as models.CryptoAsset).iconUrl!)) as ImageProvider,
           defaultGlowColor: defaultGlow,
           size: 32.0,
           child: (_supportsColorFilter)
               ? ColorFiltered(
-            colorFilter: ColorFilter.matrix(matrix),
-                  child: _buildNetworkCryptoImage(isDarkMode, asset as models.CryptoAsset),
+                  colorFilter: ColorFilter.matrix(matrix),
+                  child: _buildNetworkCryptoImage(
+                      isDarkMode, asset as models.CryptoAsset),
                 )
-              : _buildNetworkCryptoImage(isDarkMode, asset as models.CryptoAsset),
+              : _buildNetworkCryptoImage(
+                  isDarkMode, asset as models.CryptoAsset),
         );
       }
     } else if (assetType == AssetType.currency &&
@@ -579,10 +583,26 @@ class AssetCard extends StatelessWidget {
       if (_supportsColorFilter) {
         flagImage = ColorFiltered(
           colorFilter: const ColorFilter.matrix([
-            1, 0, 0, 0, 0,
-            0, 1, 0, 0, 0,
-            0, 0, 1, 0, 0,
-            0, 0, 0, 1.1, 0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1.1,
+            0,
           ]),
           child: flagImage,
         );
@@ -596,8 +616,8 @@ class AssetCard extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-                color: flagColor.withAlpha((255 * 0.5).round()),
-                blurRadius: 60,
+              color: flagColor.withAlpha((255 * 0.5).round()),
+              blurRadius: 60,
               spreadRadius: 6,
             ),
           ],
@@ -636,7 +656,7 @@ class AssetCard extends StatelessWidget {
           ],
         ),
         child: CircleAvatar(
-          radius: 16,
+          radius: 15,
           backgroundColor: theme.colorScheme.surfaceContainerLow,
           child: Text(
             // This Text cannot be const

@@ -34,10 +34,6 @@
   "retrying": "در حال تلاش مجدد...",
   "youreOffline": "اتصال اینترنت قطع است.",
   "youreBackOnline": "اتصال به اینترنت برقرار شد.",
-  "settingsCardCorner": "زاویه گرد کردن کارت",
-  "settingsCardRadius": "شعاع کارت",
-  "settingsCardSmoothness": "صافی کارت",
-  "settingsCardPreview": "پیش نمایش کارت",
   "settingsTerms": "قوانین و مقررات",
   "settingsAppVersion": "نسخه برنامه",
   "settingsUpdateAvailable": "بروزرسانی موجود است"

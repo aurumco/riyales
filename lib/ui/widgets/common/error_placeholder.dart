@@ -77,7 +77,7 @@ class ErrorPlaceholder extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CupertinoActivityIndicator(radius: 10),
+              const CupertinoActivityIndicator(radius: 12),
               const SizedBox(width: 12),
               Text(
                 l10n.retrying,

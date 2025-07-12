@@ -98,19 +98,19 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
 
   // Added from old code for pull-to-refresh smoothness effect
   static const double _maxRadiusDelta =
-      13.5; // Maximum radius delta for pull-to-refresh
+      12.0; // Maximum radius delta for pull-to-refresh
   static const double _maxSmoothnessDelta =
-      0.75; // Maximum smoothness delta for pull-to-refresh
-  double _defaultRadius = 21.0; // Default radius, will be updated from Notifier
+      0.85; // Maximum smoothness delta for pull-to-refresh
+  double _defaultRadius = 27.0; // Default radius, will be updated from Notifier
   double _defaultSmoothness =
-      0.7; // Default smoothness, will be updated from Notifier
+      0.85; // Default smoothness, will be updated from Notifier
 
   static const int _maxDisplayItems =
       120; // Limit the number of items displayed for performance
   static const int _animationItemLimitMobile =
       8; // Limit the number of items animated for performance
   static const int _animationItemLimitTablet =
-      24; // Limit the number of items animated for performance
+      32; // Limit the number of items animated for performance
 
   @override
   void initState() {
@@ -757,12 +757,11 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
         (defaultTargetPlatform == TargetPlatform.macOS ||
             defaultTargetPlatform == TargetPlatform.windows ||
             defaultTargetPlatform == TargetPlatform.linux)) {
-      // WebSmoothScroll wraps the basic scrollableContent (CustomScrollView)
       Widget webSmoothScrolledContent = WebSmoothScroll(
         key: Key('${widget.assetType.name}WebScroll'),
         controller: _scrollController,
-        scrollSpeed: 1.35, // Keep the adjusted speed
-        scrollAnimationLength: 930,
+        scrollSpeed: 1.4,
+        scrollAnimationLength: 820,
         curve: Curves.easeOutCubic,
         child: scrollableContent,
       );

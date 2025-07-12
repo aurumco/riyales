@@ -445,16 +445,13 @@ class StockPageState extends State<StockPage>
                 ? appConfig.themeOptions.dark
                 : appConfig.themeOptions.light;
 
-            final BorderRadius tabBorderRadius = BorderRadius.circular(20.0);
+            final BorderRadius tabBorderRadius = BorderRadius.circular(21.0);
             final segmentInactiveBackground = isDark
                 ? const Color(0xFF161616)
                 : hexToColor(themeConfig.cardColor);
             final segmentActiveBackground = isDark
                 ? hexToColor(themeConfig.accentColorGreen).withAlpha(38)
-                : Theme.of(context)
-                    .colorScheme
-                    .secondaryContainer
-                    .withAlpha(128);
+                : hexToColor(themeConfig.accentColorGreen).withAlpha(160);
             final segmentActiveTextColor = isDark
                 ? hexToColor(themeConfig.accentColorGreen).withAlpha(230)
                 : Theme.of(context).colorScheme.onSecondaryContainer;
@@ -643,9 +640,9 @@ class StockPageState extends State<StockPage>
           if (controller != null) {
             return WebSmoothScroll(
               controller: controller,
-              scrollSpeed: 1.8,
-              scrollAnimationLength: 600,
-              curve: Curves.easeOutQuart,
+              scrollSpeed: 1.4,
+              scrollAnimationLength: 820,
+              curve: Curves.easeOutCubic,
               child: content,
             );
           }

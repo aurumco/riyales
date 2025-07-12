@@ -55,6 +55,14 @@ Locale getInitialLocale() {
 /// Initializes bindings and runs the app with required providers.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Set transparent status bar
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark, // Default for light theme
+    statusBarBrightness: Brightness.light, // For iOS
+  ));
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -279,6 +287,15 @@ class RiyalesApp extends StatelessWidget {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: SplashScreen(config: appConfig.splashScreen),
           builder: (context, child) {
+            // Update status bar style based on current theme
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
+              statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+            ));
+
             return MediaQuery(
               data: MediaQuery.of(context).copyWith(disableAnimations: false),
               child: AnimatedTheme(

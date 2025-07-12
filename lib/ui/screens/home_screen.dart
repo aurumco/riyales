@@ -2,7 +2,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
 
 // Dart imports
 import 'dart:async';
@@ -110,10 +109,6 @@ class HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.black,
-    ));
     WidgetsBinding.instance.addObserver(this);
     _checkDeviceType();
     _startAutoRefreshTimer();
@@ -336,7 +331,7 @@ class HomeScreenState extends State<HomeScreen>
         isDarkMode ? appConfig.themeOptions.dark : appConfig.themeOptions.light;
     final segmentActiveBackground = isDarkMode
         ? tealGreen.withAlpha((255 * 0.15).round())
-        : Theme.of(context).colorScheme.secondaryContainer.withAlpha(128);
+        : Theme.of(context).colorScheme.secondaryContainer.withAlpha(160);
     final segmentActiveTextColor = isDarkMode
         ? tealGreen.withAlpha((255 * 0.9).round())
         : Theme.of(context).colorScheme.onSecondaryContainer;
@@ -373,7 +368,7 @@ class HomeScreenState extends State<HomeScreen>
                         ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
                         : Theme.of(context)
                             .scaffoldBackgroundColor
-                            .withAlpha(180),
+                            .withAlpha(160),
                   ),
                 ),
         ),
@@ -657,7 +652,7 @@ class HomeScreenState extends State<HomeScreen>
           builder: (context, constraints) {
             final isMobile = constraints.maxWidth < 600;
             final horizontalMargin = isMobile ? 4.0 : 0.0;
-            final BorderRadius tabBorderRadius = BorderRadius.circular(20.0);
+            final BorderRadius tabBorderRadius = BorderRadius.circular(21.0);
 
             return Row(
               mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
@@ -773,7 +768,7 @@ class HomeScreenState extends State<HomeScreen>
                                 .withAlpha(38)
                             : const Color.fromARGB(255, 255, 255, 255)
                                 .withAlpha(252),
-                        borderRadius: BorderRadius.circular(20.0),
+                        borderRadius: BorderRadius.circular(21.0),
                       ),
                       child: tabContent,
                     )
@@ -786,7 +781,7 @@ class HomeScreenState extends State<HomeScreen>
                                   .withAlpha(38)
                               : const Color.fromARGB(255, 255, 255, 255)
                                   .withAlpha(252),
-                          borderRadius: BorderRadius.circular(20.0),
+                          borderRadius: BorderRadius.circular(21.0),
                         ),
                         child: tabContent,
                       ),
@@ -867,7 +862,7 @@ class HomeScreenState extends State<HomeScreen>
       children: [
         Padding(
           padding: EdgeInsets.only(
-              top: 7.0, left: isRTL ? 0.0 : 7.0, right: isRTL ? 7.0 : 0.0),
+              top: 15.0, left: isRTL ? 0.0 : 7.0, right: isRTL ? 7.0 : 0.0),
           child: Theme(
             data: Theme.of(context).copyWith(
               highlightColor: Colors.transparent,
@@ -904,7 +899,7 @@ class HomeScreenState extends State<HomeScreen>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       indicatorColor: isDarkMode
           ? tealGreen.withAlpha(38)
-          : Theme.of(context).colorScheme.secondaryContainer.withAlpha(128),
+          : Theme.of(context).colorScheme.secondaryContainer.withAlpha(160),
       useIndicator: true,
       minWidth: 68,
       minExtendedWidth: 130,
@@ -1022,7 +1017,29 @@ class HomeScreenState extends State<HomeScreen>
         AnalyticsService.instance
             .logEvent('tab_visit', {'tab_id': englishTabName});
       }
-      setState(() => _tabController.animateTo(index));
+
+      // Check if the same tab is already selected - scroll to top
+      if (_tabController.index == index) {
+        _scrollToTopForDesktop(index);
+      } else {
+        setState(() => _tabController.animateTo(index));
+      }
+    }
+  }
+
+  /// Scrolls to top for desktop navigation rail when the same tab is tapped.
+  void _scrollToTopForDesktop(int index) {
+    final controller =
+        _tabScrollControllers[index] ??= _findScrollController(index);
+    if (controller != null && controller.hasClients) {
+      final maxScroll = controller.position.maxScrollExtent;
+      final offset = controller.offset;
+      final ratio = maxScroll > 0 ? (offset / maxScroll).clamp(0.0, 1.0) : 0.0;
+      final durationMs = (300 + (500 * ratio)).toInt();
+
+      controller.animateTo(0,
+          duration: Duration(milliseconds: durationMs),
+          curve: Curves.easeInOutQuart);
     }
   }
 

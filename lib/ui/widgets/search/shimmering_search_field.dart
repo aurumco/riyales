@@ -106,7 +106,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
         decoration: ShapeDecoration(
           color: isDarkMode ? const Color(0xFF161616) : Colors.white,
           shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(12), smoothness: 0.7),
+              borderRadius: BorderRadius.circular(12), smoothness: 0.75),
         ),
         child: Stack(
           alignment: Alignment.center,

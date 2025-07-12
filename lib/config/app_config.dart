@@ -130,11 +130,11 @@ class AppConfig extends Equatable {
           "cardColor": "#FFFFFF",
           "textColor": "#000000",
           "secondaryTextColor": "#8E8E93",
-          "accentColorGreen": "#00B894",
+          "accentColorGreen": "#00C851",
           "accentColorRed": "#FF4444",
-          "cardBorderRadius": 21.0,
+          "cardBorderRadius": 27.0,
           "shadowColor": "#000000",
-          "cardCornerSmoothness": 0.90,
+          "cardCornerSmoothness": 0.85,
         },
         "dark": {
           "brightness": "dark",
@@ -145,12 +145,12 @@ class AppConfig extends Equatable {
           "cardColor": "#2C2C2E",
           "textColor": "#E5E5EA",
           "secondaryTextColor": "#8E8E93",
-          "accentColorGreen": "#00B894",
+          "accentColorGreen": "#00E676",
           "accentColorRed": "#FF5252",
-          "cardBorderRadius": 21.0,
+          "cardBorderRadius": 27.0,
           "shadowColor": "#000000",
           "backgroundGradientColors": ["#1C1C1E", "#2C2C2E"],
-          "cardCornerSmoothness": 0.90,
+          "cardCornerSmoothness": 0.85,
         },
       },
       "fonts": {
@@ -338,9 +338,9 @@ class ThemeOptions extends Equatable {
         "secondaryTextColor": "#8E8E93",
         "accentColorGreen": "#00C851",
         "accentColorRed": "#FF4444",
-        "cardBorderRadius": 21.0,
+        "cardBorderRadius": 27.0,
         "shadowColor": "#000000",
-        "cardCornerSmoothness": 0.90
+        "cardCornerSmoothness": 0.85
       }),
       dark: ThemeConfig.fromJson(const {
         "brightness": "dark",
@@ -353,10 +353,10 @@ class ThemeOptions extends Equatable {
         "secondaryTextColor": "#8E8E93",
         "accentColorGreen": "#00E676",
         "accentColorRed": "#FF5252",
-        "cardBorderRadius": 21.0,
+        "cardBorderRadius": 27.0,
         "shadowColor": "#000000",
         "backgroundGradientColors": ["#1C1C1E", "#2C2C2E"],
-        "cardCornerSmoothness": 0.90
+        "cardCornerSmoothness": 0.85
       }),
     );
   }
@@ -399,7 +399,7 @@ class ThemeConfig extends Equatable {
     required this.cardBorderRadius,
     required this.shadowColor,
     this.backgroundGradientColors,
-    this.cardCornerSmoothness = 0.7,
+    this.cardCornerSmoothness = 0.85,
   });
 
   factory ThemeConfig.fromJson(Map<String, dynamic> json) {
@@ -415,14 +415,14 @@ class ThemeConfig extends Equatable {
       secondaryTextColor: json['secondaryTextColor'] as String? ?? '#525252',
       accentColorGreen: json['accentColorGreen'] as String? ?? '#00C851',
       accentColorRed: json['accentColorRed'] as String? ?? '#FF4444',
-      cardBorderRadius: (json['cardBorderRadius'] as num?)?.toDouble() ?? 21.0,
+      cardBorderRadius: (json['cardBorderRadius'] as num?)?.toDouble() ?? 27.0,
       shadowColor: json['shadowColor'] as String? ?? '#000000',
       backgroundGradientColors:
           (json['backgroundGradientColors'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList(),
       cardCornerSmoothness:
-          (json['cardCornerSmoothness'] as num?)?.toDouble() ?? 0.90,
+          (json['cardCornerSmoothness'] as num?)?.toDouble() ?? 0.85,
     );
   }
   @override
@@ -553,25 +553,25 @@ class UpdateInfoConfig extends Equatable {
   factory UpdateInfoConfig.fromJson(Map<String, dynamic> json) {
     return UpdateInfoConfig(
       latestVersion: json['latest_version'] as String? ?? '0.0.0',
-      updateUrl: json['update_url'] as String? ?? '',
+      updateUrl: json['update_url'] as String? ?? 'https://dl.ryls.ir/',
       changelogEn: json['changelog_en'] as String? ?? 'No new changes.',
       changelogFa:
           json['changelog_fa'] as String? ?? 'تغییرات جدیدی وجود ندارد.',
       updateMode: json['update_mode'] as String? ?? 'url',
-      updatePackage: json['update_package'] as String? ?? '',
-      updateLink: json['update_link'] as String? ?? '',
+      updatePackage: json['update_package'] as String? ?? 'ir.ryls',
+      updateLink: json['update_link'] as String? ?? 'https://dl.ryls.ir/',
     );
   }
 
   factory UpdateInfoConfig.defaultConfig() {
     return const UpdateInfoConfig(
       latestVersion: '0.0.0',
-      updateUrl: '',
+      updateUrl: 'https://dl.ryls.ir',
       changelogEn: 'No new changes.',
       changelogFa: 'تغییرات جدیدی وجود ندارد.',
       updateMode: 'url',
-      updatePackage: '',
-      updateLink: '',
+      updatePackage: 'ir.ryls',
+      updateLink: 'https://dl.ryls.ir/',
     );
   }
 

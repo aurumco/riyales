@@ -34,7 +34,7 @@ class AssetCardBadges extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDarkMode
               ? tealGreen.withAlpha(38)
-              : theme.colorScheme.secondaryContainer.withAlpha(128),
+              : theme.colorScheme.secondaryContainer.withAlpha(160),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Icon(
@@ -57,7 +57,7 @@ class AssetCardBadges extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDarkMode
               ? tealGreen.withAlpha(38)
-              : theme.colorScheme.secondaryContainer.withAlpha(128),
+              : theme.colorScheme.secondaryContainer.withAlpha(160),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(

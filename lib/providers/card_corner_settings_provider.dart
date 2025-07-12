@@ -28,7 +28,7 @@ class CardCornerSettingsNotifier extends ChangeNotifier {
   CardCornerSettingsNotifier(this.appConfig) {
     _settings = CardCornerSettings(
       radius: appConfig.themeOptions.light.cardBorderRadius,
-      smoothness: 0.75,
+      smoothness: appConfig.themeOptions.light.cardCornerSmoothness,
     );
     _loadSettings();
   }

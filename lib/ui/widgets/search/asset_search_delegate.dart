@@ -253,7 +253,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           color: bgColor,
           shape: SmoothRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            smoothness: 0.7,
+            smoothness: 0.75,
           ),
         ),
         child: CupertinoTextField(
