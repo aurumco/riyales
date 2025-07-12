@@ -22,14 +22,20 @@ import '../../services/analytics_service.dart';
 import './search/shimmering_search_field.dart';
 import '../../utils/browser_utils.dart';
 
-// Stock Page with Sub-Tabs
+/// Stock Page with sub-tabs for different stock categories
 class StockPage extends StatefulWidget {
-  // Changed to StatefulWidget
+  /// Whether to show the search bar
   final bool showSearchBar;
+
+  /// Whether search is currently active
   final bool isSearchActive;
+
+  /// Padding from top of the screen
   final double topPadding;
-  // Gap between main tabs and the stock sub-tabs. Can be adjusted as needed.
+
+  /// Gap between main tabs and stock sub-tabs
   final double subTabGap;
+
   const StockPage({
     super.key,
     required this.showSearchBar,
@@ -42,35 +48,52 @@ class StockPage extends StatefulWidget {
   StockPageState createState() => StockPageState();
 }
 
-class StockPageState extends State<StockPage> // Changed from ConsumerState
-    with
-        TickerProviderStateMixin<StockPage> {
+class StockPageState extends State<StockPage>
+    with TickerProviderStateMixin<StockPage> {
+  /// Tab controller for stock sub-tabs
   late TabController _stockTabController;
+
+  /// List of tab widgets for stock sub-tabs
   final List<Tab> _stockTabs = [];
+
+  /// List of tab view widgets for stock sub-tabs
   final List<Widget> _stockTabViews = [];
+
+  /// English names of stock tabs for analytics tracking
   final List<String> _englishStockTabNames = const [
     'Symbols',
     'Debt Securities',
     'Futures',
     'Housing Facilities'
   ];
-  // Add keys for each stock sub-tab to access their scroll controllers
+
+  /// Keys for accessing each stock sub-tab
   final stockTseIfbKey = GlobalKey<AssetListPageState<models.StockAsset>>();
   final stockDebtKey = GlobalKey<AssetListPageState<models.StockAsset>>();
   final stockFuturesKey = GlobalKey<AssetListPageState<models.StockAsset>>();
   final stockHousingKey = GlobalKey<AssetListPageState<models.StockAsset>>();
-  // Map to store scroll controllers for each stock sub-tab
+
+  /// Map to store scroll controllers for each stock sub-tab
   final Map<int, ScrollController?> _stockScrollControllers = {};
 
   @override
   void initState() {
     super.initState();
-    // Initialized in didChangeDependencies
+    // Tabs initialized in didChangeDependencies
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _initializeTabs();
+    _stockTabController = TabController(length: _stockTabs.length, vsync: this);
+    _fetchDataForStockSubTab(_stockTabController.index);
+    _stockTabController.addListener(_handleStockSubTabSelection);
+    _updateStockScrollControllers();
+  }
+
+  /// Initialize tabs based on localization
+  void _initializeTabs() {
     final l10n = AppLocalizations.of(context);
 
     _stockTabs.clear();
@@ -84,85 +107,120 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     ]);
 
     _stockTabViews.addAll([
-      Consumer<StockTseIfbDataNotifier>(
-        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
-          key: stockTseIfbKey,
-          items: notifier.items,
-          fullItemsListForSearch: notifier.fullDataList,
-          isLoading: notifier.isLoading,
-          error: notifier.error,
-          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () =>
-              notifier.fetchInitialData(isLoadMore: true), // Changed
-          onInitialize: () async => notifier.fetchInitialData(),
-          assetType: AssetType.stock, // Consider a more specific type if needed
-        ),
-      ),
-      Consumer<StockDebtSecuritiesDataNotifier>(
-        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
-          key: stockDebtKey,
-          items: notifier.items,
-          fullItemsListForSearch: notifier.fullDataList,
-          isLoading: notifier.isLoading,
-          error: notifier.error,
-          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () =>
-              notifier.fetchInitialData(isLoadMore: true), // Changed
-          onInitialize: () async => notifier.fetchInitialData(),
-          assetType: AssetType.stock,
-        ),
-      ),
-      Consumer<StockFuturesDataNotifier>(
-        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
-          key: stockFuturesKey,
-          items: notifier.items,
-          fullItemsListForSearch: notifier.fullDataList,
-          isLoading: notifier.isLoading,
-          error: notifier.error,
-          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () =>
-              notifier.fetchInitialData(isLoadMore: true), // Changed
-          onInitialize: () async => notifier.fetchInitialData(),
-          assetType: AssetType.stock,
-        ),
-      ),
-      Consumer<StockHousingFacilitiesDataNotifier>(
-        builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
-          key: stockHousingKey,
-          items: notifier.items,
-          fullItemsListForSearch: notifier.fullDataList,
-          isLoading: notifier.isLoading,
-          error: notifier.error,
-          onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () =>
-              notifier.fetchInitialData(isLoadMore: true), // Changed
-          onInitialize: () async => notifier.fetchInitialData(),
-          assetType: AssetType.stock,
-        ),
-      ),
+      _buildTseIfbTabView(),
+      _buildDebtSecuritiesTabView(),
+      _buildFuturesTabView(),
+      _buildHousingFacilitiesTabView(),
     ]);
-    _stockTabController = TabController(length: _stockTabs.length, vsync: this);
-    _fetchDataForStockSubTab(_stockTabController
-        .index); // Initial load for the first visible sub-tab
-    _stockTabController
-        .addListener(_handleStockSubTabSelection); // Add listener
-    // Initialize scroll controllers after tabs are set up
-    _updateStockScrollControllers();
   }
 
+  /// Build TSE/IFB symbols tab view
+  Widget _buildTseIfbTabView() {
+    return Consumer<StockTseIfbDataNotifier>(
+      builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+        key: stockTseIfbKey,
+        items: notifier.items,
+        fullItemsListForSearch: notifier.fullDataList,
+        isLoading: notifier.isLoading,
+        error: notifier.error,
+        onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+        onLoadMore: () => notifier.fetchInitialData(isLoadMore: true),
+        onInitialize: () async => notifier.fetchInitialData(),
+        assetType: AssetType.stock,
+      ),
+    );
+  }
+
+  /// Build debt securities tab view
+  Widget _buildDebtSecuritiesTabView() {
+    return Consumer<StockDebtSecuritiesDataNotifier>(
+      builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+        key: stockDebtKey,
+        items: notifier.items,
+        fullItemsListForSearch: notifier.fullDataList,
+        isLoading: notifier.isLoading,
+        error: notifier.error,
+        onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+        onLoadMore: () => notifier.fetchInitialData(isLoadMore: true),
+        onInitialize: () async => notifier.fetchInitialData(),
+        assetType: AssetType.stock,
+      ),
+    );
+  }
+
+  /// Build futures tab view
+  Widget _buildFuturesTabView() {
+    return Consumer<StockFuturesDataNotifier>(
+      builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+        key: stockFuturesKey,
+        items: notifier.items,
+        fullItemsListForSearch: notifier.fullDataList,
+        isLoading: notifier.isLoading,
+        error: notifier.error,
+        onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+        onLoadMore: () => notifier.fetchInitialData(isLoadMore: true),
+        onInitialize: () async => notifier.fetchInitialData(),
+        assetType: AssetType.stock,
+      ),
+    );
+  }
+
+  /// Build housing facilities tab view
+  Widget _buildHousingFacilitiesTabView() {
+    return Consumer<StockHousingFacilitiesDataNotifier>(
+      builder: (context, notifier, _) => AssetListPage<models.StockAsset>(
+        key: stockHousingKey,
+        items: notifier.items,
+        fullItemsListForSearch: notifier.fullDataList,
+        isLoading: notifier.isLoading,
+        error: notifier.error,
+        onRefresh: () async => notifier.fetchInitialData(isRefresh: true),
+        onLoadMore: () => notifier.fetchInitialData(isLoadMore: true),
+        onInitialize: () async => notifier.fetchInitialData(),
+        assetType: AssetType.stock,
+      ),
+    );
+  }
+
+  /// Handle tab selection changes
   void _handleStockSubTabSelection() {
     if (!_stockTabController.indexIsChanging && mounted) {
       final index = _stockTabController.index;
-      if (index < _englishStockTabNames.length) {
-        final englishTabName = _englishStockTabNames[index];
-        AnalyticsService.instance
-            .logEvent('bourse_tab_visit', {'tab_id': englishTabName});
-      }
+      _logTabVisit(index);
       _fetchDataForStockSubTab(index);
       _updateStockScrollControllers();
+      _animateTabItems(index);
     }
   }
 
+  /// Log tab visit to analytics
+  void _logTabVisit(int index) {
+    if (index < _englishStockTabNames.length) {
+      final englishTabName = _englishStockTabNames[index];
+      AnalyticsService.instance
+          .logEvent('bourse_tab_visit', {'tab_id': englishTabName});
+    }
+  }
+
+  /// Animate items in the selected tab
+  void _animateTabItems(int index) {
+    switch (index) {
+      case 0:
+        stockTseIfbKey.currentState?.animateItems();
+        break;
+      case 1:
+        stockDebtKey.currentState?.animateItems();
+        break;
+      case 2:
+        stockFuturesKey.currentState?.animateItems();
+        break;
+      case 3:
+        stockHousingKey.currentState?.animateItems();
+        break;
+    }
+  }
+
+  /// Fetch data for the selected stock sub-tab
   void _fetchDataForStockSubTab(int index) {
     if (!mounted) return;
     switch (index) {
@@ -181,7 +239,7 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     }
   }
 
-  // Method to update the scroll controllers map
+  /// Update the scroll controllers map with current controllers
   void _updateStockScrollControllers() {
     _stockScrollControllers[0] = stockTseIfbKey.currentState?.scrollController;
     _stockScrollControllers[1] = stockDebtKey.currentState?.scrollController;
@@ -189,14 +247,14 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
     _stockScrollControllers[3] = stockHousingKey.currentState?.scrollController;
   }
 
-  // Getter for stockTabController to be accessed by HomeScreen
+  /// Getter for stockTabController to be accessed by HomeScreen
   TabController get stockTabController => _stockTabController;
 
-  // Getter for stockScrollControllers to be accessed by HomeScreen
+  /// Getter for stockScrollControllers to be accessed by HomeScreen
   Map<int, ScrollController?> get stockScrollControllers =>
       _stockScrollControllers;
 
-  // Show sorting options bottom sheet for stock tabs
+  /// Show sorting options bottom sheet for stock tabs
   void _showSortSheet(int index) {
     if (!kIsWeb) Vibration.vibrate(duration: 30);
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
@@ -210,13 +268,49 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
       isFa ? 'بیشترین قیمت' : 'Highest Price',
       isFa ? 'کمترین قیمت' : 'Lowest Price',
     ];
-    final appConfig = context.read<AppConfig>();
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tealGreen = hexToColor(
-      isDark
-          ? appConfig.themeOptions.dark.accentColorGreen
-          : appConfig.themeOptions.light.accentColorGreen,
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      _showMaterialSortSheet(index, sortOptions, optionLabels, isDark, isFa);
+    } else {
+      _showCupertinoSortSheet(index, sortOptions, optionLabels, isDark, isFa);
+    }
+  }
+
+  /// Show Material Design sort sheet (for Android)
+  void _showMaterialSortSheet(int index, List<SortMode> sortOptions,
+      List<String> optionLabels, bool isDark, bool isFa) {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: List.generate(sortOptions.length, (i) {
+              return ListTile(
+                title: Text(optionLabels[i],
+                    style: TextStyle(
+                      fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+                      fontSize: 16,
+                      color: isDark ? Colors.white : Colors.black,
+                    )),
+                onTap: () {
+                  _applySortMode(index, sortOptions[i]);
+                  Navigator.of(context).pop();
+                },
+              );
+            }),
+          ),
+        );
+      },
     );
+  }
+
+  /// Show Cupertino sort sheet
+  void _showCupertinoSortSheet(int index, List<SortMode> sortOptions,
+      List<String> optionLabels, bool isDark, bool isFa) {
     showCupertinoModalPopup(
       context: context,
       useRootNavigator: true,
@@ -237,47 +331,43 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           actions: List.generate(sortOptions.length, (i) {
             return CupertinoActionSheetAction(
               onPressed: () {
-                GlobalKey<AssetListPageState<models.StockAsset>>? currentKey;
-                if (index == 0) {
-                  currentKey = stockTseIfbKey;
-                } else if (index == 1) {
-                  currentKey = stockDebtKey;
-                } else if (index == 2) {
-                  currentKey = stockFuturesKey;
-                } else if (index == 3) {
-                  currentKey = stockHousingKey;
-                }
-                currentKey?.currentState?.setSortMode(sortOptions[i]);
+                _applySortMode(index, sortOptions[i]);
                 Navigator.of(context).pop();
               },
-              child: Text(
-                optionLabels[i],
-                style: TextStyle(
-                  fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
-                  fontSize: 17,
-                  fontWeight: FontWeight.normal,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
+              child: Text(optionLabels[i],
+                  style: TextStyle(
+                    fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
+                    fontSize: 16,
+                    color: isDark ? Colors.white : Colors.black,
+                  )),
             );
           }),
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              isFa ? 'انصراف' : 'Cancel',
-              style: TextStyle(
-                fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: tealGreen,
-              ),
-            ),
-          ),
         ),
       ),
     );
   }
 
+  /// Apply the selected sort mode to the appropriate tab
+  void _applySortMode(int tabIndex, SortMode sortMode) {
+    GlobalKey<AssetListPageState<models.StockAsset>>? currentKey;
+    switch (tabIndex) {
+      case 0:
+        currentKey = stockTseIfbKey;
+        break;
+      case 1:
+        currentKey = stockDebtKey;
+        break;
+      case 2:
+        currentKey = stockFuturesKey;
+        break;
+      case 3:
+        currentKey = stockHousingKey;
+        break;
+    }
+    currentKey?.currentState?.setSortMode(sortMode);
+  }
+
+  /// Refresh current sub-tab data if it's stale
   void refreshCurrentSubTabDataIfStale(
       {Duration staleness = const Duration(minutes: 5)}) {
     if (!mounted) return;
@@ -308,45 +398,67 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
 
   @override
   void dispose() {
-    _stockTabController
-        .removeListener(_handleStockSubTabSelection); // Remove listener
+    _stockTabController.removeListener(_handleStockSubTabSelection);
     _stockTabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final appConfig = context.watch<AppConfig>(); // Using Provider
+    final appConfig = context.watch<AppConfig>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    final stockTabBar = Material(
+    return Column(
+      children: [
+        SizedBox(height: widget.topPadding),
+        ClipRect(
+          child: (kIsWeb && isFirefox())
+              ? _buildStockTabBar(appConfig, isDark, isMobile)
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: _buildStockTabBar(appConfig, isDark, isMobile),
+                ),
+        ),
+        _buildSearchBar(),
+        Expanded(
+          child: _buildPageContent(isDark),
+        ),
+      ],
+    );
+  }
+
+  /// Build the stock tab bar
+  Widget _buildStockTabBar(AppConfig appConfig, bool isDark, bool isMobile) {
+    return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Padding(
         padding: EdgeInsets.only(
             top: widget.subTabGap, bottom: 2, left: 8, right: 8),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Shared group for uniform label scaling
             final AutoSizeGroup subTabLabelGroup = AutoSizeGroup();
-            const double horizontalMargin = 1.0; // Made const and typed
-            // Use fixed tab radius and smoothness from theme, not from provider
+            const double horizontalMargin = 1.0;
+
             final themeConfig = isDark
                 ? appConfig.themeOptions.dark
                 : appConfig.themeOptions.light;
+
             final BorderRadius tabBorderRadius = BorderRadius.circular(20.0);
             final segmentInactiveBackground = isDark
                 ? const Color(0xFF161616)
                 : hexToColor(themeConfig.cardColor);
             final segmentActiveBackground = isDark
                 ? hexToColor(themeConfig.accentColorGreen).withAlpha(38)
-                : Theme.of(
-                    context,
-                  ).colorScheme.secondaryContainer.withAlpha(128);
+                : Theme.of(context)
+                    .colorScheme
+                    .secondaryContainer
+                    .withAlpha(128);
             final segmentActiveTextColor = isDark
                 ? hexToColor(themeConfig.accentColorGreen).withAlpha(230)
                 : Theme.of(context).colorScheme.onSecondaryContainer;
+
             final selectedTextStyle = TextStyle(
               color: segmentActiveTextColor,
               fontSize: 14,
@@ -357,126 +469,159 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
               fontSize: 14,
               fontWeight: FontWeight.w600,
             );
+
             return Row(
               mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(_stockTabs.length, (index) {
-                final isSelected = _stockTabController.index == index;
-                final label = _stockTabs[index].text!;
-                void onTap() {
-                  if (_stockTabController.index == index) {
-                    _updateStockScrollControllers();
-                    final controller = _stockScrollControllers[index];
-                    if (controller != null && controller.hasClients) {
-                      controller.jumpTo(controller.offset);
-                      controller.animateTo(
-                        0,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeInOutQuart,
-                      );
-                    }
-                  } else {
-                    setState(() {
-                      _stockTabController.animateTo(
-                        index,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOutQuart,
-                      );
-                    });
-                  }
-                }
-
-                final segment = SmoothCard(
-                  smoothness: themeConfig.cardCornerSmoothness,
-                  borderRadius: tabBorderRadius,
-                  elevation: 0,
-                  color: isSelected
-                      ? segmentActiveBackground
-                      : segmentInactiveBackground,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10.0,
-                      horizontal: 12.0,
-                    ),
-                    child: Center(
-                      child: Builder(
-                        builder: (context) {
-                          // Adaptive text that scales uniformly across sub-tabs
-                          Widget autoText = AutoSizeText(
-                            label,
-                            style: isSelected
-                                ? selectedTextStyle
-                                : unselectedTextStyle,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            group: subTabLabelGroup,
-                            minFontSize: 8,
-                            overflow: TextOverflow.ellipsis,
-                          );
-                          if (isSelected && !isDark) {
-                            autoText = Transform.translate(
-                              offset: const Offset(0, 1),
-                              child: autoText,
-                            );
-                          }
-                          return autoText;
-                        },
-                      ),
-                    ),
-                  ),
+                return _buildTabSegment(
+                  index: index,
+                  isMobile: isMobile,
+                  horizontalMargin: horizontalMargin,
+                  tabBorderRadius: tabBorderRadius,
+                  themeConfig: themeConfig,
+                  segmentActiveBackground: segmentActiveBackground,
+                  segmentInactiveBackground: segmentInactiveBackground,
+                  selectedTextStyle: selectedTextStyle,
+                  unselectedTextStyle: unselectedTextStyle,
+                  subTabLabelGroup: subTabLabelGroup,
+                  isDark: isDark,
                 );
-                final wrappedWithLongPress = GestureDetector(
-                  onTap: onTap,
-                  onLongPress: () => _showSortSheet(index),
-                  child: segment,
-                );
-                return isMobile
-                    ? Expanded(child: wrappedWithLongPress)
-                    : Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: horizontalMargin,
-                        ),
-                        child: wrappedWithLongPress,
-                      );
               }),
             );
           },
         ),
       ),
     );
+  }
 
-    final searchBar = AnimatedContainer(
+  /// Build an individual tab segment
+  Widget _buildTabSegment({
+    required int index,
+    required bool isMobile,
+    required double horizontalMargin,
+    required BorderRadius tabBorderRadius,
+    required dynamic themeConfig,
+    required Color segmentActiveBackground,
+    required Color segmentInactiveBackground,
+    required TextStyle selectedTextStyle,
+    required TextStyle unselectedTextStyle,
+    required AutoSizeGroup subTabLabelGroup,
+    required bool isDark,
+  }) {
+    final isSelected = _stockTabController.index == index;
+    final label = _stockTabs[index].text!;
+
+    final segment = SmoothCard(
+      smoothness: themeConfig.cardCornerSmoothness,
+      borderRadius: tabBorderRadius,
+      elevation: 0,
+      color: isSelected ? segmentActiveBackground : segmentInactiveBackground,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 10.0,
+          horizontal: 12.0,
+        ),
+        child: Center(
+          child: Builder(
+            builder: (context) {
+              Widget autoText = AutoSizeText(
+                label,
+                style: isSelected ? selectedTextStyle : unselectedTextStyle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                group: subTabLabelGroup,
+                minFontSize: 8,
+                overflow: TextOverflow.ellipsis,
+              );
+
+              if (isSelected && !isDark) {
+                autoText = Transform.translate(
+                  offset: const Offset(0, 1),
+                  child: autoText,
+                );
+              }
+
+              return autoText;
+            },
+          ),
+        ),
+      ),
+    );
+
+    final wrappedWithLongPress = GestureDetector(
+      onTap: () => _handleTabTap(index),
+      onLongPress: () => _showSortSheet(index),
+      child: segment,
+    );
+
+    return isMobile
+        ? Expanded(child: wrappedWithLongPress)
+        : Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalMargin),
+            child: wrappedWithLongPress,
+          );
+  }
+
+  /// Handle tab tap - scroll to top if already selected
+  void _handleTabTap(int index) {
+    if (_stockTabController.index == index) {
+      _updateStockScrollControllers();
+      final controller = _stockScrollControllers[index];
+      if (controller != null && controller.hasClients) {
+        controller.jumpTo(controller.offset);
+        controller.animateTo(
+          0,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutQuart,
+        );
+      }
+    } else {
+      setState(() {
+        _stockTabController.animateTo(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutQuart,
+        );
+      });
+    }
+  }
+
+  /// Build the search bar
+  Widget _buildSearchBar() {
+    return AnimatedContainer(
       duration: widget.showSearchBar
-          ? const Duration(milliseconds: 400) // Already const
-          : const Duration(milliseconds: 300), // Already const
-      curve: Curves.easeInOutQuart, // Already const
+          ? const Duration(milliseconds: 400)
+          : const Duration(milliseconds: 300),
+      curve: Curves.easeInOutQuart,
       height: widget.showSearchBar ? 48.0 : 0.0,
       margin: widget.showSearchBar
-          ? const EdgeInsets.only(
-              top: 10.0,
-              bottom: 4.0) // Increased gap above and below search field
-          : EdgeInsets.zero, // Ensure const
-      padding: const EdgeInsets.symmetric(horizontal: 12), // Already const
+          ? const EdgeInsets.only(top: 10.0, bottom: 4.0)
+          : EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: AnimatedOpacity(
         opacity: widget.showSearchBar ? 1.0 : 0.0,
         duration: widget.showSearchBar
-            ? const Duration(milliseconds: 300) // Already const
-            : const Duration(milliseconds: 200), // Already const
+            ? const Duration(milliseconds: 300)
+            : const Duration(milliseconds: 200),
         child: widget.isSearchActive
             ? const ShimmeringSearchField()
             : const SizedBox(),
       ),
     );
+  }
 
-    final pageContent = AnimatedBuilder(
+  /// Build the main page content with tab views
+  Widget _buildPageContent(bool isDark) {
+    return AnimatedBuilder(
       animation: _stockTabController,
       builder: (context, child) {
         final index = _stockTabController.index;
         Widget content = AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300), // Already const
-          switchInCurve: Curves.easeInOutQuart, // Already const
-          switchOutCurve: Curves.easeInOutQuart, // Already const
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeInOutQuart,
+          switchOutCurve: Curves.easeInOutQuart,
           transitionBuilder: (Widget child, Animation<double> anim) =>
               FadeTransition(opacity: anim, child: child),
           child: Container(
@@ -486,17 +631,12 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
           ),
         );
 
-        // Update scroll controllers after tab change
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _updateStockScrollControllers();
         });
 
-        // For desktop web platform, enable middle-click scrolling and smooth scrolling
-        if (kIsWeb &&
-            (defaultTargetPlatform == TargetPlatform.macOS ||
-                defaultTargetPlatform == TargetPlatform.windows ||
-                defaultTargetPlatform == TargetPlatform.linux)) {
-          // Get the current scroll controller for this tab
+        // Enable smooth scrolling for desktop web platforms
+        if (kIsWeb && _isDesktopPlatform()) {
           _updateStockScrollControllers();
           final controller = _stockScrollControllers[index];
 
@@ -514,24 +654,12 @@ class StockPageState extends State<StockPage> // Changed from ConsumerState
         return content;
       },
     );
+  }
 
-    return Column(
-      children: [
-        // Offset for app bar and main tabs
-        SizedBox(height: widget.topPadding),
-        ClipRect(
-          child: (kIsWeb && isFirefox())
-              ? stockTabBar
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: stockTabBar,
-                ),
-        ),
-        searchBar,
-        Expanded(
-          child: pageContent,
-        ),
-      ],
-    );
+  /// Check if current platform is desktop
+  bool _isDesktopPlatform() {
+    return defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
   }
 }

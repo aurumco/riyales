@@ -1,23 +1,23 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Added Provider
+import 'package:provider/provider.dart';
 
-import '../../../services/connection_service.dart'; // For ConnectionStatus enum
+import '../../../services/connection_service.dart';
+
 import '../../../localization/l10n_utils.dart';
-import '../../../providers/locale_provider.dart'; // For UI directionality
+import '../../../providers/locale_provider.dart';
 
+/// Placeholder UI shown when connectivity errors occur.
 class ErrorPlaceholder extends StatelessWidget {
-  // Changed to StatelessWidget
   final ConnectionStatus status;
 
   const ErrorPlaceholder({required this.status, super.key});
 
   @override
   Widget build(BuildContext context) {
-    // WidgetRef ref removed
     final l10n = AppLocalizations.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final localeNotifier = context.watch<LocaleNotifier>(); // Using Provider
+    final localeNotifier = context.watch<LocaleNotifier>();
     final currentLocale = localeNotifier.locale;
     final isRTL = currentLocale.languageCode == 'fa';
 
@@ -38,7 +38,7 @@ class ErrorPlaceholder extends StatelessWidget {
         icon = CupertinoIcons.exclamationmark_circle;
         break;
       case ConnectionStatus.connected:
-        return const SizedBox.shrink(); // Should not be shown if connected
+        return const SizedBox.shrink();
     }
 
     return Container(

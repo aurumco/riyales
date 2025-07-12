@@ -1,38 +1,33 @@
-import 'dart:ui' as ui; // For TextDirection
+// Dart imports
+import 'dart:ui' as ui;
 
+// Flutter imports
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Added Provider
 
-// Models
-// import '../../models/terms_data.dart';
+// Third-party packages
+import 'package:provider/provider.dart';
 
-// Providers
+// Local project imports
 import '../../providers/locale_provider.dart';
-import '../../providers/terms_provider.dart'; // This will be the new ChangeNotifier-based provider later
+import '../../providers/terms_provider.dart';
 
-// Widgets (if ErrorPlaceholder is used)
-// import '../widgets/common/error_placeholder.dart';
-// import '../../services/connection_service.dart'; // For ConnectionStatus if ErrorPlaceholder is used
-
+/// Shows the Terms and Conditions content fetched by TermsNotifier.
 class TermsAndConditionsScreen extends StatelessWidget {
-  // Changed to StatelessWidget
   const TermsAndConditionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // WidgetRef removed
-    final localeNotifier = context.watch<LocaleNotifier>(); // Using Provider
+    final localeNotifier = context.watch<LocaleNotifier>();
     final locale = localeNotifier.locale;
 
-    final termsNotifier = context.watch<TermsNotifier>(); // Using Provider
+    final termsNotifier = context.watch<TermsNotifier>();
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isFa = locale.languageCode == 'fa';
     final theme = Theme.of(context);
     final bgColor = theme.scaffoldBackgroundColor;
     final fadedTextColor = isDarkMode ? Colors.grey[500] : Colors.grey[500];
-    // final chevronColor = isDarkMode ? Colors.grey[600] : Colors.grey[400]; // Not used in this version
 
     return Scaffold(
       backgroundColor: bgColor,

@@ -1,17 +1,23 @@
+// Flutter imports
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+// Third-party packages
 import 'package:provider/provider.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+// Local project imports
 import '../../../providers/search_provider.dart';
 import '../../../localization/l10n_utils.dart';
 import '../../../utils/helpers.dart';
 import '../../../utils/browser_utils.dart';
 
+/// A shimmering search field widget that displays a placeholder effect when no text is entered.
 class ShimmeringSearchField extends StatefulWidget {
   const ShimmeringSearchField({super.key});
 
+  /// Creates a new [ShimmeringSearchField].
   @override
   ShimmeringSearchFieldState createState() => ShimmeringSearchFieldState();
 }
@@ -20,8 +26,8 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     with SingleTickerProviderStateMixin {
   late AnimationController _shimmerController;
   final FocusNode _focusNode = FocusNode();
-  bool _isShimmering = true; // Start shimmering by default
-  bool _showCursor = false; // Hide cursor initially until user taps
+  bool _isShimmering = true;
+  bool _showCursor = false;
 
   @override
   void initState() {
@@ -31,7 +37,6 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
       duration: const Duration(milliseconds: 1800),
     );
 
-    // Start shimmer after a short delay to allow the search bar to animate in
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
         _shimmerController.repeat();
@@ -42,7 +47,6 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
   @override
   void dispose() {
     _shimmerController.dispose();
-    // No focus listener to remove
     _focusNode.dispose();
     super.dispose();
   }
@@ -56,10 +60,8 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     final isRTL = Localizations.localeOf(context).languageCode == 'fa' ||
         containsPersian(searchText);
 
-    // Detect Firefox on web: disable shimmer due to lack of proper shader support
     final bool isFirefoxBrowser = kIsWeb && isFirefox();
 
-    // Determine if shimmer should be active based on whether user typed anything
     bool shouldShimmer = searchText.isEmpty && !isFirefoxBrowser;
 
     if (shouldShimmer && !_isShimmering) {
@@ -109,7 +111,6 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Shimmering placeholder (drawn first, so it's behind)
             if (searchText.isEmpty && _isShimmering && !isFirefoxBrowser)
               Align(
                 alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
@@ -144,7 +145,6 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
                   ),
                 ),
               ),
-            // Static placeholder when not shimmering (drawn after shimmer, also behind text field)
             if (searchText.isEmpty && (!_isShimmering || isFirefoxBrowser))
               Align(
                 alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
@@ -153,24 +153,25 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
                   child: placeholderTextWidget,
                 ),
               ),
-            // The actual text field (drawn last, so it's on top and interactive)
             CupertinoTextField(
               controller: TextEditingController(text: searchText)
                 ..selection = TextSelection.fromPosition(
                     TextPosition(offset: searchText.length)),
               onChanged: (v) => context.read<SearchQueryNotifier>().query = v,
               focusNode: _focusNode,
-              placeholder: '', // Placeholder is visually handled by the widgets above
+              placeholder: '',
               prefix: Padding(
                   padding: const EdgeInsetsDirectional.only(start: 18),
-                  child: Icon(CupertinoIcons.search, size: 20, color: iconColor)),
+                  child:
+                      Icon(CupertinoIcons.search, size: 20, color: iconColor)),
               suffix: searchText.isNotEmpty
                   ? CupertinoButton(
                       padding: const EdgeInsetsDirectional.only(end: 18),
-                      minSize: 30,
-                      child: Icon(CupertinoIcons.clear, size: 18, color: iconColor),
                       onPressed: () =>
                           context.read<SearchQueryNotifier>().query = '',
+                      minimumSize: Size(30, 30),
+                      child: Icon(CupertinoIcons.clear,
+                          size: 18, color: iconColor),
                     )
                   : null,
               textAlign: isRTL ? TextAlign.right : TextAlign.left,
@@ -181,7 +182,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
                   bottom: 11),
               style: TextStyle(color: textColor, fontFamily: fontFamily),
               cursorColor: isDarkMode ? Colors.grey[400] : Colors.grey[700],
-              decoration: const BoxDecoration(color: Colors.transparent), // Essential for placeholders behind to be visible
+              decoration: const BoxDecoration(color: Colors.transparent),
               autofocus: true,
               showCursor: _showCursor,
               onTap: () {

@@ -3,6 +3,7 @@ import '../../models/terms_data.dart';
 import '../../config/app_config.dart';
 import '../../services/api_service.dart';
 
+/// Manages retrieval and state of terms and conditions data.
 class TermsNotifier extends ChangeNotifier {
   final AppConfig appConfig;
   final ApiService apiService;
@@ -17,6 +18,7 @@ class TermsNotifier extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  /// Initializes and fetches terms based on language.
   TermsNotifier(
       {required this.appConfig,
       required this.apiService,
@@ -24,13 +26,13 @@ class TermsNotifier extends ChangeNotifier {
     fetchTerms();
   }
 
+  /// Fetches terms JSON from remote source and updates state.
   Future<void> fetchTerms() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     final isPersian = languageCode == 'fa';
-    // Determine remote URL for terms JSON: use apiEndpoints if set, otherwise derive from remoteConfigUrl
     final defaultConfigUrl = appConfig.remoteConfigUrl;
     final baseConfigUrl = defaultConfigUrl.contains('/')
         ? defaultConfigUrl.substring(0, defaultConfigUrl.lastIndexOf('/') + 1)
@@ -52,7 +54,6 @@ class TermsNotifier extends ChangeNotifier {
         throw Exception('Invalid terms JSON structure');
       }
     } catch (e) {
-      // Remote fetch failed
       _error = e.toString();
     } finally {
       _isLoading = false;

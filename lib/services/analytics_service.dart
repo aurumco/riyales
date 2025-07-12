@@ -1,4 +1,6 @@
-// ignore_for_file: avoid_print
+/// Service for buffering, persisting, and dispatching analytics events.
+library;
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -6,7 +8,6 @@ import 'package:riyales/config/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-// A simple representation of a tracked event.
 class _AggregatedEvent {
   final String eventType;
   final String eventData;
@@ -34,9 +35,8 @@ class _AggregatedEvent {
 }
 
 class AnalyticsService {
-  // Set this to true only when you actually need verbose console output while debugging.
-  // In production builds (or web release), leaving this as false keeps the console clean.
-  static const bool _enableLogs = false;
+  final Map<String, _AggregatedEvent> _eventBuffer = {};
+
   AnalyticsService._privateConstructor();
   static final AnalyticsService instance =
       AnalyticsService._privateConstructor();
@@ -45,18 +45,14 @@ class AnalyticsService {
   static const String _storedEventsKey = 'ryls_analytics_events';
   static const String _lastSendTimeKey = 'ryls_analytics_last_send_time';
 
-  // In-memory buffer for current session
-  final Map<String, _AggregatedEvent> _eventBuffer = {};
-
   Future<String> _getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     String? apiKey = prefs.getString(_apiKeyKey);
     if (apiKey == null) {
-      // This case is unlikely if DeviceInfoService runs first, but as a fallback:
       final String uuid = const Uuid().v4();
       apiKey = 'RYLS-$uuid';
       await prefs.setString(_apiKeyKey, apiKey);
-      if (kDebugMode && _enableLogs) {
+      if (kDebugMode) {
         print('[AnalyticsService] Generated and saved new API Key: $apiKey');
       }
     }
@@ -76,20 +72,11 @@ class AnalyticsService {
         eventData: eventDataJson,
       );
     }
-
-    if (kDebugMode && _enableLogs) {
-      if (kDebugMode) {
-        print(
-          '[AnalyticsService] Event logged: $eventType. Total for this event: ${_eventBuffer[eventKey]?.count}');
-      }
-    }
   }
 
   // Save all in-memory events to SharedPreferences
   Future<void> saveEvents() async {
-    if (_eventBuffer.isEmpty) {
-      return;
-    }
+    if (_eventBuffer.isEmpty) return;
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -121,26 +108,10 @@ class AnalyticsService {
           .toList();
 
       await prefs.setStringList(_storedEventsKey, updatedEventsJson);
-
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print(
-            '[AnalyticsService] Saved ${_eventBuffer.length} events to persistent storage.');
-        }
-        if (kDebugMode) {
-          print(
-            '[AnalyticsService] Total events in storage: ${updatedEventsJson.length}');
-        }
-      }
-
-      // Clear in-memory buffer after saving
+      // Events persisted; clear buffer.
       _eventBuffer.clear();
-    } catch (e) {
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print('[AnalyticsService] Error saving events: $e');
-        }
-      }
+    } catch (_) {
+      // Suppress errors in production.
     }
   }
 
@@ -151,11 +122,7 @@ class AnalyticsService {
       final storedEventsJson = prefs.getStringList(_storedEventsKey) ?? [];
 
       if (storedEventsJson.isEmpty) {
-        if (kDebugMode && _enableLogs) {
-          if (kDebugMode) {
-            print('[AnalyticsService] No previously stored events to send.');
-          }
-        }
+        // No stored events to send.
         return;
       }
 
@@ -164,11 +131,9 @@ class AnalyticsService {
           .map((json) => _AggregatedEvent.fromJson(jsonDecode(json)))
           .toList();
 
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print(
+      if (kDebugMode) {
+        print(
             '[AnalyticsService] Sending ${events.length} stored events from previous session.');
-        }
       }
 
       // Format events for API
@@ -177,11 +142,7 @@ class AnalyticsService {
       final body = jsonEncode({'events': eventList});
       final apiKey = await _getApiKey();
 
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print('[AnalyticsService] Body: $body');
-        }
-      }
+      // Body prepared for API call.
 
       // Send events to server
       final response = await http
@@ -196,35 +157,20 @@ class AnalyticsService {
           .timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Clear stored events on successful send
+        // Events dispatched successfully; clear stored events.
         await prefs.remove(_storedEventsKey);
         await prefs.setString(
             _lastSendTimeKey, DateTime.now().toIso8601String());
 
-        if (kDebugMode && _enableLogs) {
-          if (kDebugMode) {
-            print(
+        if (kDebugMode) {
+          print(
               '[AnalyticsService] Successfully sent stored events from previous session.');
-          }
-          if (kDebugMode) {
-            print('[AnalyticsService] Response: ${response.body}');
-          }
         }
       } else {
-        if (kDebugMode && _enableLogs) {
-          if (kDebugMode) {
-            print(
-              '[AnalyticsService] Failed to send stored events. Status: ${response.statusCode}, Body: ${response.body}');
-          }
-        }
-        // Keep events in storage to try again next time
+        // Dispatch failed; events will be retried later.
       }
-    } catch (e) {
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print('[AnalyticsService] Error sending stored events: $e');
-        }
-      }
+    } catch (_) {
+      // Suppress errors in production.
     }
   }
 

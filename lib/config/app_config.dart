@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-// --- App Config Model ---
-// This model represents the structure of your app_config.json
+/// Application configuration and endpoints parsed from JSON.
 class AppConfig extends Equatable {
+  /// The application name displayed in the UI and metadata.
   final String appName;
   final String remoteConfigUrl;
   final ApiEndpoints apiEndpoints;
@@ -21,7 +21,7 @@ class AppConfig extends Equatable {
   final List<String> priorityCurrency;
   final List<String> priorityGold;
   final List<String> priorityCrypto;
-  final List<String> priorityCommodity; // Added
+  final List<String> priorityCommodity;
 
   const AppConfig({
     required this.appName,
@@ -42,9 +42,10 @@ class AppConfig extends Equatable {
     required this.priorityCurrency,
     required this.priorityGold,
     required this.priorityCrypto,
-    required this.priorityCommodity, // Added
+    required this.priorityCommodity,
   });
 
+  /// Parses JSON and merges top-level `app_version` into update info if provided.
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     // Merge top-level app_version into update_info if present
     final updateMap = (json['update_info'] as Map<String, dynamic>?)
@@ -62,25 +63,15 @@ class AppConfig extends Equatable {
       priceUpdateIntervalMinutes:
           json['priceUpdateIntervalMinutes'] as int? ?? 5,
       updateIntervalMs: json['update_interval_ms'] as int? ?? 30000,
-      supportedLocales: List<String>.from(
-        json['supported_locales'] as List<dynamic>? ?? ['en', 'fa'],
-      ),
-      defaultLocale: json['default_locale'] as String? ?? 'fa',
-      themeOptions: ThemeOptions.fromJson(
-        json['theme_options'] as Map<String, dynamic>? ?? {},
-      ),
-      fonts: FontsConfig.fromJson(json['fonts'] as Map<String, dynamic>? ?? {}),
-      splashScreen: SplashScreenConfig.fromJson(
-        json['splashScreen'] as Map<String, dynamic>? ?? {},
-      ),
-      itemsPerLazyLoad: json['itemsPerLazyLoad'] as int? ?? 24,
-      initialItemsToLoad: json['initialItemsToLoad'] as int? ?? 24,
-      cryptoIconFilter: CryptoIconFilterConfig.fromJson(
-        json['cryptoIconFilter'] as Map<String, dynamic>? ?? {},
-      ),
-      featureFlags: FeatureFlags.fromJson(
-        json['feature_flags'] as Map<String, dynamic>? ?? {},
-      ),
+      supportedLocales: ['en', 'fa'],
+      defaultLocale: 'fa',
+      themeOptions: ThemeOptions.defaultOptions(),
+      fonts: FontsConfig.defaultFonts(),
+      splashScreen: SplashScreenConfig.defaultConfig(),
+      itemsPerLazyLoad: 24,
+      initialItemsToLoad: 24,
+      cryptoIconFilter: CryptoIconFilterConfig.defaultConfig(),
+      featureFlags: FeatureFlags.defaultConfig(),
       updateInfo: UpdateInfoConfig.fromJson(updateMap),
       priorityCurrency:
           List<String>.from(json['priority_currency'] as List<dynamic>? ?? []),
@@ -88,39 +79,37 @@ class AppConfig extends Equatable {
           List<String>.from(json['priority_gold'] as List<dynamic>? ?? []),
       priorityCrypto:
           List<String>.from(json['priority_crypto'] as List<dynamic>? ?? []),
-      priorityCommodity: List<String>.from(
-          json['priority_commodity'] as List<dynamic>? ?? []), // Added
+      priorityCommodity:
+          List<String>.from(json['priority_commodity'] as List<dynamic>? ?? []),
     );
   }
 
-  // Default fallback config
+  /// Returns a default fallback AppConfig with hardcoded values.
   factory AppConfig.defaultConfig() {
-    // Note: priorityCurrency, priorityGold, priorityCrypto will be empty lists by default
-    // as they are not included in this hardcoded default map, and fromJson handles the ?? [].
-    // This is the desired behavior: they are populated from priority_assets.json later.
+    // Priority lists default to empty; they are populated at runtime from priority_assets.json.
     return AppConfig.fromJson(const {
       "app_name": "Riyales",
       "remote_config_url":
-          "https://raw.githubusercontent.com/aurumco/riyales-api/main/config.json",
+          "https://raw.githubusercontent.com/aurumco/riyales-api/refs/heads/main/api/v1/config/app_config.json",
       "api_endpoints": {
         "currency_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/currency.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/currency.pb",
         "gold_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/gold.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/gold.pb",
         "commodity_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/commodity.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/commodity.pb",
         "crypto_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/cryptocurrency.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/cryptocurrency.pb",
         "stock_debt_securities_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/debt_securities.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/stock/debt_securities.pb",
         "stock_futures_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/futures.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/stock/futures.pb",
         "stock_housing_facilities_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/housing_facilities.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/stock/housing_facilities.pb",
         "stock_tse_ifb_symbols_url":
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v1/market/stock/tse_ifb_symbols.json",
-        "priority_assets_url": // This is part of api_endpoints, not top-level AppConfig for priority lists themselves
-            "https://raw.githubusercontent.com/aurumco/riyales-api/main/priority_assets.json",
+            "https://raw.githubusercontent.com/aurumco/riyales-api/main/api/v2/market/stock/tse_ifb_symbols.pb",
+        "priority_assets_url":
+            "https://raw.githubusercontent.com/aurumco/riyales-api/refs/heads/main/api/v1/config/priority_assets.json",
         "terms_en_url":
             "https://raw.githubusercontent.com/aurumco/riyales-api/refs/heads/main/api/v1/config/terms_en.json",
         "terms_fa_url":
@@ -182,11 +171,10 @@ class AppConfig extends Equatable {
       },
       "feature_flags": {"enable_chat": false, "enable_notifications": true},
       "update_info": {
-        // New
-        "latest_version": "0.140.0", // Placeholder
-        "update_url": "https://dl.ryls.ir/", // Placeholder
-        "changelog_en": "Initial release.", // Placeholder
-        "changelog_fa": "نسخه اولیه.", // Placeholder
+        "latest_version": "0.0.0",
+        "update_url": "https://dl.ryls.ir/",
+        "changelog_en": "Initial release.",
+        "changelog_fa": "نسخه اولیه.",
       },
     });
   }
@@ -211,14 +199,15 @@ class AppConfig extends Equatable {
         priorityCurrency,
         priorityGold,
         priorityCrypto,
-        priorityCommodity, // Added
+        priorityCommodity,
       ];
 
+  /// Returns a copy of this config updating priority asset lists.
   AppConfig copyWithPriorityAssets({
     List<String>? priorityCurrency,
     List<String>? priorityGold,
     List<String>? priorityCrypto,
-    List<String>? priorityCommodity, // Added
+    List<String>? priorityCommodity,
   }) {
     return AppConfig(
       appName: appName,
@@ -239,11 +228,15 @@ class AppConfig extends Equatable {
       priorityCurrency: priorityCurrency ?? this.priorityCurrency,
       priorityGold: priorityGold ?? this.priorityGold,
       priorityCrypto: priorityCrypto ?? this.priorityCrypto,
-      priorityCommodity: priorityCommodity ?? this.priorityCommodity, // Added
+      priorityCommodity: priorityCommodity ?? this.priorityCommodity,
     );
   }
 }
 
+/// API endpoints for market data and configuration resources.
+/// Ensures URLs are converted to protobuf endpoints when applicable.
+///
+/// Parsed from JSON in AppConfig.fromJson.
 class ApiEndpoints extends Equatable {
   final String currencyUrl;
   final String goldUrl;
@@ -254,8 +247,12 @@ class ApiEndpoints extends Equatable {
   final String stockHousingFacilitiesUrl;
   final String stockTseIfbSymbolsUrl;
   final String priorityAssetsUrl;
-  final String termsEnUrl; // New: URL for English terms
-  final String termsFaUrl; // New: URL for Persian terms
+
+  /// URL for English terms and conditions JSON.
+  final String termsEnUrl;
+
+  /// URL for Persian terms and conditions JSON.
+  final String termsFaUrl;
 
   const ApiEndpoints({
     required this.currencyUrl,
@@ -267,25 +264,36 @@ class ApiEndpoints extends Equatable {
     required this.stockHousingFacilitiesUrl,
     required this.stockTseIfbSymbolsUrl,
     required this.priorityAssetsUrl,
-    required this.termsEnUrl, // New
-    required this.termsFaUrl, // New
+    required this.termsEnUrl,
+    required this.termsFaUrl,
   });
 
   factory ApiEndpoints.fromJson(Map<String, dynamic> json) {
+    String toPbUrlForce(String url) {
+      if (url.isEmpty) return url;
+      if (url.toLowerCase().endsWith('.pb')) return url;
+      url = url.replaceFirst('/api/v1/', '/api/v2/');
+      url = url.replaceFirst('.json', '.pb');
+      url = url.replaceFirst('github.com/', 'raw.githubusercontent.com/');
+      url = url.replaceFirst('/raw/refs/heads/', '/');
+      return url;
+    }
+
     return ApiEndpoints(
-      currencyUrl: json['currency_url'] as String? ?? '',
-      goldUrl: json['gold_url'] as String? ?? '',
-      commodityUrl: json['commodity_url'] as String? ?? '',
-      cryptoUrl: json['crypto_url'] as String? ?? '',
+      currencyUrl: toPbUrlForce(json['currency_url'] as String? ?? ''),
+      goldUrl: toPbUrlForce(json['gold_url'] as String? ?? ''),
+      commodityUrl: toPbUrlForce(json['commodity_url'] as String? ?? ''),
+      cryptoUrl: toPbUrlForce(json['crypto_url'] as String? ?? ''),
       stockDebtSecuritiesUrl:
-          json['stock_debt_securities_url'] as String? ?? '',
-      stockFuturesUrl: json['stock_futures_url'] as String? ?? '',
+          toPbUrlForce(json['stock_debt_securities_url'] as String? ?? ''),
+      stockFuturesUrl: toPbUrlForce(json['stock_futures_url'] as String? ?? ''),
       stockHousingFacilitiesUrl:
-          json['stock_housing_facilities_url'] as String? ?? '',
-      stockTseIfbSymbolsUrl: json['stock_tse_ifb_symbols_url'] as String? ?? '',
+          toPbUrlForce(json['stock_housing_facilities_url'] as String? ?? ''),
+      stockTseIfbSymbolsUrl:
+          toPbUrlForce(json['stock_tse_ifb_symbols_url'] as String? ?? ''),
       priorityAssetsUrl: json['priority_assets_url'] as String? ?? '',
-      termsEnUrl: json['terms_en_url'] as String? ?? '', // New
-      termsFaUrl: json['terms_fa_url'] as String? ?? '', // New
+      termsEnUrl: json['terms_en_url'] as String? ?? '',
+      termsFaUrl: json['terms_fa_url'] as String? ?? '',
     );
   }
   @override
@@ -299,11 +307,12 @@ class ApiEndpoints extends Equatable {
         stockHousingFacilitiesUrl,
         stockTseIfbSymbolsUrl,
         priorityAssetsUrl,
-        termsEnUrl, // New
-        termsFaUrl, // New
+        termsEnUrl,
+        termsFaUrl,
       ];
 }
 
+/// Theme configuration for light and dark modes.
 class ThemeOptions extends Equatable {
   final String defaultTheme;
   final ThemeConfig light;
@@ -315,17 +324,49 @@ class ThemeOptions extends Equatable {
     required this.dark,
   });
 
-  factory ThemeOptions.fromJson(Map<String, dynamic> json) {
+  factory ThemeOptions.defaultOptions() {
     return ThemeOptions(
-      defaultTheme: json['default_theme'] as String? ?? 'dark',
-      light: ThemeConfig.fromJson(json['light'] as Map<String, dynamic>? ?? {}),
-      dark: ThemeConfig.fromJson(json['dark'] as Map<String, dynamic>? ?? {}),
+      defaultTheme: 'dark',
+      light: ThemeConfig.fromJson(const {
+        "brightness": "light",
+        "primaryColor": "#FFFFFF",
+        "backgroundColor": "#F2F2F7",
+        "scaffoldBackgroundColor": "#F2F2F7",
+        "appBarColor": "#F2F2F7",
+        "cardColor": "#FFFFFF",
+        "textColor": "#000000",
+        "secondaryTextColor": "#8E8E93",
+        "accentColorGreen": "#00C851",
+        "accentColorRed": "#FF4444",
+        "cardBorderRadius": 21.0,
+        "shadowColor": "#000000",
+        "cardCornerSmoothness": 0.90
+      }),
+      dark: ThemeConfig.fromJson(const {
+        "brightness": "dark",
+        "primaryColor": "#1C1C1E",
+        "backgroundColor": "#1C1C1E",
+        "scaffoldBackgroundColor": "#1C1C1E",
+        "appBarColor": "#1C1C1E",
+        "cardColor": "#2C2C2E",
+        "textColor": "#E5E5EA",
+        "secondaryTextColor": "#8E8E93",
+        "accentColorGreen": "#00E676",
+        "accentColorRed": "#FF5252",
+        "cardBorderRadius": 21.0,
+        "shadowColor": "#000000",
+        "backgroundGradientColors": ["#1C1C1E", "#2C2C2E"],
+        "cardCornerSmoothness": 0.90
+      }),
     );
   }
+
   @override
   List<Object?> get props => [defaultTheme, light, dark];
 }
 
+/// Configuration for individual theme properties, such as colors and radii.
+/// Supports optional gradient backgrounds and squircle smoothness.
 class ThemeConfig extends Equatable {
   final String brightness;
   final String primaryColor;
@@ -340,8 +381,9 @@ class ThemeConfig extends Equatable {
   final double cardBorderRadius;
   final String shadowColor;
   final List<String>? backgroundGradientColors;
-  final double
-      cardCornerSmoothness; // New: controls the squircle shape smoothness
+
+  /// Controls the squircle corner smoothness (0 = square, 1 = circle).
+  final double cardCornerSmoothness;
 
   const ThemeConfig({
     required this.brightness,
@@ -357,7 +399,7 @@ class ThemeConfig extends Equatable {
     required this.cardBorderRadius,
     required this.shadowColor,
     this.backgroundGradientColors,
-    this.cardCornerSmoothness = 0.6, // Default smoothness value
+    this.cardCornerSmoothness = 0.7,
   });
 
   factory ThemeConfig.fromJson(Map<String, dynamic> json) {
@@ -402,6 +444,7 @@ class ThemeConfig extends Equatable {
       ];
 }
 
+/// Configuration for default Persian and English font families.
 class FontsConfig extends Equatable {
   final String persianFontFamily;
   final String englishFontFamily;
@@ -411,16 +454,17 @@ class FontsConfig extends Equatable {
     required this.englishFontFamily,
   });
 
-  factory FontsConfig.fromJson(Map<String, dynamic> json) {
+  factory FontsConfig.defaultFonts() {
     return FontsConfig(
-      persianFontFamily: json['persianFontFamily'] as String? ?? 'Vazirmatn',
-      englishFontFamily: json['englishFontFamily'] as String? ?? 'SF-Pro',
+      persianFontFamily: 'Vazirmatn',
+      englishFontFamily: 'SF-Pro',
     );
   }
   @override
   List<Object?> get props => [persianFontFamily, englishFontFamily];
 }
 
+/// Configuration for splash screen duration, icon, and indicator color.
 class SplashScreenConfig extends Equatable {
   final double durationSeconds;
   final String iconPath;
@@ -432,19 +476,18 @@ class SplashScreenConfig extends Equatable {
     required this.loadingIndicatorColor,
   });
 
-  factory SplashScreenConfig.fromJson(Map<String, dynamic> json) {
+  factory SplashScreenConfig.defaultConfig() {
     return SplashScreenConfig(
-      durationSeconds: (json['durationSeconds'] as num?)?.toDouble() ?? 1.5,
-      iconPath: json['iconPath'] as String? ??
-          'assets/images/splash-screen-light.svg',
-      loadingIndicatorColor:
-          json['loadingIndicatorColor'] as String? ?? '#FBC02D',
+      durationSeconds: 1.5,
+      iconPath: 'assets/images/splash-screen-light.svg',
+      loadingIndicatorColor: '#FBC02D',
     );
   }
   @override
   List<Object?> get props => [durationSeconds, iconPath, loadingIndicatorColor];
 }
 
+/// Filter settings for cryptocurrency icons (brightness, contrast, saturation).
 class CryptoIconFilterConfig extends Equatable {
   final double brightness;
   final double contrast;
@@ -456,17 +499,18 @@ class CryptoIconFilterConfig extends Equatable {
     required this.saturation,
   });
 
-  factory CryptoIconFilterConfig.fromJson(Map<String, dynamic> json) {
+  factory CryptoIconFilterConfig.defaultConfig() {
     return CryptoIconFilterConfig(
-      brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
-      contrast: (json['contrast'] as num?)?.toDouble() ?? 0.0,
-      saturation: (json['saturation'] as num?)?.toDouble() ?? -0.2,
+      brightness: 0.0,
+      contrast: 0.0,
+      saturation: -0.2,
     );
   }
   @override
   List<Object?> get props => [brightness, contrast, saturation];
 }
 
+/// Toggles for enabling or disabling optional application features.
 class FeatureFlags extends Equatable {
   final bool enableChat;
   final bool enableNotifications;
@@ -476,16 +520,17 @@ class FeatureFlags extends Equatable {
     required this.enableNotifications,
   });
 
-  factory FeatureFlags.fromJson(Map<String, dynamic> json) {
+  factory FeatureFlags.defaultConfig() {
     return FeatureFlags(
-      enableChat: json['enable_chat'] as bool? ?? false,
-      enableNotifications: json['enable_notifications'] as bool? ?? true,
+      enableChat: false,
+      enableNotifications: true,
     );
   }
   @override
   List<Object?> get props => [enableChat, enableNotifications];
 }
 
+/// Configuration for application update information and URLs.
 class UpdateInfoConfig extends Equatable {
   final String latestVersion;
   final String updateUrl;
@@ -541,5 +586,3 @@ class UpdateInfoConfig extends Equatable {
         updateLink,
       ];
 }
-
-// _hexToColor function removed as it's unused in this file (moved to utils/color_utils.dart)

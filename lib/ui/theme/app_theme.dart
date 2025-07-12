@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For SystemUiOverlayStyle
-import '../../config/app_config.dart'; // For ThemeConfig, FontsConfig etc.
-import '../../utils/color_utils.dart'; // For hexToColor
+import 'package:flutter/services.dart';
+import '../../config/app_config.dart';
+import '../../utils/color_utils.dart';
 
+/// Utility class to generate app themes based on configuration and mode.
 class AppTheme {
+  /// Creates a [TextTheme] with the specified [fontFamily] and [textColor].
   static TextTheme _createTextTheme(String fontFamily, Color textColor) {
     return TextTheme(
       displayLarge: TextStyle(
@@ -84,11 +86,11 @@ class AppTheme {
     );
   }
 
+  /// Returns [ThemeData] configured from [themeConfig], using [fontFamily] for text and [isDarkMode].
   static ThemeData getThemeData(ThemeConfig themeConfig, String fontFamily,
       String defaultFontFamilyForThemeTitle, bool isDarkMode) {
-    final Color primaryColor = hexToColor(themeConfig.primaryColor);
-    hexToColor(themeConfig.backgroundColor);
-    final Color scaffoldBackgroundColor =
+    final primaryColor = hexToColor(themeConfig.primaryColor);
+    final scaffoldBackgroundColor =
         hexToColor(themeConfig.scaffoldBackgroundColor);
     final Color appBarColor = hexToColor(themeConfig.appBarColor);
     final Color cardColor = hexToColor(themeConfig.cardColor);
@@ -97,13 +99,11 @@ class AppTheme {
     final Color accentColorGreen = hexToColor(themeConfig.accentColorGreen);
     final Color accentColorRed = hexToColor(themeConfig.accentColorRed);
 
-    // AMOLED dark mode: use pure black backgrounds
+    // Dark mode: use pure black backgrounds for app bar, scaffold, and card
     final finalScaffoldBackgroundColor =
         isDarkMode ? const Color(0xFF090909) : scaffoldBackgroundColor;
     final finalCardColor = isDarkMode ? const Color(0xFF161616) : cardColor;
-    final finalAppBarColor = isDarkMode
-        ? const Color(0xFF090909)
-        : appBarColor; // AMOLED effect: app bar pure black in dark mode
+    final finalAppBarColor = isDarkMode ? const Color(0xFF090909) : appBarColor;
 
     final textTheme = _createTextTheme(fontFamily, textColor);
 
@@ -112,29 +112,25 @@ class AppTheme {
       primaryColor: primaryColor,
       scaffoldBackgroundColor: finalScaffoldBackgroundColor,
       appBarTheme: AppBarTheme(
-        backgroundColor:
-            finalAppBarColor, // Use pure black for dark theme app bar
+        backgroundColor: finalAppBarColor,
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
         titleTextStyle: TextStyle(
-          fontFamily:
-              defaultFontFamilyForThemeTitle, // Use the specific font for titles (Vazirmatn or Onest)
+          fontFamily: defaultFontFamilyForThemeTitle,
           fontSize: 22,
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor:
-              finalScaffoldBackgroundColor, // Status bar matches scaffold
+          statusBarColor: finalScaffoldBackgroundColor,
           statusBarIconBrightness:
               isDarkMode ? Brightness.light : Brightness.dark,
-          systemNavigationBarColor:
-              finalScaffoldBackgroundColor, // Nav bar matches scaffold
+          systemNavigationBarColor: finalScaffoldBackgroundColor,
           systemNavigationBarIconBrightness:
               isDarkMode ? Brightness.light : Brightness.dark,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: finalCardColor,
         shape: RoundedRectangleBorder(
@@ -146,9 +142,9 @@ class AppTheme {
           ? ColorScheme.dark(
               primary: primaryColor,
               secondary: accentColorGreen,
-              surface: finalCardColor, // Use potentially darkened card color
+              surface: finalCardColor,
               onPrimary: textColor,
-              onSecondary: textColor, // Ensure good contrast
+              onSecondary: textColor,
               onSurface: textColor,
               error: accentColorRed,
               onError: textColor,
@@ -158,7 +154,7 @@ class AppTheme {
               secondary: accentColorGreen,
               surface: finalCardColor,
               onPrimary: textColor,
-              onSecondary: Colors.white, // Common for light themes
+              onSecondary: Colors.white,
               onSurface: textColor,
               error: accentColorRed,
               onError: Colors.white,

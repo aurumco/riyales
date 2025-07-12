@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 
+/// Manages the set of user favorite asset IDs.
 class FavoritesNotifier extends ChangeNotifier {
   Set<String> _favorites = {};
 
@@ -9,8 +10,8 @@ class FavoritesNotifier extends ChangeNotifier {
     _loadFavorites();
   }
 
-  Set<String> get favorites =>
-      _favorites; // Public getter for the favorites set
+  /// Returns the current set of favorite asset IDs.
+  Set<String> get favorites => _favorites;
   static const _favoritesKey = 'favorite_assets';
 
   Future<void> _loadFavorites() async {
@@ -18,7 +19,7 @@ class FavoritesNotifier extends ChangeNotifier {
     final favoriteList = prefs.getStringList(_favoritesKey);
     if (favoriteList != null) {
       _favorites = favoriteList.toSet();
-      notifyListeners(); // Notify after loading
+      notifyListeners();
     }
   }
 
@@ -38,16 +39,12 @@ class FavoritesNotifier extends ChangeNotifier {
 
     try {
       if (!kIsWeb) {
-        final bool hasVibratorNullable = await Vibration.hasVibrator();
-        if (hasVibratorNullable) {
-          Vibration.vibrate(duration: 30);
-        }
+        final hasVibrator = await Vibration.hasVibrator();
+        if (hasVibrator) Vibration.vibrate(duration: 30);
       }
-    } catch (e) {
-      // Vibration failed, log if necessary
-      // print('Vibration failed: $e');
-    }
+    } catch (_) {}
   }
 
+  /// Checks if the given asset ID is in favorites.
   bool isFavorite(String assetId) => _favorites.contains(assetId);
 }

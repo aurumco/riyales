@@ -1,19 +1,20 @@
-// ignore_for_file: avoid_print
+/// Service to collect and send device and app information once per install.
+library;
+
 import 'dart:io' show Platform;
 import 'dart:ui' show PlatformDispatcher;
-import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform, kDebugMode;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riyales/config/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class DeviceInfoService {
-  // Set this to false to disable all console logging from this service
-  static const bool _enableLogs = false;
   final Dio _dio = Dio();
   static const String _deviceInfoSentKey = 'device_info_sent';
   static const String _apiKeyKey = 'ryls_api_key';
@@ -23,12 +24,10 @@ class DeviceInfoService {
     final prefs = await SharedPreferences.getInstance();
     String? apiKey = prefs.getString(_apiKeyKey);
     if (apiKey == null) {
+      // Generate and persist a new API key if absent.
       final String uuid = const Uuid().v4();
       apiKey = 'RYLS-$uuid';
       await prefs.setString(_apiKeyKey, apiKey);
-      if (kDebugMode && _enableLogs) {
-        print('[DeviceInfoService] Generated and saved new API Key: $apiKey');
-      }
     }
     return apiKey;
   }
@@ -37,15 +36,7 @@ class DeviceInfoService {
     final prefs = await SharedPreferences.getInstance();
     final bool alreadySent = prefs.getBool(_deviceInfoSentKey) ?? false;
 
-    if (alreadySent) {
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print(
-            '[DeviceInfoService] Device info already sent previously. Skipping.');
-        }
-      }
-      return;
-    }
+    if (alreadySent) return;
 
     try {
       final deviceInfo = DeviceInfoPlugin();
@@ -146,23 +137,6 @@ class DeviceInfoService {
         }
       }
 
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print(
-            '[DeviceInfoService] Sending payload to ${AppConstants.apiBaseUrl}${AppConstants.deviceEndpoint}');
-        }
-        final apiKey = await _getApiKey();
-        if (kDebugMode) {
-          print('[DeviceInfoService] API Key: $apiKey');
-        }
-        if (kDebugMode) {
-          print('[DeviceInfoService] User-Agent: $userAgent');
-        }
-        if (kDebugMode) {
-          print('[DeviceInfoService] Body: $data');
-        }
-      }
-
       final response = await _dio.post(
         AppConstants.apiBaseUrl + AppConstants.deviceEndpoint,
         data: data,
@@ -177,42 +151,9 @@ class DeviceInfoService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         await prefs.setBool(_deviceInfoSentKey, true);
-        if (kDebugMode && _enableLogs) {
-          if (kDebugMode) {
-            print(
-              '[DeviceInfoService] Successfully sent device info: ${response.data}');
-          }
-        }
-      } else {
-        if (kDebugMode && _enableLogs) {
-          if (kDebugMode) {
-            print(
-              '[DeviceInfoService] Failed to send device info. Status: ${response.statusCode}, Body: ${response.data}');
-          }
-        }
-      }
-    } catch (e) {
-      if (kDebugMode && _enableLogs) {
-        if (kDebugMode) {
-          print(
-            '[DeviceInfoService] An error occurred while sending device info.');
-        }
-        if (e is DioException) {
-          if (kDebugMode) {
-            print('DioException: ${e.message}');
-          }
-          if (kDebugMode) {
-            print('Response Data: ${e.response?.data}');
-          }
-          if (kDebugMode) {
-            print('Request URI: ${e.requestOptions.uri}');
-          }
-        } else {
-          if (kDebugMode) {
-            print('Generic Error: $e');
-          }
-        }
-      }
+      } else {}
+    } catch (_) {
+      // Suppress errors in production.
     }
   }
 }

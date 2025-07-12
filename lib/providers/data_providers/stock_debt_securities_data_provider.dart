@@ -5,6 +5,7 @@ import '../../../config/app_config.dart';
 import '../../../services/api_service.dart';
 import '../../../services/connection_service.dart';
 
+/// Provides stock and debt securities data with pagination and basic caching.
 class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
   final ApiService apiService;
   final AppConfig appConfig;
@@ -12,27 +13,22 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
 
   bool isLoading = false;
   String? error;
-  List<StockAsset> stockAssets = []; // Public list for current items
+  List<StockAsset> stockAssets = [];
 
-  // int _currentlyLoadedCount = 0;
   List<StockAsset> _fullDataList = [];
-  // Timer? _updateTimer; // Removed
 
   bool hasDataBeenFetchedOnce = false;
   DateTime? lastFetchTime;
   bool _isLoadingMore = false;
 
-  // Public getter for the full data list
   List<StockAsset> get fullDataList => _fullDataList;
-  // Public getter for the paginated/currently visible items
   List<StockAsset> get items => stockAssets;
 
+  /// Creates a notifier for stock and debt securities data.
   StockDebtSecuritiesDataNotifier(
       {required this.apiService,
       required this.appConfig,
-      required this.connectionService}) {
-    // Initial fetch removed to defer loading until sub-tab is activated
-  }
+      required this.connectionService});
 
   Future<void> fetchInitialData(
       {bool isRefresh = false, bool isLoadMore = false}) async {
@@ -45,7 +41,7 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
         return;
       }
       _isLoadingMore = true;
-      // notifyListeners(); // Optional
+      // Notify listeners when loading more is complete.
 
       final currentLength = stockAssets.length;
       final int end =
@@ -101,11 +97,9 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
                 priorityResponse['stock_debt_securities'] as List<dynamic>? ??
                     []);
           }
-        } catch (_) {
-          // Failed to load priority list
-        }
+        } catch (_) {}
 
-        final List<StockAsset> priorityAssetsList = []; // Renamed
+        final List<StockAsset> priorityAssetsList = [];
         final List<StockAsset> otherAssets = [];
         if (priorityList.isNotEmpty) {
           for (final symbol in priorityList) {
@@ -113,7 +107,6 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
                 .addAll(fetchedAssets.where((a) => a.symbol == symbol));
           }
           for (final assetInFetched in fetchedAssets) {
-            // Renamed
             if (!priorityAssetsList.any((pa) => pa.id == assetInFetched.id)) {
               otherAssets.add(assetInFetched);
             }
@@ -130,9 +123,6 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
       if (error == null && !isSpecialFetch) {
         hasDataBeenFetchedOnce = true;
         lastFetchTime = DateTime.now();
-        // if (!isRefresh) { // Removed call to _startAutoRefresh
-        //   _startAutoRefresh();
-        // }
       }
     } catch (e) {
       error = e.toString();
@@ -146,9 +136,6 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
     }
   }
 
-  // void loadMore() { // Integrated
-  // }
-
   Future<void> fetchDataIfStaleOrNeverFetched(
       {Duration staleness = const Duration(minutes: 5)}) async {
     if (!hasDataBeenFetchedOnce ||
@@ -156,21 +143,5 @@ class StockDebtSecuritiesDataNotifier extends ChangeNotifier {
         DateTime.now().difference(lastFetchTime!) > staleness) {
       await fetchInitialData(isRefresh: true);
     }
-  }
-
-  // void _startAutoRefresh() { // Removed method
-  //   _updateTimer?.cancel();
-  //   final updateIntervalMs = appConfig.priceUpdateIntervalMinutes * 60 * 1000;
-  //   if (updateIntervalMs > 0) {
-  //       _updateTimer = Timer.periodic(Duration(milliseconds: updateIntervalMs), (timer) {
-  //           fetchInitialData(isRefresh: true);
-  //       });
-  //   }
-  // }
-
-  @override
-  void dispose() {
-    // _updateTimer?.cancel(); // Removed timer cancellation
-    super.dispose();
   }
 }

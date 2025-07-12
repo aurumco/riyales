@@ -1,12 +1,15 @@
 import 'dart:async';
-import 'dart:math' as math; // Ensure this import is present and correct
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import '../../../models/asset_models.dart';
 import '../../../config/app_config.dart';
 import '../../../services/api_service.dart';
 import '../../../services/connection_service.dart';
-import '../../../ui/widgets/asset_card.dart'; // For cryptoIconMap
+import '../../../ui/widgets/asset_card.dart';
 
+/// Provides cryptocurrency data with pagination and basic caching.
+/// Data is fetched from [ApiService], prioritized using
+/// [AppConfig.priorityCrypto] and icon hints from `cryptoIconMap`.
 class CryptoDataNotifier extends ChangeNotifier {
   final ApiService apiService;
   final AppConfig appConfig;
@@ -30,6 +33,11 @@ class CryptoDataNotifier extends ChangeNotifier {
       required this.appConfig,
       required this.connectionService});
 
+  /// Fetches cryptocurrency data.
+  ///
+  /// [isRefresh] forces a network request, bypassing cache.
+  /// [isLoadMore] appends additional items for lazy-loading.
+  /// [favoriteIds] limits the result set to the supplied IDs.
   Future<void> fetchInitialData(
       {bool isRefresh = false,
       bool isLoadMore = false,
@@ -37,9 +45,11 @@ class CryptoDataNotifier extends ChangeNotifier {
     final bool isSpecialFetch = (favoriteIds != null && favoriteIds.isNotEmpty);
 
     if (isLoadMore) {
-      if (isSpecialFetch || _isLoadingMore || cryptoAssets.length >= _fullDataList.length) {
+      if (isSpecialFetch ||
+          _isLoadingMore ||
+          cryptoAssets.length >= _fullDataList.length) {
         if (_isLoadingMore && cryptoAssets.length >= _fullDataList.length) {
-            _isLoadingMore = false;
+          _isLoadingMore = false;
         }
         return;
       }
@@ -48,8 +58,7 @@ class CryptoDataNotifier extends ChangeNotifier {
 
       final currentLength = cryptoAssets.length;
       final itemsToLoad = appConfig.itemsPerLazyLoad;
-      // Corrected usage of math.min
-      int end = math.min(currentLength + itemsToLoad, _fullDataList.length);
+      final end = math.min(currentLength + itemsToLoad, _fullDataList.length);
 
       if (currentLength < end) {
         cryptoAssets.addAll(_fullDataList.sublist(currentLength, end));
@@ -112,10 +121,9 @@ class CryptoDataNotifier extends ChangeNotifier {
           if (priorityList.isNotEmpty) {
             for (final name in priorityList) {
               final lowerName = name.toLowerCase();
-              final assetsToPrio = fetchedAssets.where(
-                  (a) =>
-                      a.name.toLowerCase() == lowerName &&
-                      !usedAssetIds.contains(a.id));
+              final assetsToPrio = fetchedAssets.where((a) =>
+                  a.name.toLowerCase() == lowerName &&
+                  !usedAssetIds.contains(a.id));
               for (final assetToPrio in assetsToPrio) {
                 sortedList.add(assetToPrio);
                 usedAssetIds.add(assetToPrio.id);
@@ -148,6 +156,7 @@ class CryptoDataNotifier extends ChangeNotifier {
     }
   }
 
+  /// Refreshes the data when it is stale (older than [staleness]) or never fetched.
   Future<void> fetchDataIfStaleOrNeverFetched(
       {Duration staleness = const Duration(minutes: 5)}) async {
     if (!hasDataBeenFetchedOnce ||
@@ -156,9 +165,4 @@ class CryptoDataNotifier extends ChangeNotifier {
       await fetchInitialData(isRefresh: true, favoriteIds: null);
     }
   }
-
-  // @override // Removed unnecessary override
-  // void dispose() {
-  //   super.dispose();
-  // }
 }

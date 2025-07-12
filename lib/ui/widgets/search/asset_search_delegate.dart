@@ -1,51 +1,44 @@
-import 'dart:ui' as ui;
+// Flutter imports
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:smooth_corner/smooth_corner.dart';
 
+// Dart imports
+import 'dart:ui' as ui;
+
+// Third-party packages
+import 'package:smooth_corner/smooth_corner.dart';
+import 'package:provider/provider.dart';
+
+// Local project imports
 import '../../../localization/l10n_utils.dart';
-import '../asset_list_page.dart';
+import '../../../utils/helpers.dart';
+import '../../../models/asset_models.dart' as models;
 import '../../../providers/search_provider.dart';
-// Specific data provider imports (assuming they will export the provider variables for now)
 import '../../../providers/data_providers/currency_data_provider.dart';
 import '../../../providers/data_providers/gold_data_provider.dart';
 import '../../../providers/data_providers/crypto_data_provider.dart';
 import '../../../providers/data_providers/stock_tse_ifb_data_provider.dart';
-// import '../../../providers/data_providers/stock_debt_securities_data_provider.dart'; // If needed
-// import '../../../providers/data_providers/stock_futures_data_provider.dart'; // If needed
-// import '../../../providers/data_providers/stock_housing_facilities_data_provider.dart'; // If needed
+import '../asset_list_page.dart';
 
-import '../../../models/asset_models.dart' as models;
-import '../../../utils/helpers.dart'; // For containsPersian
-// import '../../../providers/locale_provider.dart';
-import 'package:provider/provider.dart'; // Added Provider
-
+/// A search delegate that filters and displays assets across different categories.
 class AssetSearchDelegate extends SearchDelegate<String> {
-  // final WidgetRef ref; // Removed ref
-  final SearchQueryNotifier searchQueryNotifier; // Pass Notifier directly
+  final SearchQueryNotifier searchQueryNotifier;
   final int currentTabIndex;
   late final TextEditingController queryTextEditingController;
 
+  /// Creates an [AssetSearchDelegate] with the provided notifier and tab index.
   AssetSearchDelegate({
-    // required this.ref, // Removed
     required this.searchQueryNotifier,
     required this.currentTabIndex,
   }) {
     queryTextEditingController = TextEditingController(text: query);
-    // Listener might not be needed if query is updated directly via searchQueryNotifier
     queryTextEditingController.addListener(() {
-      if (queryTextEditingController.text != query) {
-        // This delegate's 'query' field is automatically updated by SearchDelegate
-        // We need to sync it with our external notifier if we want two-way binding
-        // For now, let SearchDelegate handle its internal query state primarily.
-        // The external notifier is updated in buildSuggestions/buildResults.
-      }
+      // No-op: SearchDelegate manages query state; external notifier updated in buildSuggestions/buildResults.
     });
   }
 
   @override
   void close(BuildContext context, String result) {
-    // Reset search query using the passed notifier
     WidgetsBinding.instance.addPostFrameCallback((_) {
       searchQueryNotifier.query = '';
     });
@@ -53,12 +46,8 @@ class AssetSearchDelegate extends SearchDelegate<String> {
     super.close(context, result);
   }
 
-  // searchFieldLabel is now built in buildSearchField or passed via constructor if needed earlier.
-  // For simplicity, we'll use AppLocalizations directly in buildSearchField.
-
   @override
   List<Widget>? buildActions(BuildContext context) {
-    // Hide clear action since we have it in the search field itself
     if (query.isEmpty) return [];
 
     return [
@@ -66,22 +55,21 @@ class AssetSearchDelegate extends SearchDelegate<String> {
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: CupertinoButton(
           padding: EdgeInsets.zero,
-          minSize: 30,
+          onPressed: () {
+            query = '';
+            queryTextEditingController.clear();
+            showSuggestions(context);
+          },
+          minimumSize: Size(30, 30),
           child: Text(
-            AppLocalizations.of(context)
-                .dialogClose, // Changed to use AppLocalizations
+            AppLocalizations.of(context).dialogClose,
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontSize: 16,
-              fontFamily: 'SF-Pro', // iOS system font
+              fontFamily: 'SF-Pro',
               fontWeight: FontWeight.w400,
             ),
           ),
-          onPressed: () {
-            query = '';
-            queryTextEditingController.clear(); // Also clear controller
-            showSuggestions(context);
-          },
         ),
       ),
     ];
@@ -89,10 +77,8 @@ class AssetSearchDelegate extends SearchDelegate<String> {
 
   @override
   Widget? buildLeading(BuildContext context) {
-    // final isDarkMode = Theme.of(context).brightness == Brightness.dark; // Not used
     final bool isRTL = Localizations.localeOf(context).languageCode == 'fa';
 
-    // iOS-style back button
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: CupertinoButton(
@@ -112,7 +98,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
     final bool isRTLQuery = containsPersian(query);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      searchQueryNotifier.query = query; // Update external notifier
+      searchQueryNotifier.query = query;
     });
 
     ui.TextDirection direction =
@@ -129,7 +115,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
     final bool isRTLQuery = containsPersian(query);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      searchQueryNotifier.query = query; // Update external notifier
+      searchQueryNotifier.query = query;
     });
 
     ui.TextDirection direction =
@@ -145,10 +131,8 @@ class AssetSearchDelegate extends SearchDelegate<String> {
     final l10n = AppLocalizations.of(context);
 
     Widget listToShow;
-    // Based on currentTabIndex, watch the appropriate notifier and pass data to AssetListPage.
-    // Note: AssetListPage itself uses searchQueryNotifier via context.watch for filtering.
     switch (currentTabIndex) {
-      case 0: // Currency
+      case 0:
         final currencyNotifier = Provider.of<CurrencyDataNotifier>(context);
         listToShow = AssetListPage<models.CurrencyAsset>(
           items: currencyNotifier.items,
@@ -156,10 +140,8 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           isLoading: currencyNotifier.isLoading,
           error: currencyNotifier.error,
           onRefresh: () => currencyNotifier.fetchInitialData(isRefresh: true),
-          onLoadMore: () =>
-              currencyNotifier.fetchInitialData(isLoadMore: true), // Changed
-          onInitialize: () => currencyNotifier
-              .fetchInitialData(), // May not be strictly needed here if already loaded
+          onLoadMore: () => currencyNotifier.fetchInitialData(isLoadMore: true),
+          onInitialize: () => currencyNotifier.fetchInitialData(),
           assetType: AssetType.currency,
         );
         break;
@@ -191,7 +173,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           assetType: AssetType.crypto,
         );
         break;
-      case 3: // Stock - Assuming TSE/IFB for the generic stock search for now
+      case 3: // Stock - Assuming TSE/IFB for the generic stock search
         final stockTseIfbNotifier =
             Provider.of<StockTseIfbDataNotifier>(context);
         listToShow = AssetListPage<models.StockAsset>(
@@ -204,8 +186,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           onLoadMore: () =>
               stockTseIfbNotifier.fetchInitialData(isLoadMore: true), // Changed
           onInitialize: () => stockTseIfbNotifier.fetchInitialData(),
-          assetType: AssetType
-              .stock, // This might need to be more specific if StockPage uses this delegate
+          assetType: AssetType.stock,
         );
         break;
       default:
@@ -258,11 +239,10 @@ class AssetSearchDelegate extends SearchDelegate<String> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    final bgColor = isDarkMode
-        ? const Color(0xFF161616) // Match card background
-        : const Color(0xFFE5E5EA);
+    final bgColor =
+        isDarkMode ? const Color(0xFF161616) : const Color(0xFFE5E5EA);
 
-    bool isRTLQuery = containsPersian(query); // from utils/helpers.dart
+    bool isRTLQuery = containsPersian(query);
     String fontFamily = isRTLQuery ? 'Vazirmatn' : 'SF-Pro';
 
     return Container(
@@ -292,7 +272,7 @@ class AssetSearchDelegate extends SearchDelegate<String> {
             fontSize: 16,
             color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
           ),
-          decoration: null, // No decoration to avoid double background
+          decoration: null,
           prefix: isRTLQuery
               ? null
               : Padding(
@@ -315,17 +295,17 @@ class AssetSearchDelegate extends SearchDelegate<String> {
               : query.isNotEmpty
                   ? CupertinoButton(
                       padding: EdgeInsets.zero,
-                      minSize: 30,
-                      child: Icon(
-                        CupertinoIcons.clear,
-                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                        size: 18,
-                      ),
                       onPressed: () {
                         query = '';
                         queryTextEditingController.clear();
                         showSuggestions(context);
                       },
+                      minimumSize: Size(30, 30),
+                      child: Icon(
+                        CupertinoIcons.clear,
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        size: 18,
+                      ),
                     )
                   : null,
           placeholder: searchFieldLabel,
@@ -337,20 +317,14 @@ class AssetSearchDelegate extends SearchDelegate<String> {
           cursorColor: theme.colorScheme.primary,
           cursorWidth: 1.5,
           onChanged: (newQuery) {
-            // query = newQuery; // Already handled by listener
-            // Update text direction and font as user types
-            final isRTL = containsPersian(newQuery); // from utils/helpers.dart
+            final isRTL = containsPersian(newQuery);
             if (isRTL != isRTLQuery) {
-              // Force rebuild of suggestions with new direction if RTL status changed
-              // This is a bit tricky as showSuggestions rebuilds the whole delegate.
-              // The controller listener handles query state, this onChanged handles UI update.
               showSuggestions(context);
             } else {
               showSuggestions(context);
             }
           },
           onSubmitted: (String _) {
-            // Ensure search results are shown on submit
             showResults(context);
           },
         ),

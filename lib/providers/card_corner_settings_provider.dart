@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_config.dart'; // To get initial default values
 
+/// Defines radius and smoothness for card corners.
 class CardCornerSettings {
   final double radius;
   final double smoothness;
@@ -16,43 +17,33 @@ class CardCornerSettings {
   }
 }
 
+/// Manages persistence and updates of card corner settings.
 class CardCornerSettingsNotifier extends ChangeNotifier {
   late CardCornerSettings _settings;
-  // AppConfig is needed to initialize defaults, if SharedPreferences fails or is empty.
   final AppConfig appConfig;
 
   static const _radiusKey = 'card_corner_radius';
   static const _smoothnessKey = 'card_corner_smoothness';
 
-  // Constructor now requires AppConfig
   CardCornerSettingsNotifier(this.appConfig) {
-    // Initialize with defaults: radius from AppConfig, fixed smoothness of 0.75
     _settings = CardCornerSettings(
       radius: appConfig.themeOptions.light.cardBorderRadius,
-      smoothness: 0.75, // Increased from 0.7 to 0.75
+      smoothness: 0.75,
     );
-    // Then attempt to load saved preferences, which might override defaults
     _loadSettings();
   }
 
   CardCornerSettings get settings => _settings;
 
   Future<void> _loadSettings() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final radius = prefs.getDouble(_radiusKey);
-      final smoothness = prefs.getDouble(_smoothnessKey);
+    final prefs = await SharedPreferences.getInstance();
+    final radius = prefs.getDouble(_radiusKey);
+    final smoothness = prefs.getDouble(_smoothnessKey);
 
-      // If loaded values are valid, update _settings
-      if (radius != null && smoothness != null) {
-        _settings = CardCornerSettings(radius: radius, smoothness: smoothness);
-      }
-      // If not, _settings retains the default values from constructor
-    } catch (e) {
-      // In case of any error, _settings retains defaults. Log error if necessary.
-      // print('Error loading card corner settings: $e');
+    if (radius != null && smoothness != null) {
+      _settings = CardCornerSettings(radius: radius, smoothness: smoothness);
     }
-    notifyListeners(); // Notify listeners after attempting to load
+    notifyListeners();
   }
 
   Future<void> updateRadius(double radius) async {
@@ -72,13 +63,8 @@ class CardCornerSettingsNotifier extends ChangeNotifier {
   }
 
   Future<void> _saveSettings() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble(_radiusKey, _settings.radius);
-      await prefs.setDouble(_smoothnessKey, _settings.smoothness);
-    } catch (e) {
-      // Handle error, e.g., log it
-      // print('Error saving card corner settings: $e');
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_radiusKey, _settings.radius);
+    await prefs.setDouble(_smoothnessKey, _settings.smoothness);
   }
 }

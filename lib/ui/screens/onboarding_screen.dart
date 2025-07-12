@@ -1,15 +1,20 @@
+// Flutter imports
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+// Third-party packages
 import 'package:provider/provider.dart';
 import 'package:cupertino_onboarding/cupertino_onboarding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Local project imports
 import '../../config/app_config.dart';
 import '../../providers/locale_provider.dart';
 import '../../utils/color_utils.dart';
 import 'terms_screen.dart';
 import 'home_screen.dart';
 
+/// Shows onboarding screens with feature highlights and navigates to HomeScreen.
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
@@ -24,7 +29,6 @@ class OnboardingScreen extends StatelessWidget {
         ? appConfig.themeOptions.dark.accentColorGreen
         : appConfig.themeOptions.light.accentColorGreen);
 
-    // --------------- helpers ---------------
     // Helper to build text with correct theme-aware colors.
     Text buildText(
       String txt, {
@@ -94,8 +98,8 @@ class OnboardingScreen extends StatelessWidget {
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.pin, color: tealGreen),
               title: buildText('پین سریع'),
-              description:
-                  buildText('فقط کافیست انگشت خود را روی یک دارایی نگه دارید تا پین شود.'),
+              description: buildText(
+                  'فقط کافیست انگشت خود را روی یک دارایی نگه دارید تا پین شود.'),
             ),
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
@@ -120,8 +124,8 @@ class OnboardingScreen extends StatelessWidget {
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.pin, color: tealGreen),
               title: buildText('Quick Pin'),
-              description:
-                  buildText('Long-press any asset card and it will be pinned on top.'),
+              description: buildText(
+                  'Long-press any asset card and it will be pinned on top.'),
             ),
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
@@ -173,20 +177,23 @@ class OnboardingScreen extends StatelessWidget {
             // Save that onboarding was shown and dismissed by user
             final prefs = await SharedPreferences.getInstance();
             await prefs.setBool('onboarding_shown_v1', true);
-            
+
             // Navigate back to HomeScreen with slide animation
             if (context.mounted) {
               Navigator.of(context).pushReplacement(
                 PageRouteBuilder(
-                  pageBuilder: (_, animation, secondaryAnimation) => const HomeScreen(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  pageBuilder: (_, animation, secondaryAnimation) =>
+                      const HomeScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
                     const begin = Offset(1.0, 0.0);
                     const end = Offset.zero;
                     const curve = Curves.easeInOutQuart;
-                    
-                    var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                    var tween = Tween(begin: begin, end: end)
+                        .chain(CurveTween(curve: curve));
                     var offsetAnimation = animation.drive(tween);
-                    
+
                     return SlideTransition(
                       position: offsetAnimation,
                       child: child,
@@ -198,7 +205,7 @@ class OnboardingScreen extends StatelessWidget {
             }
           },
           child: Container(
-            height: 44, // iOS standard height
+            height: 44,
             decoration: BoxDecoration(
               color: tealGreen,
               borderRadius: BorderRadius.circular(12),
@@ -209,9 +216,9 @@ class OnboardingScreen extends StatelessWidget {
                 style: TextStyle(
                   color: CupertinoColors.white,
                   fontFamily: isPersian ? 'Vazirmatn' : 'SF-Pro',
-                  fontSize: isPersian ? 17 : 16, // Slightly larger for Persian
+                  fontSize: isPersian ? 17 : 16,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: isPersian ? -0.5 : 0.5, // Better spacing for each language
+                  letterSpacing: isPersian ? -0.5 : 0.5,
                 ),
               ),
             ),
@@ -220,7 +227,7 @@ class OnboardingScreen extends StatelessWidget {
       );
     }
 
-    // Create a custom page transition animation that works for both languages
+    // Create a custom page transition animation
     Widget buildContent() {
       return Column(
         children: [
@@ -256,4 +263,4 @@ class OnboardingScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

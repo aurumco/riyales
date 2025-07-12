@@ -1,18 +1,24 @@
+// Dart imports
 import 'dart:async';
+
+// Flutter imports
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+// Third-party packages
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+
+// Local project imports
 import 'package:riyales/providers/alert_provider.dart';
 import 'package:riyales/services/analytics_service.dart';
 import 'package:riyales/services/device_info_service.dart';
 import 'package:riyales/ui/screens/home_screen.dart';
+import '../../config/app_config.dart' as config_model;
 
-import '../../config/app_config.dart'
-    as config_model; // Aliased to avoid conflict with widget's config parameter
-
+/// Displays the splash screen, initializes services, and navigates to HomeScreen.
 class SplashScreen extends StatefulWidget {
-  final config_model.SplashScreenConfig config; // Use aliased config
+  final config_model.SplashScreenConfig config;
   const SplashScreen({super.key, required this.config});
 
   @override
@@ -34,7 +40,6 @@ class _SplashScreenState extends State<SplashScreen> {
     DeviceInfoService().collectAndSendDeviceInfo();
 
     // Fetch alert data in the background
-    // No need to await, it can load while the splash screen is visible
     if (mounted) {
       Provider.of<AlertProvider>(context, listen: false).fetchAlert();
     }
@@ -49,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
           transitionsBuilder: (_, animation, __, child) {
             return FadeTransition(opacity: animation, child: child);
           },
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 400),
         ),
       );
     }
@@ -65,14 +70,12 @@ class _SplashScreenState extends State<SplashScreen> {
         ? basePath.replaceAll('light', 'dark')
         : basePath.replaceAll('dark', 'light');
 
-    // Use scaffoldBackgroundColor as SplashScreenConfig doesn't define background colors.
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
 
-    // Define fixed values for layout as these are not in SplashScreenConfig
-    const double logoTopMarginFactor = 0.20; // Raised icon higher
-    const double logoSize = 62.0; // Increased icon size by 2
-    const double loaderBottomMarginFactor = 0.15; // Adjusted factor
-    const double loaderRadius = 10.0; // Smaller loading indicator
+    const double logoTopMarginFactor = 0.20;
+    const double logoSize = 62.0;
+    const double loaderBottomMarginFactor = 0.15;
+    const double loaderRadius = 10.0;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -82,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
             SizedBox(height: screenHeight * logoTopMarginFactor),
             Center(
               child: SvgPicture.asset(
-                imagePath, // Use path from config based on theme
+                imagePath,
                 width: logoSize,
                 height: logoSize,
                 fit: BoxFit.contain,
@@ -94,9 +97,8 @@ class _SplashScreenState extends State<SplashScreen> {
               padding: EdgeInsets.only(
                   bottom: screenHeight * loaderBottomMarginFactor),
               child: const CupertinoActivityIndicator(
-                // Made const
                 radius: loaderRadius,
-                color: Colors.grey, // Use default iOS grey color
+                color: Colors.grey,
               ),
             ),
           ],

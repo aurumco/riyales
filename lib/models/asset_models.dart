@@ -1,7 +1,18 @@
 import 'package:equatable/equatable.dart';
-import 'dart:math' as math; // For math.min used in CryptoAsset
+import 'dart:math' as math;
 
-// Base class for asset items to share common properties like ID for favorites
+/// Safely converts a dynamic value (String or num) to a num or returns null.
+/// Returns null if the input is null or cannot be parsed.
+num? _toNum(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value;
+  if (value is String && value.isNotEmpty) {
+    return num.tryParse(value);
+  }
+  return null;
+}
+
+/// Base class for asset items, providing common properties like id, name, symbol, and price.
 abstract class Asset extends Equatable {
   final String
       id; // Unique identifier for the asset (e.g., symbol or a combination)
@@ -9,7 +20,7 @@ abstract class Asset extends Equatable {
   final String symbol;
   final num price;
   final num? changePercent;
-  final num? changeValue; // For currencies/gold that have it
+  final num? changeValue;
 
   const Asset({
     required this.id,
@@ -19,13 +30,16 @@ abstract class Asset extends Equatable {
     this.changePercent,
     this.changeValue,
   });
+
+  @override
+  List<Object?> get props =>
+      [id, name, symbol, price, changePercent, changeValue];
 }
 
-// Currency Model
+/// Represents a fiat currency rate.
 class CurrencyAsset extends Asset {
   final String nameEn;
   final String unit; // e.g., "تومان"
-  final String? iconEmoji; // For flag emoji
 
   const CurrencyAsset({
     required super.id, // Use symbol as ID
@@ -36,18 +50,17 @@ class CurrencyAsset extends Asset {
     super.changeValue,
     super.changePercent,
     required this.unit,
-    this.iconEmoji,
   });
 
   factory CurrencyAsset.fromJson(Map<String, dynamic> json) {
     return CurrencyAsset(
       id: json['symbol'] as String? ?? 'UNKNOWN',
       name: json['name'] as String? ?? 'نامشخص',
-      nameEn: json['name_en'] as String? ?? 'Unknown',
+      nameEn: (json['name_en'] ?? json['nameEn']) as String? ?? 'Unknown',
       symbol: json['symbol'] as String? ?? '---',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      changeValue: (json['change_value'] as num?)?.toDouble(),
-      changePercent: (json['change_percent'] as num?)?.toDouble(),
+      price: _toNum(json['price']) ?? 0.0,
+      changeValue: _toNum(json['change_value'] ?? json['changeValue']),
+      changePercent: _toNum(json['change_percent'] ?? json['changePercent']),
       unit: json['unit'] as String? ?? 'تومان',
     );
   }
@@ -62,7 +75,6 @@ class CurrencyAsset extends Asset {
         changeValue,
         changePercent,
         unit,
-        iconEmoji,
       ];
 }
 
@@ -92,14 +104,14 @@ class GoldAsset extends Asset {
   }) {
     if (isCommodity) {
       return GoldAsset(
-        id: json['symbol'] as String? ?? 'UNKNOWN_COMM',
+        id: "${json['symbol'] as String? ?? 'UNKNOWN_COMM'}_comm",
         name: json['nameFa'] as String? ?? json['name'] as String? ?? 'نامشخص',
         nameEn: json['nameEn'] as String? ??
             json['symbol'] as String? ??
             'Unknown Commodity',
         symbol: json['symbol'] as String? ?? '---',
-        price: (json['price'] as num?)?.toDouble() ?? 0.0,
-        changePercent: (json['change_percent'] as num?)?.toDouble(),
+        price: _toNum(json['price']) ?? 0.0,
+        changePercent: _toNum(json['change_percent'] ?? json['changePercent']),
         unit: json['unit'] as String? ?? 'دلار', // Commodity unit might be USD
         customIconPath: _getGoldIconPath(json['symbol'] as String? ?? ''),
         isCommodity: true,
@@ -112,9 +124,9 @@ class GoldAsset extends Asset {
           json['name_en'] as String? ??
           'Unknown Gold',
       symbol: json['symbol'] as String? ?? '---',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      changeValue: (json['change_value'] as num?)?.toDouble(),
-      changePercent: (json['change_percent'] as num?)?.toDouble(),
+      price: _toNum(json['price']) ?? 0.0,
+      changeValue: _toNum(json['change_value'] ?? json['changeValue']),
+      changePercent: _toNum(json['change_percent'] ?? json['changePercent']),
       unit: json['unit'] as String? ?? 'تومان',
       customIconPath: _getGoldIconPath(json['symbol'] as String? ?? ''),
       isCommodity: false,
@@ -138,16 +150,16 @@ class GoldAsset extends Asset {
 // Crypto Model
 class CryptoAsset extends Asset {
   final String nameFa;
-  final String priceToman; // String because API provides it as string
+  final String priceToman;
   final String? iconUrl;
   final num? marketCap;
 
   const CryptoAsset({
-    required super.id, // Use name as ID for crypto as symbols might not be unique across exchanges
-    required super.name, // English name
+    required super.id,
+    required super.name,
     required this.nameFa,
-    required super.symbol, // This is often the ticker like BTC, ETH
-    required super.price, // USD Price
+    required super.symbol,
+    required super.price,
     required this.priceToman,
     super.changePercent,
     this.iconUrl,
@@ -173,10 +185,10 @@ class CryptoAsset extends Asset {
               .substring(0, math.min(3, (json['name'] as String? ?? '').length))
               .toUpperCase(), // Fallback symbol
       price: usdPrice,
-      priceToman: json['price_toman'] as String? ?? '0',
-      changePercent: (json['change_percent'] as num?)?.toDouble(),
-      iconUrl: json['link_icon'] as String?,
-      marketCap: json['market_cap'] as num?,
+      priceToman: (json['price_toman'] ?? json['priceToman']) as String? ?? '0',
+      changePercent: _toNum(json['change_percent'] ?? json['changePercent']),
+      iconUrl: (json['link_icon'] ?? json['linkIcon']) as String?,
+      marketCap: _toNum(json['market_cap'] ?? json['marketCap']),
     );
   }
   @override
@@ -218,7 +230,7 @@ class StockAsset extends Asset {
 
   factory StockAsset.fromJson(Map<String, dynamic> json) {
     final isin = json['isin'] as String? ?? 'UNKNOWN_STOCK_${json['l18']}';
-    final pl = (json['pl'] as num?)?.toDouble() ?? 0.0;
+    final pl = _toNum(json['pl']) ?? 0.0;
 
     return StockAsset(
       isin,
@@ -228,11 +240,10 @@ class StockAsset extends Asset {
       l30: json['l30'] as String? ?? 'نام کامل نامشخص',
       symbol: json['l18'] as String? ?? '---',
       price: pl, // Last trade price
-      pc: (json['pc'] as num?)?.toDouble(), // Closing price
-      pcp: (json['pcp'] as num?)?.toDouble(), // Closing price change percent
-      plp: (json['plp'] as num?)?.toDouble(), // Last trade price change percent
-      changePercent: (json['plp'] as num?)
-          ?.toDouble(), // Use last trade % change for consistency with Asset.changePercent
+      pc: _toNum(json['pc']),
+      pcp: _toNum(json['pcp']),
+      plp: _toNum(json['plp']),
+      changePercent: _toNum(json['plp']),
     );
   }
   @override
@@ -250,10 +261,12 @@ class StockAsset extends Asset {
 }
 
 // Helper function (originally in main.dart, moved here as it's used by GoldAsset)
+/// Returns the path to the gold icon based on the symbol.
+/// If a specific icon is not found, it returns a generic gold icon.
 String _getGoldIconPath(String symbol) {
   // Map gold symbols to specific SVG icons in assets/icons/
   // Example:
   // if (symbol == 'IR_GOLD_18K') return 'assets/icons/gold_18k.svg';
   // if (symbol == 'XAUUSD') return 'assets/icons/gold_ounce.svg';
-  return 'assets/icons/gold_generic.svg'; // Fallback generic gold icon
+  return 'assets/icons/commodity/1g.png'; // Fallback generic gold icon
 }

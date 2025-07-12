@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:riyales/ui/widgets/asset_list_page.dart'; // For AssetType
 
+// Local imports
+import 'package:riyales/ui/widgets/asset_list_page.dart';
+
+/// Displays badges (favorite or symbol) on asset cards.
 class AssetCardBadges extends StatelessWidget {
   final bool isFavorite;
   final Color tealGreen;
@@ -21,6 +24,7 @@ class AssetCardBadges extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Build favorite badge
     Widget? pinBadgeWidget;
     if (isFavorite) {
       pinBadgeWidget = Container(
@@ -43,6 +47,7 @@ class AssetCardBadges extends StatelessWidget {
       );
     }
 
+    // Build symbol badge
     Widget? symbolBadgeInnerWidget;
     if (assetType == AssetType.currency || assetType == AssetType.gold) {
       symbolBadgeInnerWidget = Container(
@@ -69,6 +74,7 @@ class AssetCardBadges extends StatelessWidget {
       );
     }
 
+    // Combine badges
     if (pinBadgeWidget == null && symbolBadgeInnerWidget == null) {
       return const SizedBox.shrink();
     }

@@ -1,7 +1,10 @@
+// Dart imports
 import 'dart:math' as math;
+
+// Flutter imports
 import 'package:flutter/material.dart';
 
-// AnimatedCardBuilder for smooth card appearances
+/// Smoothly animates cards into view with fade, slide, and scale effects.
 class AnimatedCardBuilder extends StatefulWidget {
   final int index;
   final Widget child;
@@ -20,16 +23,23 @@ class AnimatedCardBuilder extends StatefulWidget {
 
 class _AnimatedCardBuilderState extends State<AnimatedCardBuilder>
     with SingleTickerProviderStateMixin {
+  /// Controls the fade, slide, and scale animations.
   late AnimationController _controller;
+
+  /// Animates opacity from transparent to fully visible.
   late Animation<double> _opacityAnimation;
+
+  /// Animates sliding in from below.
   late Animation<Offset> _slideAnimation;
+
+  /// Animates scaling from slightly smaller to full size.
   late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    // Simple stagger for fast, natural appearance (iOS-inspired)
+    // Simple stagger for fast, natural appearance
     final int staggerDelay = math.min(widget.index * 20, 120);
 
     _controller = AnimationController(

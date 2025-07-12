@@ -1,6 +1,7 @@
-import 'package:intl/intl.dart'; // For NumberFormat
-import 'dart:math' as math; // For math.min
+import 'package:intl/intl.dart';
+import 'dart:math' as math;
 
+/// Returns the asset icon path for the given commodity [symbol].
 String getGoldIconPath(String symbol) {
   const base = 'assets/icons/commodity/';
   final sym = symbol.toLowerCase();
@@ -49,16 +50,14 @@ String getGoldIconPath(String symbol) {
   }
 }
 
+/// Formats [price] according to [locale], with optional sign.
 String formatPrice(num price, String locale, {bool showSign = false}) {
-  // Use NumberFormat for locale-aware formatting
   final format = NumberFormat.currency(
-    locale: locale == 'fa'
-        ? 'fa_IR'
-        : 'en_US', // fa_IR for Persian numerals and grouping
-    symbol: '', // No currency symbol, unit is separate
+    locale: locale == 'fa' ? 'fa_IR' : 'en_US',
+    symbol: '',
     decimalDigits: (price < 10 && price != 0 && price.remainder(1) != 0)
         ? 4
-        : (price < 1000 ? 2 : 0), // More decimals for small prices
+        : (price < 1000 ? 2 : 0),
   );
   String formattedPrice = format.format(price);
   if (showSign && price > 0) {
@@ -67,18 +66,17 @@ String formatPrice(num price, String locale, {bool showSign = false}) {
   return formattedPrice;
 }
 
+/// Formats a percentage value according to [locale].
 String formatPercentage(num percentage, String locale) {
   final format = NumberFormat("#,##0.##", locale == 'fa' ? 'fa_IR' : 'en_US');
   return format.format(percentage);
 }
 
-// Add new helper functions
-// Helper for mapping currency codes to country codes
+/// Maps a currency code to its ISO country code.
 String getCurrencyCountryCode(String currencyCode) {
-  // Map of currency codes to ISO country codes
   Map<String, String> currencyToCountry = {
     'usd': 'us',
-    'eur': 'eu', // European Union
+    'eur': 'eu',
     'gbp': 'gb',
     'jpy': 'jp',
     'cad': 'ca',
@@ -129,7 +127,7 @@ String getCurrencyCountryCode(String currencyCode) {
       currencyCode.substring(0, math.min(currencyCode.length, 2));
 }
 
-// Helper to detect Persian text
+/// Returns true if [text] contains Persian or Arabic characters.
 bool containsPersian(String text) {
   // Unicode range for Arabic and Persian characters
   final RegExp persianChars = RegExp(

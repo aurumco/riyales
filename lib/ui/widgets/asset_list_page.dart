@@ -19,12 +19,9 @@ import '../../localization/l10n_utils.dart';
 import '../../services/connection_service.dart';
 import '../../services/action_handler.dart';
 import './asset_card.dart';
-import './common/animated_card_builder.dart';
 import './common/error_placeholder.dart';
 import './common/alert_card.dart';
 import './search/shimmering_search_field.dart';
-// import '../../config/app_config.dart'; // For AppConfig access - Removed as AppConfig is not directly used here after recent refactors
-// import '../../providers/data_providers/crypto_data_provider.dart'; // Removed unused import
 
 enum AssetType { currency, gold, crypto, stock }
 
@@ -57,7 +54,7 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
     required this.onInitialize,
     this.topPadding = 0.0,
     this.showSearchBar = false,
-    this.isSearchActive = false, // Default value
+    this.isSearchActive = false,
     this.tabController,
     this.useCardAnimation = true,
   });
@@ -66,66 +63,100 @@ class AssetListPage<T extends models.Asset> extends StatefulWidget {
   AssetListPageState<T> createState() => AssetListPageState<T>();
 }
 
-class AssetListPageState<T extends models.Asset>
-    extends State<AssetListPage<T>> {
+class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
+    with SingleTickerProviderStateMixin {
+  // Animation controller for fade-in staggered animation
+  late final AnimationController _animController;
+  // Precomputed animations per item
+  List<Animation<double>> _itemAnimations = [];
+
   final ScrollController _scrollController = ScrollController();
   Timer? _errorRetryTimer;
 
   int _lastFullDataLength = 0;
   SortMode _sortMode = SortMode.defaultOrder;
   List<String>? _searchableStrings;
-  // String _lastSearchQuery = ''; // Unused field
 
-  // Internal flag to manage if search filtering logic is active.
-  // widget.isSearchActive is from parent and controls UI elements like search bar visibility.
-  // bool _internalIsSearchActive = false; // Unused field
-
-  // List<T> _fullSearchResults = []; // Removed, filtering is now in build
-  // List<T> _paginatedSearchResults = []; // Removed, pagination for search handled in build
   final bool _isLoadingMoreSearchResults =
       false; // Made final as it's not reassigned
 
-  // List<T> _sortedWidgetItems = []; // Removed, sorting is now in build
   FavoritesNotifier? _favoritesNotifierCache; // Kept for sorting
   bool _didInitialFill = false;
 
   // --- Added for crypto search pagination ---
   int _searchPage = 1;
-  static const int _searchPageSizeCrypto = 200;
-  static const int _minSearchChars = 3; // Only search with 3+ characters
-  static const int _maxSearchResults = 100; // Hard limit on search results to prevent crashes
+  static const int _searchPageSizeCrypto = 120;
+  static const int _minSearchChars = 2; // Only search with 3+ characters
+  static const int _maxSearchResults =
+      24; // Hard limit on search results to prevent crashes
   String _lastSearchQuery = '';
   List<T> _currentFilteredResults = [];
-  
+
   // Cache for search results to prevent redundant filtering
   String? _cachedSearchQuery;
   List<T>? _cachedSearchResults;
 
   // Added from old code for pull-to-refresh smoothness effect
-  static const double _maxRadiusDelta = 13.5;
-  static const double _maxSmoothnessDelta = 0.75;
-  double _defaultRadius = 21.0; // Default, will be updated from Notifier
-  double _defaultSmoothness = 0.7; // Default, will be updated from Notifier
+  static const double _maxRadiusDelta =
+      13.5; // Maximum radius delta for pull-to-refresh
+  static const double _maxSmoothnessDelta =
+      0.75; // Maximum smoothness delta for pull-to-refresh
+  double _defaultRadius = 21.0; // Default radius, will be updated from Notifier
+  double _defaultSmoothness =
+      0.7; // Default smoothness, will be updated from Notifier
+
+  static const int _maxDisplayItems =
+      120; // Limit the number of items displayed for performance
+  static const int _animationItemLimitMobile =
+      8; // Limit the number of items animated for performance
+  static const int _animationItemLimitTablet =
+      24; // Limit the number of items animated for performance
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _favoritesNotifierCache =
-            Provider.of<FavoritesNotifier>(context, listen: false);
-        final settings = context.read<CardCornerSettingsNotifier>().settings;
-        _defaultRadius = settings.radius;
-        _defaultSmoothness = settings.smoothness;
+    if (widget.useCardAnimation) {
+      // Initialize animation controller
+      _animController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1000),
+      );
+      // Listen to tab changes to restart animation when tab becomes active
+      if (widget.tabController != null) {
+        widget.tabController!.addListener(_handleTabChange);
+      }
+      _scrollController.addListener(_onScroll);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _favoritesNotifierCache =
+              Provider.of<FavoritesNotifier>(context, listen: false);
+          final settings = context.read<CardCornerSettingsNotifier>().settings;
+          _defaultRadius = settings.radius;
+          _defaultSmoothness = settings.smoothness;
 
-        // Initial data fetch is handled by the parent DataNotifier's onInitialize callback.
-        if (widget.items.isEmpty && !widget.isSearchActive) {
-          // isSearchActive from parent
+          // Initial data fetch is handled by the parent DataNotifier's onInitialize callback.
+          if (widget.items.isEmpty && !widget.isSearchActive) {
+            // isSearchActive from parent
+            widget.onInitialize();
+          }
+        }
+        // Prepare and run animations on first frame
+        _recomputeItemAnimations();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (widget.useCardAnimation && widget.items.isNotEmpty) {
+            _animController.forward(from: 0.0);
+          }
+        });
+      });
+    } else {
+      // No animations: still fetch initial data
+      _scrollController.addListener(_onScroll);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.items.isEmpty && !widget.isSearchActive) {
           widget.onInitialize();
         }
-      }
-    });
+      });
+    }
   }
 
   List<T> _sortList(List<T> listToSort, FavoritesNotifier? favoritesNotifier) {
@@ -173,9 +204,11 @@ class AssetListPageState<T extends models.Asset>
     //    and we are NOT in a search state.
     //    The build method will handle sorting and displaying these items.
     if (widget.items != oldWidget.items) {
-      // If items changed and we are not searching, we might need a rebuild if sort order is important
-      // or if other derived state depends on widget.items directly.
-      // However, since filtering/sorting is in build, this might just be for _didInitialFill or similar.
+      // New items loaded: animate if enabled, else just rebuild
+      if (widget.useCardAnimation) {
+        _recomputeItemAnimations();
+        _animController.forward(from: 0.0);
+      }
       needsStateUpdate = true;
     }
 
@@ -285,8 +318,28 @@ class AssetListPageState<T extends models.Asset>
     _errorRetryTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    // Dispose animation controller
+    _animController.dispose();
+    // Remove tab listener
+    if (widget.tabController != null) {
+      widget.tabController!.removeListener(_handleTabChange);
+    }
     _cachedSearchResults = null;
     super.dispose();
+  }
+
+  /// Public method to trigger fade-in animation for items.
+  void animateItems() {
+    _recomputeItemAnimations();
+    _animController.forward(from: 0.0);
+  }
+
+  // Handle tab change: restart animation when this tab is selected
+  void _handleTabChange() {
+    if (widget.useCardAnimation &&
+        widget.tabController!.index == widget.assetType.index) {
+      _animController.forward(from: 0.0);
+    }
   }
 
   int _getOptimalColumnCount(BuildContext context) {
@@ -308,6 +361,24 @@ class AssetListPageState<T extends models.Asset>
       return baseAspectRatio;
     }
     return math.max(0.75, baseAspectRatio * 0.9);
+  }
+
+  // Recompute animations when items list changes
+  void _recomputeItemAnimations() {
+    // Determine device-specific animation limit
+    final width = MediaQuery.of(context).size.width;
+    final limit =
+        width < 600 ? _animationItemLimitMobile : _animationItemLimitTablet;
+    final count = math.min(widget.items.length, limit);
+    final interval = count > 0 ? 1.0 / count : 1.0;
+    _itemAnimations = List<Animation<double>>.generate(count, (i) {
+      final start = i * interval;
+      final end = (i + 1) * interval;
+      return _animController.drive(CurveTween(
+        curve: Interval(math.min(start, 1.0), math.min(end, 1.0),
+            curve: Curves.easeOut),
+      ));
+    });
   }
 
   @override
@@ -336,10 +407,10 @@ class AssetListPageState<T extends models.Asset>
       _cachedSearchResults = null;
     }
 
-    final bool isCurrentlySearching = currentSearchQuery.length >= _minSearchChars;
+    final bool isCurrentlySearching =
+        currentSearchQuery.length >= _minSearchChars;
 
     List<T> itemsToDisplay;
-
     if (isCurrentlySearching) {
       if (_searchableStrings == null &&
           widget.fullItemsListForSearch.isNotEmpty) {
@@ -348,23 +419,27 @@ class AssetListPageState<T extends models.Asset>
         _rebuildSearchableStrings();
       }
       if (_searchableStrings != null) {
-        
         // Use cached results if query hasn't changed
         List<T> filteredResults;
-        if (_cachedSearchQuery == currentSearchQuery.toLowerCase() && _cachedSearchResults != null) {
+        if (_cachedSearchQuery == currentSearchQuery.toLowerCase() &&
+            _cachedSearchResults != null) {
           filteredResults = _cachedSearchResults!;
         } else {
           filteredResults = [];
           int resultsCount = 0;
-          
+
           // More efficient search with early termination
-          for (int i = 0; i < _searchableStrings!.length && resultsCount < _maxSearchResults; i++) {
-            if (_searchableStrings![i].contains(currentSearchQuery.toLowerCase())) {
+          for (int i = 0;
+              i < _searchableStrings!.length &&
+                  resultsCount < _maxSearchResults;
+              i++) {
+            if (_searchableStrings![i]
+                .contains(currentSearchQuery.toLowerCase())) {
               filteredResults.add(widget.fullItemsListForSearch[i]);
               resultsCount++;
             }
           }
-          
+
           // Cache the results
           _cachedSearchQuery = currentSearchQuery.toLowerCase();
           _cachedSearchResults = filteredResults;
@@ -374,8 +449,8 @@ class AssetListPageState<T extends models.Asset>
 
         if (widget.assetType == AssetType.crypto) {
           _currentFilteredResults = sortedFiltered;
-          final int end = math.min(
-              _searchPage * _searchPageSizeCrypto, _currentFilteredResults.length);
+          final int end = math.min(_searchPage * _searchPageSizeCrypto,
+              _currentFilteredResults.length);
           itemsToDisplay = _currentFilteredResults.sublist(0, end);
         } else {
           itemsToDisplay = sortedFiltered;
@@ -386,6 +461,10 @@ class AssetListPageState<T extends models.Asset>
       }
     } else {
       itemsToDisplay = _sortList(List<T>.from(widget.items), favoritesNotifier);
+    }
+    // Enforce global display limit
+    if (itemsToDisplay.length > _maxDisplayItems) {
+      itemsToDisplay = itemsToDisplay.sublist(0, _maxDisplayItems);
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -604,23 +683,22 @@ class AssetListPageState<T extends models.Asset>
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final asset = itemsToDisplay[index]; // Use itemsToDisplay
-                    // Added ValueKey for better list item management
-                    // Use RepaintBoundary to isolate repaints and reduce GPU load
                     Widget card = RepaintBoundary(
                       child: AssetCard(
                         asset: asset,
                         assetType: widget.assetType,
                       ),
                     );
-                    
-                    if (widget.useCardAnimation && index < 40) {
-                      return AnimatedCardBuilder(
-                        index: index,
+                    if (!widget.useCardAnimation) return card;
+                    // Fade-in with precomputed animation for first items
+                    if (index < _itemAnimations.length) {
+                      return FadeTransition(
+                        opacity: _itemAnimations[index],
                         child: card,
                       );
-                    } else {
-                      return card;
                     }
+                    // Beyond animation limit: show directly
+                    return card;
                   },
                   childCount: itemsToDisplay.length, // Use itemsToDisplay
                   addAutomaticKeepAlives: false,
@@ -637,17 +715,21 @@ class AssetListPageState<T extends models.Asset>
                 tween: Tween(begin: 0, end: 1),
                 duration: const Duration(milliseconds: 450),
                 curve: Curves.easeOutCubic,
-                builder: (context, value, child) => Opacity(opacity: value, child: Transform.scale(scale: 0.9 + 0.1 * value, child: child)),
+                builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.scale(
+                        scale: 0.9 + 0.1 * value, child: child)),
                 child: Column(
-                  key: ValueKey(isCurrentlySearching ? 'no_results' : 'no_data'),
+                  key:
+                      ValueKey(isCurrentlySearching ? 'no_results' : 'no_data'),
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      isCurrentlySearching ? CupertinoIcons.search : CupertinoIcons.square_grid_2x2,
+                      isCurrentlySearching
+                          ? CupertinoIcons.search
+                          : CupertinoIcons.square_grid_2x2,
                       size: 56,
-                      color: isDarkMode
-                          ? Colors.grey[500]
-                          : Colors.grey[700],
+                      color: isDarkMode ? Colors.grey[500] : Colors.grey[700],
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -658,9 +740,7 @@ class AssetListPageState<T extends models.Asset>
                       style: TextStyle(
                         fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
                         fontSize: 16,
-                        color: isDarkMode
-                            ? Colors.grey[400]
-                            : Colors.grey[600],
+                        color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
                   ],

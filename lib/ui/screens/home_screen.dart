@@ -1,58 +1,53 @@
+// Flutter imports
 import 'package:flutter/cupertino.dart';
-import 'dart:async'; // Added for Timer
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+
+// Dart imports
+import 'dart:async';
+import 'dart:ui' show ImageFilter;
+
+// Third-party packages
 import 'package:provider/provider.dart';
 import 'package:vibration/vibration.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:ui' show ImageFilter;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Config
+// Local project imports
 import '../../config/app_config.dart';
-
-// Models
 import '../../models/asset_models.dart' as models;
-
-// Providers (new paths)
 import '../../providers/locale_provider.dart';
 import '../../providers/search_provider.dart';
 import '../../providers/data_providers/currency_data_provider.dart';
 import '../../providers/data_providers/gold_data_provider.dart';
 import '../../providers/data_providers/crypto_data_provider.dart';
-
-// UI Widgets
 import '../widgets/asset_list_page.dart';
 import '../widgets/stock_page.dart';
 import '../widgets/settings_sheet.dart';
 import '../widgets/common/error_placeholder.dart';
 import '../widgets/common/connection_aware_widgets.dart';
 import 'onboarding_screen.dart';
-
-// Localization
 import '../../localization/l10n_utils.dart';
-
-// Utils
 import '../../utils/color_utils.dart';
 import '../../services/analytics_service.dart';
 import '../../utils/browser_utils.dart';
+import '../../services/connection_service.dart';
 
+/// The main application screen with asset tabs, search, and settings.
 class HomeScreen extends StatefulWidget {
-  // Changed to StatefulWidget
   const HomeScreen({super.key});
 
   @override
   HomeScreenState createState() => HomeScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
-    with
-        WidgetsBindingObserver,
-        TickerProviderStateMixin<HomeScreen> {
+/// State for [HomeScreen], managing UI controllers and app lifecycle events.
+class HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver, TickerProviderStateMixin<HomeScreen> {
   late TabController _tabController;
   final List<Tab> _mainTabs = [];
   final List<String> _englishTabNames = const [
@@ -67,24 +62,25 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   final Map<int, ScrollController?> _tabScrollControllers = {};
   final Map<int, void Function()> _tabScrollListeners = {};
 
-  Timer? _autoRefreshTimer; // Added timer instance variable
+  Timer? _autoRefreshTimer;
 
   final currencyTabKey = GlobalKey<AssetListPageState<models.CurrencyAsset>>();
   final goldTabKey = GlobalKey<AssetListPageState<models.GoldAsset>>();
   final cryptoTabKey = GlobalKey<AssetListPageState<models.CryptoAsset>>();
   final stockTabKey = GlobalKey<StockPageState>();
 
-  // Flag to track if device is desktop web
+  /// Whether the app is running as desktop web.
   bool _isDesktopWeb = false;
-  // Title tap tracking for easter-egg
+
+  /// Tap count for Easter egg activation.
   int _titleTapCount = 0;
   DateTime? _firstTitleTapTime;
 
+  /// Sets up a scroll listener for the specified tab index.
   void _setupScrollListener(int tabIndex) {
     if (_tabScrollListeners.containsKey(tabIndex)) {
       final controller = _tabScrollControllers[tabIndex];
       if (controller != null && controller.hasClients) {
-        // Ensure controller has clients
         controller.removeListener(_tabScrollListeners[tabIndex]!);
       }
       _tabScrollListeners.remove(tabIndex);
@@ -93,9 +89,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     final controller = _findScrollController(tabIndex);
     if (controller != null && controller.hasClients) {
       void listener() {
-        // Maintain search bar visibility regardless of scroll
         if (_isSearchActiveNotifier.value && controller.offset <= 0) {
-          // If scrolled to top and search bar was hidden, open it
           if (!_showSearchBarNotifier.value && mounted) {
             _toggleSearchBar(true);
           }
@@ -107,53 +101,32 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     }
   }
 
+  /// Initializes the scroll controller for the specified tab index.
   void _initializeTab(int index) {
-    switch (index) {
-      case 0:
-        _tabScrollControllers[0] = _findScrollController(index);
-        _setupScrollListener(0);
-        break;
-      case 1:
-        _tabScrollControllers[1] = _findScrollController(index);
-        _setupScrollListener(1);
-        break;
-      case 2:
-        _tabScrollControllers[2] = _findScrollController(index);
-        _setupScrollListener(2);
-        break;
-      case 3:
-        _tabScrollControllers[3] = _findScrollController(index);
-        _setupScrollListener(3);
-        break;
-    }
+    _tabScrollControllers[index] = _findScrollController(index);
+    _setupScrollListener(index);
   }
 
   @override
   void initState() {
     super.initState();
-    // Make status bar transparent to let AppBar blur extend edge-to-edge
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       systemNavigationBarColor: Colors.black,
     ));
     WidgetsBinding.instance.addObserver(this);
-    // Connection status is handled by NetworkAwareWidget, no direct subscription needed here.
-    // _setupTabs() is called in didChangeDependencies
-    // Check if the device is desktop web
     _checkDeviceType();
-    _startAutoRefreshTimer(); // Added call to start timer
+    _startAutoRefreshTimer();
     _scheduleOnboarding();
   }
 
-  // Function to check device type and set _isDesktopWeb flag
+  /// Detects if the app is running on desktop web.
   Future<void> _checkDeviceType() async {
-    // Detect desktop web by checking for mobile keywords in the user agent
     if (kIsWeb) {
       try {
         final deviceInfo = DeviceInfoPlugin();
         final webInfo = await deviceInfo.webBrowserInfo;
         final ua = webInfo.userAgent?.toLowerCase() ?? '';
-        // Consider mobile if UA contains common mobile phone identifiers
         final isMobile = ua.contains('mobile') ||
             ua.contains('iphone') ||
             (ua.contains('android') && ua.contains('mobile'));
@@ -163,12 +136,11 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         if (mounted) setState(() => _isDesktopWeb = false);
       }
     } else {
-      // Not web
       if (mounted) setState(() => _isDesktopWeb = false);
     }
   }
 
-  // Function to launch download URL
+  /// Opens the app download URL for web users.
   Future<void> _launchDownloadUrl() async {
     const url = 'https://dl.ryls.ir';
     try {
@@ -176,9 +148,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           mode: LaunchMode.externalApplication)) {
         throw Exception('Could not launch $url');
       }
-    } catch (e) {
-      // Handle error silently or show a snackbar
-    }
+    } catch (_) {}
   }
 
   @override
@@ -186,11 +156,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     super.didUpdateWidget(oldWidget);
     _tabListenerAdded = false;
     _tabScrollControllers.clear();
-    _tabScrollListeners.clear(); // Clear listeners as well
+    _tabScrollListeners.clear();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // check mounted, removed _tabController.hasListeners
         _initializeTab(_tabController.index);
       }
     });
@@ -199,35 +168,30 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (!mounted) {
-      return;
-    } // Ensure widget is mounted
+    if (!mounted) return;
 
     if (state == AppLifecycleState.resumed) {
-      // Send any events from previous session when app is resumed
       AnalyticsService.instance.sendPreviousEvents();
-      _startAutoRefreshTimer(); // Restart timer on resume
+      _startAutoRefreshTimer();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
-      // Save current events to storage when app goes to background
       AnalyticsService.instance.saveEvents();
-      _autoRefreshTimer?.cancel(); // Cancel timer on pause/inactive/detached
+      _autoRefreshTimer?.cancel();
     }
   }
 
+  /// Starts the periodic data refresh timer.
   void _startAutoRefreshTimer() {
-    _autoRefreshTimer?.cancel(); // Cancel any existing timer
-    // Call _checkAutoRefresh immediately, then set up periodic timer
-    // Using a separate Future.delayed to avoid issues if _checkAutoRefresh itself takes time or calls notifyListeners
+    _autoRefreshTimer?.cancel();
     Future.delayed(Duration.zero, () => _checkAutoRefresh(null));
     _autoRefreshTimer =
         Timer.periodic(const Duration(minutes: 1), _checkAutoRefresh);
   }
 
+  /// Refreshes data for the current tab if it's stale.
   void _checkAutoRefresh(Timer? timer) {
-    // Timer can be null for the initial immediate call
-    if (!mounted) return; // Ensure widget is still mounted
+    if (!mounted) return;
 
     final currentTabIndex = _tabController.index;
     const staleness = Duration(minutes: 5);
@@ -255,6 +219,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     }
   }
 
+  /// Shows the onboarding screen if it hasn't been shown before.
   void _scheduleOnboarding() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -262,20 +227,17 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       const key = 'onboarding_shown_v1';
       if (!(prefs.getBool(key) ?? false)) {
         if (mounted) {
-          // Use pushReplacement to prevent going back without completing onboarding
           Navigator.of(context).pushReplacement(
             CupertinoPageRoute(builder: (_) => const OnboardingScreen()),
           );
-          // The flag will be set in OnboardingScreen when user taps Continue
         }
       }
     });
   }
 
+  /// Sets up the tab controller and tab items.
   void _setupTabs() {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (_tabController.index >= _mainTabs.length) {
       _tabController.index = 0;
@@ -299,7 +261,6 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       _tabListenerAdded = false;
     }
 
-    // Dispose old controller only if it's going to be replaced
     if (_tabController.length != _mainTabs.length) {
       _tabController.dispose();
       _tabController = TabController(
@@ -316,15 +277,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     }
   }
 
+  /// Handles tab selection changes.
   void _handleTabSelection() {
     if (mounted) {
-      setState(() {
-        // This call ensures the UI (like the TabBar and NavigationRail) rebuilds
-        // when the tab index changes, either by user tap or programmatically.
-      });
+      setState(() {});
     }
     if (!_tabController.indexIsChanging && mounted) {
-      // check mounted
       _initializeTab(_tabController.index);
     }
   }
@@ -332,37 +290,28 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Initialize TabController on first dependency change
     if (!_tabListenerAdded) {
       _tabController = TabController(length: 4, vsync: this);
     }
-    _setupTabs(); // This will re-configure tabs and controller.
+    _setupTabs();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // _connectionSubscription.cancel(); // Handled by NetworkAwareWidget
-    _tabScrollListeners.forEach((_, listener) {
-      // Find controller and remove listener
-      // This needs careful handling if controllers are disposed elsewhere
-    });
     _tabScrollListeners.clear();
     _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     _showSearchBarNotifier.dispose();
     _isSearchActiveNotifier.dispose();
-    _autoRefreshTimer?.cancel(); // Added timer cancellation
-
-    // Save any tracked events before the app is completely closed
+    _autoRefreshTimer?.cancel();
     AnalyticsService.instance.saveEvents();
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final appConfig = context.watch<AppConfig>(); // Using Provider
+    final appConfig = context.watch<AppConfig>();
     final l10n = AppLocalizations.of(context);
 
     _setupTabs();
@@ -373,31 +322,13 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         (isLargeScreen ? 8.0 : 0.0) +
         (isLargeScreen ? 0 : (56.0 + 2.0));
 
-    // AppConfig is guaranteed by FutureProvider's initialData not to be null here in terms of object existence,
-    // but its content might be the default if the future hasn't completed or failed.
-    // The main.dart's Consumer<AppConfig> and its builder already handle the loading/error state for AppConfig for RiyalesApp.
-    // So, direct use here is fine. If appConfig could truly be null (e.g. if initialData was null),
-    // a null check or Consumer would be needed here too.
-    // For simplicity, we assume appConfig is available as per MultiProvider setup.
-    // if (appConfig == null) { // This specific null check might be redundant due to FutureProvider's initialData
-    //   return const Scaffold(body: Center(child: CupertinoActivityIndicator()));
-    // }
-
     if (appConfig.appName == "Riyales Default Fallback") {
-      // Check if it's the default fallback from FutureProvider
       return const Scaffold(
-          // Made const
-          body: Center(
-              child:
-                  Text("App configuration is using fallback."))); // Made const
+          body: Center(child: Text("App configuration is using fallback.")));
     }
 
-    // Accessing other providers
     final localeNotifier = context.watch<LocaleNotifier>();
-    // final themeNotifier = context.watch<ThemeNotifier>(); // Not directly used in this build method, but available
-
-    final isDarkMode =
-        Theme.of(context).brightness == Brightness.dark; // This is fine
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final tealGreen = hexToColor(isDarkMode
         ? appConfig.themeOptions.dark.accentColorGreen
         : appConfig.themeOptions.light.accentColorGreen);
@@ -405,15 +336,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         isDarkMode ? appConfig.themeOptions.dark : appConfig.themeOptions.light;
     final segmentActiveBackground = isDarkMode
         ? tealGreen.withAlpha((255 * 0.15).round())
-        : Theme.of(context)
-            .colorScheme
-            .secondaryContainer
-            .withAlpha(128); // Adjusted opacity
+        : Theme.of(context).colorScheme.secondaryContainer.withAlpha(128);
     final segmentActiveTextColor = isDarkMode
         ? tealGreen.withAlpha((255 * 0.9).round())
-        : Theme.of(context)
-            .colorScheme
-            .onSecondaryContainer; // Adjusted opacity
+        : Theme.of(context).colorScheme.onSecondaryContainer;
     final screenWidth = MediaQuery.of(context).size.width;
     final tabFontSize = screenWidth < 360 ? 12.0 : 14.0;
 
@@ -426,13 +352,74 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         fontSize: tabFontSize,
         fontWeight: FontWeight.w600);
 
-    final mainTabViews = [
+    final mainTabViews = _buildTabViews(topPadding);
+
+    Widget mainScaffold = Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: ClipRect(
+          child: (kIsWeb && isFirefox())
+              ? Container(
+                  color: isDarkMode
+                      ? const Color(0xFF090909)
+                      : Theme.of(context).scaffoldBackgroundColor,
+                )
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 21, sigmaY: 21),
+                  child: Container(
+                    color: isDarkMode
+                        ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
+                        : Theme.of(context)
+                            .scaffoldBackgroundColor
+                            .withAlpha(180),
+                  ),
+                ),
+        ),
+        title: GestureDetector(
+          onTap: _onTitleTapped,
+          child: Text(
+            l10n.riyalesAppTitle,
+            style: Theme.of(context).appBarTheme.titleTextStyle,
+          ),
+        ),
+        actions: _buildAppBarActions(isDarkMode, localeNotifier),
+        bottom: isLargeScreen
+            ? null
+            : _buildTabBar(l10n, isDarkMode,
+                tabLabelGroup: AutoSizeGroup(),
+                selectedTextStyle: selectedTextStyle,
+                unselectedTextStyle: unselectedTextStyle,
+                themeConfig: themeConfig,
+                segmentActiveBackground: segmentActiveBackground,
+                tealGreen: tealGreen),
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 600) {
+            return _buildMobileLayout(mainTabViews);
+          }
+          return _buildDesktopLayout(mainTabViews, l10n, isDarkMode, tealGreen);
+        },
+      ),
+    );
+
+    return NetworkAwareWidget(
+      onlineWidget: mainScaffold,
+      offlineBuilder: (status) => _buildOfflineScaffold(l10n, status),
+    );
+  }
+
+  /// Builds the tab views for all asset types.
+  List<Widget> _buildTabViews(double topPadding) {
+    return [
       ValueListenableBuilder<bool>(
           valueListenable: _isSearchActiveNotifier,
-          builder: (context, isSearchActive, child) {
+          builder: (context, isSearchActive, _) {
             return ValueListenableBuilder<bool>(
                 valueListenable: _showSearchBarNotifier,
-                builder: (context, showSearchBar, child) {
+                builder: (context, showSearchBar, _) {
                   return Consumer<CurrencyDataNotifier>(
                     builder: (context, notifier, _) =>
                         AssetListPage<models.CurrencyAsset>(
@@ -457,10 +444,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           }),
       ValueListenableBuilder<bool>(
           valueListenable: _isSearchActiveNotifier,
-          builder: (context, isSearchActive, child) {
+          builder: (context, isSearchActive, _) {
             return ValueListenableBuilder<bool>(
                 valueListenable: _showSearchBarNotifier,
-                builder: (context, showSearchBar, child) {
+                builder: (context, showSearchBar, _) {
                   return Consumer<GoldDataNotifier>(
                     builder: (context, notifier, _) =>
                         AssetListPage<models.GoldAsset>(
@@ -485,10 +472,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           }),
       ValueListenableBuilder<bool>(
           valueListenable: _isSearchActiveNotifier,
-          builder: (context, isSearchActive, child) {
+          builder: (context, isSearchActive, _) {
             return ValueListenableBuilder<bool>(
                 valueListenable: _showSearchBarNotifier,
-                builder: (context, showSearchBar, child) {
+                builder: (context, showSearchBar, _) {
                   return Consumer<CryptoDataNotifier>(
                     builder: (context, notifier, _) =>
                         AssetListPage<models.CryptoAsset>(
@@ -507,17 +494,17 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
                       showSearchBar: showSearchBar,
                       isSearchActive: isSearchActive,
                       tabController: _tabController,
-                      useCardAnimation: false,
+                      useCardAnimation: true,
                     ),
                   );
                 });
           }),
       ValueListenableBuilder<bool>(
         valueListenable: _isSearchActiveNotifier,
-        builder: (context, isSearchActive, child) {
+        builder: (context, isSearchActive, _) {
           return ValueListenableBuilder<bool>(
             valueListenable: _showSearchBarNotifier,
-            builder: (context, showSearchBar, child) {
+            builder: (context, showSearchBar, _) {
               return StockPage(
                   key: stockTabKey,
                   topPadding: topPadding,
@@ -528,676 +515,561 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         },
       ),
     ];
+  }
 
-    Widget mainScaffold = Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: ClipRect(
-          child: (kIsWeb && isFirefox())
-              ? Container(
-                  color: isDarkMode
-                      ? const Color(0xFF090909)
-                      : Theme.of(context).scaffoldBackgroundColor,
-                )
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 21, sigmaY: 21),
-                  child: Container(
-                    color: isDarkMode
-                        ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
-                        : Theme.of(context).scaffoldBackgroundColor
-                            .withAlpha(180),
-                  ),
-                ),
-        ),
-        title: GestureDetector(
-          onTap: _onTitleTapped,
-          child: Text(
-            l10n.riyalesAppTitle,
-            style: Theme.of(context).appBarTheme.titleTextStyle,
-          ),
-        ),
-        actions: [
-          AnimatedAlign(
-            alignment: localeNotifier.locale.languageCode == 'fa'
-                ? Alignment.centerLeft
-                : Alignment.center, // Using localeNotifier
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutQuart,
-            child: ValueListenableBuilder<bool>(
-              valueListenable: _isSearchActiveNotifier,
-              builder: (context, isSearchActive, child) {
-                // Extracted IconButton to a separate const widget if possible, or a private method
-                // For now, let's assume the Icon can be const if its color logic is simplified or passed
-                final icon = Icon(
-                  isSearchActive // From builder
-                      ? CupertinoIcons.clear
-                      : CupertinoIcons.search,
-                  key: ValueKey<bool>(isSearchActive), // From builder
-                  color: _showSearchBarNotifier
-                          .value // Using notifier's value directly
-                      ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
-                      : (isDarkMode ? Colors.white : Colors.black),
-                  size: 28,
-                );
+  /// Builds the app bar actions (search and settings buttons).
+  List<Widget> _buildAppBarActions(
+      bool isDarkMode, LocaleNotifier localeNotifier) {
+    return [
+      AnimatedAlign(
+        alignment: localeNotifier.locale.languageCode == 'fa'
+            ? Alignment.centerLeft
+            : Alignment.center,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutQuart,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: _isSearchActiveNotifier,
+          builder: (context, isSearchActive, _) {
+            final icon = Icon(
+              isSearchActive ? CupertinoIcons.clear : CupertinoIcons.search,
+              key: ValueKey<bool>(isSearchActive),
+              color: _showSearchBarNotifier.value
+                  ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
+                  : (isDarkMode ? Colors.white : Colors.black),
+              size: 28,
+            );
 
-                return IconButton(
-                  icon: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (Widget child, Animation<double> anim) =>
-                        ScaleTransition(scale: anim, child: child),
-                    child: icon, // Use the extracted icon
-                  ),
-                  onPressed: () {
-                    AnalyticsService.instance
-                        .logEvent('button_click', {'button': 'search'});
-                    if (isSearchActive) {
-                      // From builder
-                      context.read<SearchQueryNotifier>().query = '';
-                      _toggleSearchBar(false);
-                      return;
-                    }
-                    final currentTabIndex = _tabController.index;
-                    _tabScrollControllers[currentTabIndex] ??=
-                        _findScrollController(currentTabIndex);
-                    final controller = _tabScrollControllers[currentTabIndex];
-                    if (controller != null && controller.hasClients) {
-                      if (controller.offset <= 0) {
-                        _toggleSearchBar(true);
-                        _setupScrollListener(currentTabIndex);
-                      } else {
-                        controller.jumpTo(controller.offset);
-                        controller
-                            .animateTo(0,
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOutQuart)
-                            .then((_) {
-                          if (mounted) {
-                            // Keep mounted for async operations
-                            _toggleSearchBar(true);
-                            _setupScrollListener(currentTabIndex);
-                          }
-                        });
-                      }
-                    } else {
-                      _toggleSearchBar(true);
-                    }
-                  },
-                  splashColor: Colors.transparent,
-                  hoverColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                  focusColor: Colors.transparent,
-                  style: ButtonStyle(
-                      overlayColor:
-                          WidgetStateProperty.all(Colors.transparent)),
-                );
-              },
+            return IconButton(
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: icon,
+              ),
+              onPressed: () => _handleSearchButtonPressed(isSearchActive),
+              splashColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              focusColor: Colors.transparent,
+              style: ButtonStyle(
+                  overlayColor: WidgetStateProperty.all(Colors.transparent)),
+            );
+          },
+        ),
+      ),
+      AnimatedAlign(
+        alignment: Localizations.localeOf(context).languageCode == 'fa'
+            ? Alignment.centerLeft
+            : Alignment.center,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutQuart,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ValueListenableBuilder<bool>(
+            valueListenable: _isSearchActiveNotifier,
+            builder: (context, isSearchActive, child) {
+              return GestureDetector(
+                onTap: () => _handleSettingsButtonPressed(isSearchActive),
+                child: child,
+              );
+            },
+            child: const SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(CupertinoIcons.person_crop_circle, size: 28),
             ),
           ),
-          AnimatedAlign(
-            alignment: Localizations.localeOf(context).languageCode == 'fa'
-                ? Alignment.centerLeft
-                : Alignment.center,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutQuart,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ValueListenableBuilder<bool>(
-                valueListenable: _isSearchActiveNotifier,
-                builder: (context, isSearchActive, child) {
-                  return GestureDetector(
-                    onTap: () {
-                      AnalyticsService.instance
-                          .logEvent('button_click', {'button': 'settings'});
-                      if (isSearchActive) {
-                        // Use 'isSearchActive' from builder
-                        context.read<SearchQueryNotifier>().query = '';
-                        _toggleSearchBar(false);
-                      }
-                      showCupertinoModalPopup(
-                          context: context,
-                          useRootNavigator: true,
-                          builder: (_) => const SettingsSheet());
-                    },
-                    child:
-                        child,
-                  );
-                },
-                // Made the child of ValueListenableBuilder const as it does not depend on isSearchActive
-                child: const SizedBox( // Replaced Container with SizedBox for simplicity if only for Icon
-                  width: 40,
-                  height: 40,
-                  // decoration: BoxDecoration(shape: BoxShape.circle), // Removed if not strictly needed for tap target
-                  child: Icon(CupertinoIcons.person_crop_circle,
-                      size: 28), // Color will be inherited from IconTheme or default
+        ),
+      ),
+    ];
+  }
+
+  /// Handles the search button press.
+  void _handleSearchButtonPressed(bool isSearchActive) {
+    AnalyticsService.instance.logEvent('button_click', {'button': 'search'});
+    if (isSearchActive) {
+      context.read<SearchQueryNotifier>().query = '';
+      _toggleSearchBar(false);
+      return;
+    }
+
+    final currentTabIndex = _tabController.index;
+    _tabScrollControllers[currentTabIndex] ??=
+        _findScrollController(currentTabIndex);
+    final controller = _tabScrollControllers[currentTabIndex];
+
+    if (controller != null && controller.hasClients) {
+      if (controller.offset <= 0) {
+        _toggleSearchBar(true);
+        _setupScrollListener(currentTabIndex);
+      } else {
+        final maxScroll = controller.position.maxScrollExtent;
+        final offset = controller.offset;
+        final ratio =
+            maxScroll > 0 ? (offset / maxScroll).clamp(0.0, 1.0) : 0.0;
+        final durationMs = (300 + (500 * ratio)).toInt();
+
+        controller
+            .animateTo(0,
+                duration: Duration(milliseconds: durationMs),
+                curve: Curves.easeInOutQuart)
+            .then((_) {
+          if (mounted) {
+            _toggleSearchBar(true);
+            _setupScrollListener(currentTabIndex);
+          }
+        });
+      }
+    } else {
+      _toggleSearchBar(true);
+    }
+  }
+
+  /// Handles the settings button press.
+  void _handleSettingsButtonPressed(bool isSearchActive) {
+    AnalyticsService.instance.logEvent('button_click', {'button': 'settings'});
+    if (isSearchActive) {
+      context.read<SearchQueryNotifier>().query = '';
+      _toggleSearchBar(false);
+    }
+    showCupertinoModalPopup(
+        context: context,
+        useRootNavigator: true,
+        builder: (_) => const SettingsSheet());
+  }
+
+  /// Builds the tab bar for mobile layout.
+  PreferredSize _buildTabBar(
+    AppLocalizations l10n,
+    bool isDarkMode, {
+    required AutoSizeGroup tabLabelGroup,
+    required TextStyle selectedTextStyle,
+    required TextStyle unselectedTextStyle,
+    required dynamic themeConfig,
+    required Color segmentActiveBackground,
+    required Color tealGreen,
+  }) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(56.0 + 2.0),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 2.0),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 600;
+            final horizontalMargin = isMobile ? 4.0 : 0.0;
+            final BorderRadius tabBorderRadius = BorderRadius.circular(20.0);
+
+            return Row(
+              mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(4, (index) {
+                final isSelected = _tabController.index == index;
+                final label = [
+                  l10n.tabCurrency,
+                  l10n.tabGold,
+                  l10n.tabCrypto,
+                  l10n.tabStock
+                ][index];
+
+                return isMobile
+                    ? Expanded(
+                        child: _buildTabButton(
+                            index,
+                            label,
+                            isSelected,
+                            isDarkMode,
+                            tabBorderRadius,
+                            tabLabelGroup,
+                            selectedTextStyle,
+                            unselectedTextStyle,
+                            themeConfig,
+                            segmentActiveBackground,
+                            tealGreen))
+                    : Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: horizontalMargin),
+                        child: _buildTabButton(
+                            index,
+                            label,
+                            isSelected,
+                            isDarkMode,
+                            tabBorderRadius,
+                            tabLabelGroup,
+                            selectedTextStyle,
+                            unselectedTextStyle,
+                            themeConfig,
+                            segmentActiveBackground,
+                            tealGreen));
+              }),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Builds an individual tab button.
+  Widget _buildTabButton(
+      int index,
+      String label,
+      bool isSelected,
+      bool isDarkMode,
+      BorderRadius tabBorderRadius,
+      AutoSizeGroup tabLabelGroup,
+      TextStyle selectedTextStyle,
+      TextStyle unselectedTextStyle,
+      dynamic themeConfig,
+      Color segmentActiveBackground,
+      Color tealGreen) {
+    final tabContent = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+      child: Center(
+        child: Builder(builder: (context) {
+          Widget autoText = AutoSizeText(
+            label,
+            style: isSelected ? selectedTextStyle : unselectedTextStyle,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            group: tabLabelGroup,
+            minFontSize: 8,
+            overflow: TextOverflow.ellipsis,
+          );
+
+          if (isSelected && !isDarkMode) {
+            autoText = Transform.translate(
+                offset: const Offset(0, 1), child: autoText);
+          }
+
+          return autoText;
+        }),
+      ),
+    );
+
+    Widget segment = isSelected
+        ? SmoothCard(
+            smoothness: themeConfig.cardCornerSmoothness,
+            borderRadius: tabBorderRadius,
+            elevation: 0,
+            color: segmentActiveBackground,
+            child: tabContent,
+          )
+        : SmoothCard(
+            smoothness: themeConfig.cardCornerSmoothness,
+            borderRadius: tabBorderRadius,
+            elevation: 0,
+            color: Colors.transparent,
+            child: ClipPath(
+              clipper: ShapeBorderClipper(
+                shape: SmoothRectangleBorder(
+                  borderRadius: tabBorderRadius,
+                  smoothness: themeConfig.cardCornerSmoothness,
                 ),
+              ),
+              child: (kIsWeb && isFirefox())
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color.fromARGB(255, 90, 90, 90)
+                                .withAlpha(38)
+                            : const Color.fromARGB(255, 255, 255, 255)
+                                .withAlpha(252),
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                      child: tabContent,
+                    )
+                  : BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color.fromARGB(255, 90, 90, 90)
+                                  .withAlpha(38)
+                              : const Color.fromARGB(255, 255, 255, 255)
+                                  .withAlpha(252),
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        child: tabContent,
+                      ),
+                    ),
+            ),
+          );
+
+    return GestureDetector(
+      onTap: () => _handleTabTap(index),
+      onLongPress: () => _showSortSheet(index),
+      child: segment,
+    );
+  }
+
+  /// Handles tab tap events.
+  void _handleTabTap(int index) {
+    final englishTabName = _englishTabNames[index];
+    AnalyticsService.instance.logEvent('tab_visit', {'tab_id': englishTabName});
+
+    if (_tabController.index == index) {
+      final controller =
+          _tabScrollControllers[index] ??= _findScrollController(index);
+      if (controller != null && controller.hasClients) {
+        final maxScroll = controller.position.maxScrollExtent;
+        final offset = controller.offset;
+        final ratio =
+            maxScroll > 0 ? (offset / maxScroll).clamp(0.0, 1.0) : 0.0;
+        final durationMs = (300 + (500 * ratio)).toInt();
+
+        controller.animateTo(0,
+            duration: Duration(milliseconds: durationMs),
+            curve: Curves.easeInOutQuart);
+      }
+    } else if (mounted) {
+      setState(() => _tabController.animateTo(index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutQuart));
+    }
+  }
+
+  /// Builds the mobile layout with tab views.
+  Widget _buildMobileLayout(List<Widget> mainTabViews) {
+    return Column(
+      children: [
+        Expanded(
+          child: AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) {
+              final index = _tabController.index;
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeInOutQuart,
+                switchOutCurve: Curves.easeInOutQuart,
+                transitionBuilder: (Widget c, Animation<double> a) =>
+                    FadeTransition(opacity: a, child: c),
+                child: KeyedSubtree(
+                  key: ValueKey<int>(index),
+                  child: mainTabViews[index],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the desktop layout with navigation rail.
+  Widget _buildDesktopLayout(List<Widget> mainTabViews, AppLocalizations l10n,
+      bool isDarkMode, Color tealGreen) {
+    final isRTL = Localizations.localeOf(context).languageCode == 'fa';
+
+    return Row(
+      textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(
+              top: 7.0, left: isRTL ? 0.0 : 7.0, right: isRTL ? 7.0 : 0.0),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              highlightColor: Colors.transparent,
+              splashColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              splashFactory: NoSplash.splashFactory,
+            ),
+            child: _buildNavigationRail(l10n, isDarkMode, tealGreen, isRTL),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: _tabController,
+                  builder: (context, _) {
+                    final index = _tabController.index;
+                    return mainTabViews[index];
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the navigation rail for desktop layout.
+  NavigationRail _buildNavigationRail(
+      AppLocalizations l10n, bool isDarkMode, Color tealGreen, bool isRTL) {
+    return NavigationRail(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      indicatorColor: isDarkMode
+          ? tealGreen.withAlpha(38)
+          : Theme.of(context).colorScheme.secondaryContainer.withAlpha(128),
+      useIndicator: true,
+      minWidth: 68,
+      minExtendedWidth: 130,
+      labelType: NavigationRailLabelType.all,
+      groupAlignment: -1.0,
+      selectedIconTheme: IconThemeData(
+        color: isDarkMode ? tealGreen.withAlpha(230) : Colors.white,
+        size: 22,
+      ),
+      selectedLabelTextStyle: TextStyle(
+        color: isDarkMode ? tealGreen.withAlpha(230) : tealGreen.withAlpha(430),
+        fontWeight: FontWeight.w500,
+        fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+      ),
+      unselectedIconTheme: IconThemeData(
+        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+        size: 22,
+      ),
+      unselectedLabelTextStyle: TextStyle(
+        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+        fontWeight: FontWeight.w500,
+        fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+      ),
+      selectedIndex: _tabController.index,
+      onDestinationSelected: (index) =>
+          _handleNavigationRailItemSelected(index),
+      destinations: _buildNavigationRailDestinations(l10n, isRTL),
+    );
+  }
+
+  /// Builds the navigation rail destinations.
+  List<NavigationRailDestination> _buildNavigationRailDestinations(
+      AppLocalizations l10n, bool isRTL) {
+    final destinations = [
+      NavigationRailDestination(
+        icon: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () => _showSortSheet(0),
+          onDoubleTap: () => _showSortSheet(0),
+          child: const Icon(CupertinoIcons.money_dollar, size: 22),
+        ),
+        label: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () => _showSortSheet(0),
+          onDoubleTap: () => _showSortSheet(0),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 22),
+            child: Text(l10n.tabCurrency),
+          ),
+        ),
+      ),
+      NavigationRailDestination(
+        icon: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () => _showSortSheet(1),
+          onDoubleTap: () => _showSortSheet(1),
+          child: const Icon(CupertinoIcons.sparkles, size: 22),
+        ),
+        label: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () => _showSortSheet(1),
+          onDoubleTap: () => _showSortSheet(1),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 22),
+            child: Text(l10n.tabGold),
+          ),
+        ),
+      ),
+      NavigationRailDestination(
+        icon: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () => _showSortSheet(2),
+          onDoubleTap: () => _showSortSheet(2),
+          child: const Icon(CupertinoIcons.bitcoin_circle, size: 22),
+        ),
+        label: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () => _showSortSheet(2),
+          onDoubleTap: () => _showSortSheet(2),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 22),
+            child: Text(l10n.tabCrypto),
+          ),
+        ),
+      ),
+      NavigationRailDestination(
+        icon: const Icon(Icons.trending_up, size: 22),
+        label: Padding(
+          padding: const EdgeInsets.only(bottom: 22),
+          child: Text(l10n.tabStock),
+        ),
+      ),
+    ];
+
+    if (_isDesktopWeb) {
+      destinations.add(NavigationRailDestination(
+        icon: const Icon(CupertinoIcons.cloud_download, size: 22),
+        label: Padding(
+          padding: const EdgeInsets.only(bottom: 22),
+          child: Text(isRTL ? "دانلود" : "App"),
+        ),
+      ));
+    }
+
+    return destinations;
+  }
+
+  /// Handles navigation rail item selection.
+  void _handleNavigationRailItemSelected(int index) {
+    if (_isDesktopWeb && index == _mainTabs.length) {
+      _launchDownloadUrl();
+    } else {
+      if (index < _mainTabs.length && _mainTabs[index].text != null) {
+        final englishTabName = _englishTabNames[index];
+        AnalyticsService.instance
+            .logEvent('tab_visit', {'tab_id': englishTabName});
+      }
+      setState(() => _tabController.animateTo(index));
+    }
+  }
+
+  /// Builds the scaffold for offline mode.
+  Widget _buildOfflineScaffold(AppLocalizations l10n, ConnectionStatus status) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.riyalesAppTitle),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isSearchActiveNotifier,
+              builder: (context, isSearchActiveValue, child) {
+                return GestureDetector(
+                  onTap: () {
+                    if (isSearchActiveValue) {
+                      context.read<SearchQueryNotifier>().query = '';
+                      _toggleSearchBar(false);
+                    }
+                    showCupertinoModalPopup(
+                        context: context,
+                        useRootNavigator: true,
+                        builder: (_) => const SettingsSheet());
+                  },
+                  child: child,
+                );
+              },
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(shape: BoxShape.circle),
+                child: Icon(CupertinoIcons.person_crop_circle,
+                    size: 28, color: Theme.of(context).colorScheme.onSurface),
               ),
             ),
           ),
         ],
-        bottom: isLargeScreen
-            ? null
-            : PreferredSize(
-                preferredSize:
-                    const Size.fromHeight(56.0 + 2.0),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                      left: 8.0, right: 8.0, bottom: 2.0),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isMobile = constraints.maxWidth < 600;
-                      final horizontalMargin = isMobile ? 4.0 : 0.0;
-                      final AutoSizeGroup tabLabelGroup = AutoSizeGroup();
-                      final BorderRadius tabBorderRadius =
-                          BorderRadius.circular(
-                              20.0);
-                      return Row(
-                        mainAxisSize:
-                            isMobile ? MainAxisSize.max : MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(4, (index) {
-                          final isSelected = _tabController.index == index;
-                          final label = [
-                            l10n.tabCurrency,
-                            l10n.tabGold,
-                            l10n.tabCrypto,
-                            l10n.tabStock
-                          ][index];
-                          void onTabTap() {
-                            final englishTabName = _englishTabNames[index];
-                            AnalyticsService.instance.logEvent(
-                                'tab_visit', {'tab_id': englishTabName});
-                            if (_tabController.index == index) {
-                              final controller =
-                                  _tabScrollControllers[index] ??=
-                                      _findScrollController(index);
-                              if (controller != null && controller.hasClients) {
-                                controller.jumpTo(controller.offset);
-                                controller.animateTo(0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOutQuart);
-                              }
-                            } else {
-                              if (mounted) {
-                                setState(() => _tabController.animateTo(index,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOutQuart));
-                              }
-                            }
-                          }
-
-                          final tabContent = Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10.0, horizontal: 16.0),
-                            child: Center(
-                              child: Builder(builder: (context) {
-                                Widget autoText = AutoSizeText(
-                                  label, // Dynamic
-                                  style: isSelected // Dynamic
-                                      ? selectedTextStyle
-                                      : unselectedTextStyle,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  group: tabLabelGroup, // Dynamic
-                                  minFontSize: 8,
-                                  overflow: TextOverflow.ellipsis,
-                                );
-                                if (isSelected && !isDarkMode) {
-                                  autoText = Transform.translate(
-                                      offset: const Offset(0, 1),
-                                      child: autoText);
-                                }
-                                return autoText;
-                              }),
-                            ),
-                          );
-
-                          Widget segment;
-                          if (isSelected) {
-                            segment = SmoothCard(
-                              smoothness: themeConfig.cardCornerSmoothness, // Dynamic
-                              borderRadius: tabBorderRadius, // Dynamic
-                              elevation: 0,
-                              color: segmentActiveBackground, // Dynamic
-                              child: tabContent, // Dynamic
-                            );
-                          } else {
-                            segment = SmoothCard(
-                              smoothness: themeConfig.cardCornerSmoothness, // Dynamic
-                              borderRadius: tabBorderRadius, // Dynamic
-                              elevation: 0,
-                              color: Colors.transparent,
-                              child: ClipPath(
-                                clipper: ShapeBorderClipper(
-                                  shape: SmoothRectangleBorder( // Dynamic
-                                    borderRadius: tabBorderRadius,
-                                    smoothness:
-                                        themeConfig.cardCornerSmoothness,
-                                  ),
-                                ),
-                                child: (kIsWeb && isFirefox())
-                                    ? Container(
-                                        decoration: BoxDecoration(
-                                          color: isDarkMode
-                                              ? const Color.fromARGB(255, 90, 90, 90)
-                                                  .withAlpha(38)
-                                              : const Color.fromARGB(255, 255, 255, 255)
-                                                  .withAlpha(252),
-                                          borderRadius: BorderRadius.circular(20.0),
-                                        ),
-                                        child: tabContent,
-                                      )
-                                    : BackdropFilter(
-                                        filter: ImageFilter.blur(
-                                            sigmaX: 15.0, sigmaY: 15.0),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: isDarkMode
-                                                ? const Color.fromARGB(255, 90, 90, 90)
-                                                    .withAlpha(38)
-                                                : const Color.fromARGB(255, 255, 255, 255)
-                                                    .withAlpha(252),
-                                            borderRadius: BorderRadius.circular(20.0),
-                                          ),
-                                          child: tabContent,
-                                        ),
-                                      ),
-                              ),
-                            );
-                          }
-
-                          final wrapped = GestureDetector(
-                            onTap: onTabTap,
-                            onLongPress: () {
-                              if (!kIsWeb) Vibration.vibrate(duration: 30);
-                              final isFa = Localizations.localeOf(context)
-                                      .languageCode ==
-                                  'fa';
-                              final sortOptions = [
-                                SortMode.defaultOrder,
-                                SortMode.highestPrice,
-                                SortMode.lowestPrice,
-                              ];
-                              final optionLabels = [
-                                isFa ? 'پیشفرض' : 'Default',
-                                isFa ? 'بیشترین قیمت' : 'Highest Price',
-                                isFa ? 'کمترین قیمت' : 'Lowest Price',
-                              ];
-                              showCupertinoModalPopup(
-                                context: context,
-                                useRootNavigator: true,
-                                builder: (_) => CupertinoTheme(
-                                  data: CupertinoThemeData(
-                                      brightness: isDarkMode
-                                          ? Brightness.dark
-                                          : Brightness.light),
-                                  child: CupertinoActionSheet(
-                                    title: Text(isFa ? 'مرتب‌سازی' : 'Sort By', // Cannot be const
-                                        style: TextStyle( // Cannot be const
-                                            fontFamily:
-                                                isFa ? 'Vazirmatn' : 'SF-Pro',
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDarkMode
-                                                ? Colors.white
-                                                : Colors.black)),
-                                    actions:
-                                        List.generate(sortOptions.length, (i) {
-                                      return CupertinoActionSheetAction(
-                                        onPressed: () {
-                                          GlobalKey<
-                                              AssetListPageState<
-                                                  models.Asset>>? currentKey;
-                                          if (index == 0) {
-                                            currentKey = currencyTabKey
-                                                as GlobalKey<
-                                                    AssetListPageState<
-                                                        models.Asset>>?;
-                                          } else if (index == 1) {
-                                            currentKey = goldTabKey
-                                                as GlobalKey<
-                                                    AssetListPageState<
-                                                        models.Asset>>?;
-                                          } else if (index == 2) {
-                                            currentKey = cryptoTabKey
-                                                as GlobalKey<
-                                                    AssetListPageState<
-                                                        models.Asset>>?;
-                                          }
-                                          // Stock page sorting is internal or not available via this menu
-                                          currentKey?.currentState
-                                              ?.setSortMode(sortOptions[i]);
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: Text(optionLabels[i], // Cannot be const
-                                            style: TextStyle( // Cannot be const
-                                                fontFamily: isFa
-                                                    ? 'Vazirmatn'
-                                                    : 'SF-Pro',
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.normal,
-                                                color: isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black)),
-                                      );
-                                    }),
-                                    cancelButton: CupertinoActionSheetAction(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(),
-                                      child: Text(isFa ? 'انصراف' : 'Cancel', // Cannot be const
-                                          style: TextStyle( // Cannot be const
-                                              fontFamily:
-                                                  isFa ? 'Vazirmatn' : 'SF-Pro',
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w600,
-                                              color: tealGreen)),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            child: segment,
-                          );
-                          return isMobile
-                              ? Expanded(child: wrapped)
-                              : Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: horizontalMargin),
-                                  child: wrapped);
-                        }),
-                      );
-                    },
-                  ),
-                ),
-              ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 600) {
-            // Mobile: original column layout
-            return Column(
-              children: [
-                Expanded(
-                  child: AnimatedBuilder(
-                    // Using AnimatedBuilder to react to TabController changes
-                    animation: _tabController,
-                    builder: (context, child) {
-                      final index = _tabController.index;
-                      // Use direct display with AnimatedSwitcher instead of Container
-                      // to avoid potential gesture detection issues
-                      return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        switchInCurve: Curves.easeInOutQuart,
-                        switchOutCurve: Curves.easeInOutQuart,
-                        transitionBuilder: (Widget c, Animation<double> a) =>
-                            FadeTransition(opacity: a, child: c),
-                        child: KeyedSubtree(
-                          key: ValueKey<int>(index),
-                          child: mainTabViews[index],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          }
-          // Desktop/Tablet: use NavigationRail for vertical tabs under the app title with search field
-          final isRTL = Localizations.localeOf(context).languageCode == 'fa';
-          return Row(
-            textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
-            crossAxisAlignment:
-                CrossAxisAlignment.start, // Align row contents from top
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [ // Removed const from children as spacing is not used here
-              // Wrap NavigationRail in a Column with the same top padding as search field to align with cards
-              Padding(
-                padding: EdgeInsets.only(
-                    top: 7.0,
-                    // Adjust padding based on text direction
-                    left: isRTL ? 0.0 : 7.0,
-                    right: isRTL ? 7.0 : 0.0), // Cannot be const due to isRTL
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    // Disable all hover and touch feedback effects
-                    highlightColor: Colors.transparent,
-                    splashColor: Colors.transparent,
-                    hoverColor: Colors.transparent,
-                    splashFactory: NoSplash.splashFactory,
-                  ),
-                  child: NavigationRail(
-                    // ======== VISUAL PROPERTIES ========
-                    // Match page background
-                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                    // Badge-style indicator color for selected tab
-                    indicatorColor: isDarkMode
-                        ? tealGreen
-                            .withAlpha(38) // Light teal background in dark mode
-                        : Theme.of(context)
-                            .colorScheme
-                            .secondaryContainer
-                            .withAlpha(128),
-                    useIndicator: true,
-
-                    // ======== SIZING PROPERTIES ========
-                    minWidth: 68, // Slightly narrower for better proportions
-                    minExtendedWidth: 130,
-
-                    // ======== LAYOUT PROPERTIES ========
-                    labelType: NavigationRailLabelType.all,
-                    groupAlignment:
-                        -1.0, // Align tabs from top (-1.0) to bottom (1.0)
-
-                    // ======== TEXT & ICON STYLING ========
-                    selectedIconTheme: IconThemeData( // Cannot be const
-                      color:
-                          isDarkMode ? tealGreen.withAlpha(230) : Colors.white,
-                      size: 22, // Size of icons
-                    ),
-                    selectedLabelTextStyle: TextStyle( // Cannot be const
-                      color: isDarkMode
-                          ? tealGreen.withAlpha(230)
-                          : tealGreen.withAlpha(430),
-                      fontWeight: FontWeight.w500,
-                      fontFamily:
-                          Localizations.localeOf(context).languageCode == 'fa'
-                              ? 'Vazirmatn'
-                              : 'SF-Pro',
-                    ),
-                    unselectedIconTheme: IconThemeData( // Cannot be const
-                      color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
-                      size: 22,
-                    ),
-                    unselectedLabelTextStyle: TextStyle( // Cannot be const
-                      color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                      fontFamily:
-                          Localizations.localeOf(context).languageCode == 'fa'
-                              ? 'Vazirmatn'
-                              : 'SF-Pro',
-                    ),
-
-                    // ======== NAVIGATION BEHAVIOR ========
-                    selectedIndex: _tabController.index,
-                    onDestinationSelected: (index) {
-                      if (_isDesktopWeb && index == _mainTabs.length) {
-                        // If it's the download button (last item)
-                        _launchDownloadUrl();
-                      } else {
-                        // Regular tab selection
-                        if (index < _mainTabs.length &&
-                            _mainTabs[index].text != null) {
-                          final englishTabName = _englishTabNames[index];
-                          AnalyticsService.instance.logEvent(
-                              'tab_visit', {'tab_id': englishTabName});
-                        }
-                        setState(() => _tabController.animateTo(index));
-                      }
-                    },
-
-                    // ======== TAB DESTINATIONS ========
-                    destinations: [
-                      NavigationRailDestination(
-                        icon: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _showSortSheet(0),
-                          onDoubleTap: () => _showSortSheet(0),
-                          child: const Icon(CupertinoIcons.money_dollar,
-                              size: 22),
-                        ),
-                        label: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _showSortSheet(0),
-                          onDoubleTap: () => _showSortSheet(0),
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: 22),
-                            child: Text(l10n.tabCurrency), // Cannot be const
-                          ),
-                        ),
-                      ),
-                      NavigationRailDestination(
-                        icon: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _showSortSheet(1),
-                          onDoubleTap: () => _showSortSheet(1),
-                          child: const Icon(CupertinoIcons.sparkles,
-                              size: 22),
-                        ),
-                        label: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _showSortSheet(1),
-                          onDoubleTap: () => _showSortSheet(1),
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: 22),
-                            child: Text(l10n.tabGold), // Cannot be const
-                          ),
-                        ),
-                      ),
-                      NavigationRailDestination(
-                        icon: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _showSortSheet(2),
-                          onDoubleTap: () => _showSortSheet(2),
-                          child: const Icon(
-                              CupertinoIcons.bitcoin_circle,
-                              size: 22),
-                        ),
-                        label: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onLongPress: () => _showSortSheet(2),
-                          onDoubleTap: () => _showSortSheet(2),
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: 22),
-                            child: Text(l10n.tabCrypto), // Cannot be const
-                          ),
-                        ),
-                      ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.trending_up,
-                            size: 22),
-                        label: Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: 22),
-                          child: Text(l10n.tabStock), // Cannot be const
-                        ),
-                      ),
-                      // Download button for desktop web users
-                      if (_isDesktopWeb)
-                        NavigationRailDestination(
-                          icon: const Icon(
-                              CupertinoIcons.cloud_download,
-                              size: 22),
-                          label: Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: 22),
-                            child: Text(isRTL ? "دانلود" : "App"), // Cannot be const
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: AnimatedBuilder(
-                        animation: _tabController,
-                        builder: (context, child) {
-                          final index = _tabController.index;
-                          return mainTabViews[index];
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    return NetworkAwareWidget(
-      onlineWidget: mainScaffold,
-      offlineBuilder: (status) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(l10n.riyalesAppTitle), // Cannot be const
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _isSearchActiveNotifier,
-                  builder: (context, isSearchActiveValue, child) {
-                    return GestureDetector(
-                      onTap: () {
-                        // mounted check is less critical here as we are not calling setState.
-                        // ValueNotifier updates are safe even if listeners are gone.
-                        if (isSearchActiveValue) {
-                          context.read<SearchQueryNotifier>().query = '';
-                          _toggleSearchBar(false);
-                        }
-                        showCupertinoModalPopup(
-                            context: context,
-                            useRootNavigator: true,
-                            builder: (_) =>
-                                const SettingsSheet());
-                      },
-                      child: child, // Use child from builder
-                    );
-                  },
-                  child: Container(
-                    // This is the child for ValueListenableBuilder
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle),
-                    child: Icon(CupertinoIcons.person_crop_circle,
-                        size: 28,
-                        color: Theme.of(context).colorScheme.onSurface),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          body: Center(
-              child: ErrorPlaceholder( // ErrorPlaceholder not const
-                  status: status)),
-        );
-      },
+      body: Center(child: ErrorPlaceholder(status: status)),
     );
   }
 
+  /// Finds the appropriate scroll controller for the current tab.
   ScrollController? _findScrollController(int tabIndex) {
-    if (!mounted) {
-      return null;
-    }
+    if (!mounted) return null;
+
     try {
       switch (tabIndex) {
         case 0:
@@ -1209,23 +1081,19 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         case 3:
           final stockState = stockTabKey.currentState;
           if (stockState != null) {
-            final activeStockTabIndex =
-                stockState.stockTabController.index; // Getter needed
-            // Ensure stockScrollControllers is accessible or a method to get it
-            return stockState
-                .stockScrollControllers[activeStockTabIndex]; // Getter needed
+            final activeStockTabIndex = stockState.stockTabController.index;
+            return stockState.stockScrollControllers[activeStockTabIndex];
           }
           return null;
         default:
           return null;
       }
-    } catch (e) {
-      // print('Error finding scroll controller for tab $tabIndex: $e');
+    } catch (_) {
       return null;
     }
   }
 
-  // Handle title taps for easter-egg
+  /// Handles title taps for easter egg activation.
   void _onTitleTapped() {
     final now = DateTime.now();
     if (_firstTitleTapTime == null ||
@@ -1235,6 +1103,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     } else {
       _titleTapCount++;
     }
+
     if (_titleTapCount >= 10) {
       _titleTapCount = 0;
       _firstTitleTapTime = null;
@@ -1242,12 +1111,11 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       final message = isRTL
           ? 'به دستور شرکت ارتباطات و راهکارهای مانا.'
           : 'By order of Aurum Co.';
-      // Show a custom overlay snack bar
       _showCustomSnackBar(message, isRTL);
     }
   }
 
-  // Custom overlay snack bar that slides up/down with easeInOutQuart
+  /// Shows a custom overlay snack bar.
   void _showCustomSnackBar(String message, bool isRTL) {
     final overlay = Overlay.of(context);
     final controller = AnimationController(
@@ -1258,6 +1126,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       parent: controller,
       curve: Curves.easeInOut,
     );
+
     late OverlayEntry entry;
     entry = OverlayEntry(builder: (context) {
       return Positioned(
@@ -1300,10 +1169,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
         ),
       );
     });
+
     overlay.insert(entry);
-    // Animate in
     controller.forward();
-    // Auto dismiss after 4 seconds
+
     Future.delayed(const Duration(seconds: 4), () async {
       await controller.reverse();
       entry.remove();
@@ -1311,9 +1180,10 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     });
   }
 
+  /// Shows sort options sheet for the specified tab index.
   void _showSortSheet(int index) {
-    // Show sorting options for asset tabs
     if (!kIsWeb) Vibration.vibrate(duration: 30);
+
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final sortOptions = [
       SortMode.defaultOrder,
@@ -1325,7 +1195,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
       isFa ? 'بیشترین قیمت' : 'Highest Price',
       isFa ? 'کمترین قیمت' : 'Lowest Price',
     ];
-    // Determine accent color for cancel button
+
     final appConfig = context.read<AppConfig>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tealGreen = hexToColor(
@@ -1333,6 +1203,7 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
           ? appConfig.themeOptions.dark.accentColorGreen
           : appConfig.themeOptions.light.accentColorGreen,
     );
+
     showCupertinoModalPopup(
       context: context,
       useRootNavigator: true,
@@ -1395,13 +1266,12 @@ class HomeScreenState extends State<HomeScreen> // Changed from ConsumerState
     );
   }
 
-  // Add a method to toggle search bar visibility
+  /// Toggles search bar visibility and updates related state.
   void _toggleSearchBar(bool show) {
     if (_showSearchBarNotifier.value != show) {
       _showSearchBarNotifier.value = show;
       _isSearchActiveNotifier.value = show;
 
-      // Clear search query when hiding search bar
       if (!show) {
         context.read<SearchQueryNotifier>().query = '';
       }

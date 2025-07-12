@@ -1,53 +1,34 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // For kIsWeb
 
+/// Provides a smooth scroll behavior with bounce physics and custom scrollbar styling for web.
 class SmoothScrollBehavior extends ScrollBehavior {
+  /// Removes the default overscroll indicator.
   @override
   Widget buildOverscrollIndicator(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    return child;
-  }
+          BuildContext context, Widget child, ScrollableDetails details) =>
+      child;
 
+  /// Uses bounce physics for all scrollable widgets.
   @override
-  ScrollPhysics getScrollPhysics(BuildContext context) {
-    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
-  }
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 
+  /// Builds CSS-styled scrollbar on web (vertical axis); otherwise returns the child unchanged.
   @override
   Widget buildScrollbar(
-    BuildContext context,
-    Widget child,
-    ScrollableDetails details,
-  ) {
-    // Only show scrollbars on web platform
-    if (kIsWeb) {
-      switch (axisDirectionToAxis(details.direction)) {
-        case Axis.vertical:
-          // Use a container with the flutter-scrollbar class for styling via CSS
-          return Container(
-            // Apply CSS class for web styling
-            decoration: const BoxDecoration(),
-            // This key is used by web renderer to apply the CSS class
-            key: const ValueKey<String>('flutter-scrollbar'),
-            child: RawScrollbar(
-              // Hide thumbVisibility since we'll use CSS for showing/hiding
-              thumbVisibility: false,
-              // Make scrollbar appear only during scrolling on mobile
-              interactive: true,
-              thickness: 6.0,
-              radius: const Radius.circular(3.0),
-              child: child,
-            ),
-          );
-        default:
-          return child;
-      }
-    } else {
-      // Don't show scrollbars on mobile/desktop
-      return child;
+      BuildContext context, Widget child, ScrollableDetails details) {
+    if (kIsWeb && axisDirectionToAxis(details.direction) == Axis.vertical) {
+      return Container(
+        key: const ValueKey('flutter-scrollbar'),
+        child: RawScrollbar(
+          interactive: true,
+          thickness: 6.0,
+          radius: const Radius.circular(3.0),
+          child: child,
+        ),
+      );
     }
+    return child;
   }
 }

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
 
-// Configs
-import './config/app_config.dart'; // For AppConfig type
-import './providers/app_config_provider.dart'; // For fetchAppConfig function
+// App configuration
+import './config/app_config.dart';
+import './providers/app_config_provider.dart';
 
-// UI Theme
+// UI theme utilities
 import './ui/theme/app_theme.dart' as ui_theme_pkg;
-import './ui/theme/smooth_scroll_behavior.dart'; // Direct import for SmoothScrollBehavior
+import './ui/theme/smooth_scroll_behavior.dart';
 
-// Screens
+// UI screens
 import './ui/screens/splash_screen.dart';
 
 // Providers
@@ -38,10 +40,7 @@ import './services/connection_service.dart';
 // Localization
 import './localization/l10n_utils.dart';
 
-// Helpers to determine initial locale
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
-
+/// Determines the initial locale based on platform conventions.
 Locale getInitialLocale() {
   final platform = defaultTargetPlatform;
   if (platform == TargetPlatform.android ||
@@ -52,6 +51,8 @@ Locale getInitialLocale() {
   return const Locale('en');
 }
 
+/// Application entry point.
+/// Initializes bindings and runs the app with required providers.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
@@ -65,11 +66,7 @@ void main() async {
         FutureProvider<AppConfig>(
           create: (_) => fetchAppConfig(),
           initialData: AppConfig.defaultConfig(),
-          catchError: (context, error) {
-            // Consider logging error to a service
-            // print('Critical Error: AppConfig FutureProvider failed: $error');
-            return AppConfig.defaultConfig();
-          },
+          catchError: (_, __) => AppConfig.defaultConfig(),
         ),
         ChangeNotifierProvider<ThemeNotifier>(
           create: (_) => ThemeNotifier(ThemeMode.system),
@@ -87,19 +84,14 @@ void main() async {
         // ConnectionService provided via ProxyProvider, initialized once AppConfig is available
         ProxyProvider<AppConfig, ConnectionService>(
           update: (context, appConfig, previousConnectionService) {
-            // Use a new instance or update existing. If ConnectionService has internal state
-            // that should be preserved across AppConfig updates, this might need adjustment.
-            // For now, creating a new one or re-initializing is fine.
-            final cs =
-                ConnectionService(); // It's a singleton, so this gets the instance
+            final cs = ConnectionService();
             if (appConfig.appName != "Riyales Default Fallback" &&
                 appConfig.remoteConfigUrl.isNotEmpty) {
-              // Check if it's not the default config before initializing
               cs.initialize(appConfig.apiEndpoints.currencyUrl);
             }
             return cs;
           },
-          // dispose: (_, cs) => cs.dispose(), // Add if ConnectionService has a dispose method
+          dispose: (_, cs) => cs.dispose(),
         ),
 
         ProxyProvider2<Dio, AppConfig, ApiService>(
@@ -243,29 +235,13 @@ class RiyalesApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // AppConfig is watched by the parent MultiProvider's FutureProvider.
-    // Here, we can assume it's loaded or using initialData (defaultConfig).
     final appConfig = context.watch<AppConfig>();
-
-    // If AppConfig is the default/fallback because the future failed or is still loading with initialData,
-    // we might want to show a specific UI. The FutureProvider's catchError handles one aspect of this.
-    // Here, we check if it's still the default one to decide on a basic UI.
-    if (appConfig.appName == AppConfig.defaultConfig().appName &&
-        appConfig.remoteConfigUrl ==
-            AppConfig.defaultConfig().remoteConfigUrl) {
-      // This implies that the fetched config might not be ready or failed, and we are using the hardcoded default.
-      // Depending on requirements, could show a loading/error or proceed with defaults.
-      // For now, SplashScreen handles initial app appearance. If config is critical before that,
-      // this check is one way to show a minimal holding screen.
-      // Let's assume SplashScreen is okay with a default config.
-    }
 
     final themeNotifier = context.watch<ThemeNotifier>();
     final localeNotifier = context.watch<LocaleNotifier>();
 
-    final materialTheme = Theme.of(context); // Base theme
+    final materialTheme = Theme.of(context);
     final themeData = materialTheme.copyWith(
-      // Global overrides
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       hoverColor: Colors.transparent,
@@ -277,10 +253,8 @@ class RiyalesApp extends StatelessWidget {
       localeNotifier.locale.languageCode == 'fa'
           ? appConfig.fonts.persianFontFamily
           : appConfig.fonts.englishFontFamily,
-      localeNotifier.locale.languageCode == 'fa'
-          ? 'Vazirmatn'
-          : 'Onest', // Title font
-      false, // isDarkMode
+      localeNotifier.locale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest',
+      false,
     );
 
     final darkTheme = ui_theme_pkg.AppTheme.getThemeData(
@@ -288,14 +262,12 @@ class RiyalesApp extends StatelessWidget {
       localeNotifier.locale.languageCode == 'fa'
           ? appConfig.fonts.persianFontFamily
           : appConfig.fonts.englishFontFamily,
-      localeNotifier.locale.languageCode == 'fa'
-          ? 'Vazirmatn'
-          : 'Onest', // Title font
-      true, // isDarkMode
+      localeNotifier.locale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest',
+      true,
     );
 
     return Theme(
-        data: themeData, // Apply global overrides
+        data: themeData,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           title: appConfig.appName,
@@ -307,17 +279,14 @@ class RiyalesApp extends StatelessWidget {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: SplashScreen(config: appConfig.splashScreen),
           builder: (context, child) {
-            final animated = AnimatedTheme(
-              data: Theme.of(context), // Ensures theme changes animate
-              duration: const Duration(milliseconds: 150), // Adjusted duration
-              curve: Curves.easeInOutQuart, // Smoother, consistent speed
-              child: child!,
-            );
-            // Enable implicit animations for evaluation
             return MediaQuery(
-              data: MediaQuery.of(context)
-                  .copyWith(disableAnimations: false), // Changed to false
-              child: animated,
+              data: MediaQuery.of(context).copyWith(disableAnimations: false),
+              child: AnimatedTheme(
+                data: Theme.of(context),
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeInOutQuart,
+                child: child!,
+              ),
             );
           },
         ));

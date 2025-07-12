@@ -7,9 +7,12 @@ import 'package:riyales/providers/locale_provider.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+
+// Dart imports
 import 'dart:ui' as ui;
 import 'package:riyales/providers/card_corner_settings_provider.dart';
 
+/// Alert card widget showing notifications with optional actions.
 class AlertCard extends StatefulWidget {
   final Alert alert;
   final Function(String) onAction;
@@ -252,6 +255,7 @@ class _AlertCardState extends State<AlertCard>
     );
   }
 
+  /// Builds action buttons for the alert, if any.
   Widget _buildButtons(
       AlertContent content, Map<String, dynamic> style, String fontFamily) {
     final button1 = content.button1;

@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart'; // For Locale
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// No Riverpod imports needed here
 
+/// Manages the application's locale preference.
 class LocaleNotifier extends ChangeNotifier {
   Locale _locale;
 
@@ -9,8 +9,10 @@ class LocaleNotifier extends ChangeNotifier {
     _loadLocalePreference();
   }
 
+  /// Current locale of the application.
   Locale get locale => _locale;
 
+  /// Loads saved locale preference from storage.
   Future<void> _loadLocalePreference() async {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString('languageCode');
