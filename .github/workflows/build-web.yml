@@ -84,7 +84,6 @@ jobs:
           projectName: riyales
           directory: build/web
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          commit-dirty: true
 
   cleanup:
     name: Cleanup
