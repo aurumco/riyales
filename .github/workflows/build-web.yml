@@ -1,9 +1,12 @@
 name: Web Global
 
 on:
-  # push:--web-renderer html
-  #   branches: [ main ]
   workflow_dispatch:
+    inputs:
+      upgrade_flutter:
+        description: 'Upgrade Flutter to the latest stable version (true/false)'
+        required: false
+        default: 'false'
 
 jobs:
   build-and-deploy-web:
@@ -25,17 +28,24 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.32.6'
           cache: true
 
       - name: Check Flutter version
         run: flutter --version
 
+      - name: Check Dart version
+        run: dart --version
+
+      - name: Upgrade Flutter (optional)
+        if: github.event.inputs.upgrade_flutter == 'true'
+        run: flutter upgrade --force
+
       - name: Cache Pub Dependencies
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-flutter-${{ github.event.inputs.upgrade_flutter == 'true' && 'upgraded' || '3.32.6' }}
           restore-keys: ${{ runner.os }}-pub-
 
       - name: Flutter clean
@@ -75,7 +85,6 @@ jobs:
           directory: build/web
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           commit-dirty: true
-
 
   cleanup:
     name: Cleanup
