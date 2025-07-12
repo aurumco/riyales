@@ -111,21 +111,6 @@ jobs:
             "cmake;3.22.1" \
             "ndk;23.1.7779620"
 
-      # - name: Fix Gradle settings
-      #   run: |
-      #     if [ -f "android/settings.gradle" ] && [ -f "android/settings.gradle.kts" ]; then
-      #       echo "Both settings.gradle and settings.gradle.kts exist, removing settings.gradle.kts"
-      #       rm android/settings.gradle.kts
-      #     fi
-
-      # - name: Update AGP version
-      #   run: |
-      #     if [ -f "android/settings.gradle.kts" ]; then
-      #       sed -i 's/id("com.android.application") version "8.7.0" apply false/id("com.android.application") version "8.3.0" apply false/g' android/settings.gradle.kts
-      #       echo "Updated AGP version to 8.3.0"
-      #       cat android/settings.gradle.kts
-      #     fi
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -163,6 +148,7 @@ jobs:
           zip -r ../riyales-android-${{ env.APP_VERSION }}.zip .
           cd ../..
           ls -la build/android/
+          ls -la build/app/outputs/flutter-apk/
 
       - name: Verify APK and Zip Output
         run: |
