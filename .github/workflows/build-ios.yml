@@ -1,5 +1,9 @@
 name: Release iOS
 
+permissions:
+  contents: write
+  packages: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -10,34 +14,94 @@ on:
 
 env:
   FLUTTER_VERSION: '3.32.6'
-  XCODE_VERSION: '16.2'
+  DART_VERSION: '3.8.1'
+  BUNDLE_ID: 'ir.ryls'
 
 jobs:
   build:
     name: Build iOS IPA
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-        name: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+      - name: Cache Dart SDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/dart-sdk
+          key: ${{ runner.os }}-dart-${{ env.DART_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-dart-
 
-      - name: Install Flutter
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.tool_cache }}/flutter
+            ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-${{ env.FLUTTER_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-
+            ${{ runner.os }}-flutter-
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_VERSION }}
+
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
           cache: true
-
-      - name: Check Flutter version
-        run: flutter --version
-
-      - name: Check Dart version
-        run: dart --version
 
       - name: Upgrade Flutter (optional)
         if: github.event.inputs.upgrade_flutter == 'true'
         run: flutter upgrade --force
+
+      - name: Check Flutter and Dart versions
+        run: |
+          flutter --version
+          dart --version
+
+      - name: Cache Dart dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-dart-deps-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-dart-deps-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate App Icon
+        run: flutter pub run flutter_launcher_icons:main
+
+      - name: Update iOS bundle identifier
+        run: |
+          echo "Setting iOS bundle ID to ${{ env.BUNDLE_ID }}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ env.BUNDLE_ID }}" ios/Runner/Info.plist
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = .*;/PRODUCT_BUNDLE_IDENTIFIER = ${{ env.BUNDLE_ID }};/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Build iOS IPA (unsigned)
+        run: |
+          # Build iOS without code signing
+          flutter build ios --release --no-codesign
+          
+          # Create IPA manually from the .app bundle
+          mkdir -p build/ios/ipa
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r ../ipa/riyales.ipa Payload/
+          cd ../../..
+          
+          # Verify IPA was created
+          ls -la build/ios/ipa/
 
       - name: Extract version from pubspec.yaml
         id: get_version
@@ -46,54 +110,10 @@ jobs:
           echo "Extracted version: $VERSION"
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Cache Pub Dependencies
-        uses: actions/cache@v4
+      - name: Attach IPA to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-flutter-${{ github.event.inputs.upgrade_flutter == 'true' && 'upgraded' || env.FLUTTER_VERSION }}
-          restore-keys: ${{ runner.os }}-pub-
-
-      - name: Cache Pods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
-          restore-keys: ${{ runner.os }}-pods-
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Generate App Icon
-        run: flutter pub run flutter_launcher_icons:main
-
-      - name: Build iOS app
-        run: flutter build ios --release --no-codesign
-
-      - name: Create exportOptions.plist
-        run: |
-          cat > exportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>development</string>
-          </dict>
-          </plist>
-          EOF
-
-      - name: Build IPA
-        run: |
-          cd ios
-          xcodebuild -workspace Runner.xcworkspace -scheme Runner -sdk iphoneos -configuration Release archive -archivePath $PWD/build/Runner.xcarchive
-          xcodebuild -exportArchive -archivePath $PWD/build/Runner.xcarchive -exportOptionsPlist ../exportOptions.plist -exportPath $PWD/build/Runner.ipa
-
-      - name: Rename IPA
-        run: |
-          mv ios/build/Runner.ipa/Runner.ipa ios/build/Runner.ipa/riyales-${{ env.APP_VERSION }}.ipa
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: riyales-ipa
-          path: ios/build/Runner.ipa/riyales-${{ env.APP_VERSION }}.ipa
+          tag_name: v${{ env.APP_VERSION }}
+          files: build/ios/ipa/riyales.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
