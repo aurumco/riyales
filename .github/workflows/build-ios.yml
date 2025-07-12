@@ -78,11 +78,21 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Flutter clean
+        run: flutter clean
+
       - name: Update iOS bundle identifier
         run: |
           echo "Setting iOS bundle ID to ${{ env.BUNDLE_ID }}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${{ env.BUNDLE_ID }}" ios/Runner/Info.plist
           sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = .*;/PRODUCT_BUNDLE_IDENTIFIER = ${{ env.BUNDLE_ID }};/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Build iOS IPA (unsigned)
         run: |
@@ -95,30 +105,33 @@ jobs:
           mkdir -p Payload
           cp -r Runner.app Payload/
           zip -r ../ipa/riyales-${{ env.APP_VERSION }}.ipa Payload/
-          # Create zip of Runner.app
-          zip -r ../ipa/riyales-app-${{ env.APP_VERSION }}.zip Runner.app
-          # Create zip of IPA
-          zip -r ../ipa/riyales-ipa-${{ env.APP_VERSION }}.zip ../ipa/riyales-${{ env.APP_VERSION }}.ipa
-          cd ../../..
-          
+          # Create a single zip containing both Runner.app and IPA
+          mkdir -p ../ios-zip
+          cp -r Runner.app ../ios-zip/
+          cp ../ipa/riyales-${{ env.APP_VERSION }}.ipa ../ios-zip/
+          cd ../ios-zip
+          zip -r ../riyales-ios-${{ env.APP_VERSION }}.zip .
+          cd ../..
           # Verify outputs
           ls -la build/ios/ipa/
+          ls -la build/ios/
 
-      - name: Extract version from pubspec.yaml
-        id: get_version
+      - name: Verify IPA and Zip Output
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
-          echo "Extracted version: $VERSION"
-          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          if [ -f "build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa" ] && [ -f "build/ios/riyales-ios-${{ env.APP_VERSION }}.zip" ]; then
+            echo "IPA and zip files created successfully"
+            ls -la build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa
+            ls -la build/ios/riyales-ios-${{ env.APP_VERSION }}.zip
+          else
+            echo "IPA or zip file creation failed - files not found"
+            exit 1
+          fi
 
-      - name: Upload IPA artifact
+      - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: riyales-ipa
-          path: |
-            build/ios/ipa/riyales-${{ env.APP_VERSION }}.ipa
-            build/ios/ipa/riyales-app-${{ env.APP_VERSION }}.zip
-            build/ios/ipa/riyales-ipa-${{ env.APP_VERSION }}.zip
+          name: riyales-ios
+          path: build/ios/riyales-ios-${{ env.APP_VERSION }}.zip
 
   release:
     name: Publish Release Assets
@@ -138,21 +151,18 @@ jobs:
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
       - uses: actions/download-artifact@v4
-        name: Download IPA artifacts
+        name: Download iOS artifact
         with:
-          name: riyales-ipa
-          path: artifacts/ipa
+          name: riyales-ios
+          path: artifacts/ios
 
-      - name: Attach IPA and zips to GitHub Release
+      - name: Attach iOS zip to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ env.APP_VERSION }}
           name: Release v${{ env.APP_VERSION }}
-          files: |
-            artifacts/ipa/riyales-${{ env.APP_VERSION }}.ipa
-            artifacts/ipa/riyales-app-${{ env.APP_VERSION }}.zip
-            artifacts/ipa/riyales-ipa-${{ env.APP_VERSION }}.zip
+          files: artifacts/ios/riyales-ios-${{ env.APP_VERSION }}.zip
 
   cleanup:
     name: Cleanup Old Workflow Runs
