@@ -139,23 +139,21 @@ jobs:
             exit 1
           fi
 
-      - name: Rename and Zip APK
+      - name: Prepare artifacts
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk
-          mkdir -p build/android
-          cp build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk build/android/
-          cd build/android
-          zip -r ../riyales-android-${{ env.APP_VERSION }}.zip .
+          mkdir -p artifacts/android
+          cp build/app/outputs/flutter-apk/app-release.apk artifacts/android/riyales-${{ env.APP_VERSION }}.apk
+          cd artifacts/android
+          zip -r riyales-android-${{ env.APP_VERSION }}.zip .
           cd ../..
-          ls -la build/android/
-          ls -la build/app/outputs/flutter-apk/
+          ls -la artifacts/android/
 
       - name: Verify APK and Zip Output
         run: |
-          if [ -f "build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk" ] && [ -f "build/riyales-android-${{ env.APP_VERSION }}.zip" ]; then
+          if [ -f "artifacts/android/riyales-${{ env.APP_VERSION }}.apk" ] && [ -f "artifacts/android/riyales-android-${{ env.APP_VERSION }}.zip" ]; then
             echo "APK and zip files created successfully"
-            ls -la build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk
-            ls -la build/riyales-android-${{ env.APP_VERSION }}.zip
+            ls -la artifacts/android/riyales-${{ env.APP_VERSION }}.apk
+            ls -la artifacts/android/riyales-android-${{ env.APP_VERSION }}.zip
           else
             echo "APK or zip file creation failed - files not found"
             exit 1
@@ -165,9 +163,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: riyales-android
-          path: |
-            build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk
-            build/riyales-android-${{ env.APP_VERSION }}.zip
+          path: artifacts/android/
 
   release:
     name: Publish Release Assets
