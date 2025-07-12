@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      upgrade_flutter:
+        description: 'Upgrade Flutter to the latest stable version (true/false)'
+        required: false
+        default: 'true'
 
 env:
   SKIP_JDK_VERSION_CHECK: true
@@ -10,7 +15,7 @@ env:
 
 jobs:
   build:
-    name: Build Universal APK and Web
+    name: Build Universal APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,17 +29,31 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          flutter-version: '3.32.6'
           cache: true
-          
+
       - name: Check Flutter version
         run: flutter --version
+
+      - name: Check Dart version
+        run: dart --version
+
+      - name: Upgrade Flutter (optional)
+        if: github.event.inputs.upgrade_flutter == 'true'
+        run: flutter upgrade --force
+
+      - name: Extract version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Extracted version: $VERSION"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Cache Pub Dependencies
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-flutter-${{ github.event.inputs.upgrade_flutter == 'true' && 'upgraded' || '3.32.6' }}
           restore-keys: ${{ runner.os }}-pub-
 
       - name: Cache Gradle
@@ -54,10 +73,8 @@ jobs:
           rm cmdline-tools.zip
           mkdir -p $ANDROID_HOME/cmdline-tools/latest
           mv $ANDROID_HOME/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ || true
-          
           # Accept licenses
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-          
           # Install required SDK components
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
@@ -80,7 +97,7 @@ jobs:
             echo "Updated AGP version to 8.3.0"
             cat android/settings.gradle.kts
           fi
-      
+
       - name: Flutter clean
         run: flutter clean
 
@@ -107,42 +124,22 @@ jobs:
         run: |
           echo "Checking APK outputs directory..."
           find build/app/outputs -type f -name "*.apk"
-          
-          if [ -d "build/app/outputs/flutter-apk" ]; then
+          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
             echo "APK build successful"
-            cd build/app/outputs/flutter-apk && zip riyales-universal.zip *.apk
           else
-            echo "APK build failed - directory not found"
+            echo "APK build failed - file not found"
             exit 1
           fi
+
+      - name: Rename APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: riyales-apk
-          path: build/app/outputs/flutter-apk/riyales-universal.zip
-
-      - name: Build Web App
-        run: flutter build web --release
-        continue-on-error: true
-
-      - name: Check Web Output
-        run: |
-          if [ -d "build/web" ]; then
-            echo "Web build successful"
-            cd build/web && zip -r riyales-web.zip .
-          else
-            echo "Web build failed - directory not found"
-            mkdir -p build/web
-            echo "Build failed" > build/web/failed.html
-            cd build/web && zip -r riyales-web.zip .
-          fi
-
-      - name: Upload Web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: riyales-web
-          path: build/web/riyales-web.zip
+          path: build/app/outputs/flutter-apk/riyales-${{ env.APP_VERSION }}.apk
 
   release:
     name: Publish Release Assets
@@ -152,33 +149,23 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Extract version from pubspec.yaml
         id: get_version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
           echo "Extracted version: $VERSION"
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-
       - uses: actions/download-artifact@v4
         with:
           name: riyales-apk
           path: artifacts/apk
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: riyales-web
-          path: artifacts/web
-
       - id: create_release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ env.APP_VERSION }}
           name: Release v${{ env.APP_VERSION }}
-          files: |
-            artifacts/apk/riyales-universal.zip
-            artifacts/web/riyales-web.zip
+          files: artifacts/apk/riyales-${{ env.APP_VERSION }}.apk
 
   cleanup:
     name: Cleanup
