@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "ir.ryls"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Use highest required NDK for plugins
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
