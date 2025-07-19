@@ -149,6 +149,7 @@ class GoldAsset extends Asset {
 
 // Crypto Model
 class CryptoAsset extends Asset {
+  final String nameEn; // New field to hold the English name
   final String nameFa;
   final String priceToman;
   final String? iconUrl;
@@ -156,7 +157,8 @@ class CryptoAsset extends Asset {
 
   const CryptoAsset({
     required super.id,
-    required super.name,
+    required super.name, // This will store English name for consistency
+    required this.nameEn,
     required this.nameFa,
     required super.symbol,
     required super.price,
@@ -167,7 +169,18 @@ class CryptoAsset extends Asset {
   });
 
   factory CryptoAsset.fromJson(Map<String, dynamic> json) {
-    String name = json['name'] as String? ?? 'Unknown';
+    // Determine English and Persian names
+    // Server now sends `name` (English) and `nameFa` (Persian).
+    // Prefer the dedicated fields first, then fall back.
+    final String persianName = (json['nameFa'] ??
+        json['name_fa'] ??
+        json['name'] ??
+        'نامشخص') as String;
+    final String englishName = (json['name'] ??
+        json['nameEn'] ??
+        json['name_en'] ??
+        'Unknown') as String;
+
     // API returns price as string for crypto, need to parse it
     num usdPrice = 0;
     if (json['price'] is String) {
@@ -177,13 +190,18 @@ class CryptoAsset extends Asset {
     }
 
     return CryptoAsset(
-      id: name.toLowerCase().replaceAll(' ', '-'), // Create a slug-like ID
-      name: name,
-      nameFa: json['nameFa'] as String? ?? 'نامشخص',
-      symbol: json['symbol'] as String? ??
-          (json['name'] as String? ?? '---')
-              .substring(0, math.min(3, (json['name'] as String? ?? '').length))
-              .toUpperCase(), // Fallback symbol
+      id: englishName
+          .toLowerCase()
+          .replaceAll(' ', '-'), // Create slug from English name
+      name: englishName, // Store English in base Asset.name
+      nameEn: englishName,
+      nameFa: persianName,
+      symbol: (json['symbol'] as String?) ??
+          (englishName.isNotEmpty
+              ? englishName
+                  .substring(0, math.min(3, englishName.length))
+                  .toUpperCase()
+              : '---'), // Fallback symbol
       price: usdPrice,
       priceToman: (json['price_toman'] ?? json['priceToman']) as String? ?? '0',
       changePercent: _toNum(json['change_percent'] ?? json['changePercent']),
@@ -195,6 +213,7 @@ class CryptoAsset extends Asset {
   List<Object?> get props => [
         id,
         name,
+        nameEn,
         nameFa,
         symbol,
         price,

@@ -245,9 +245,15 @@ class AssetListPageState<T extends models.Asset> extends State<AssetListPage<T>>
           text += ' ${asset.nameEn.toLowerCase()}';
         }
       } else if (asset is models.CryptoAsset) {
+        // Add Persian name if different
         if (asset.nameFa.isNotEmpty &&
             asset.nameFa.toLowerCase() != asset.name.toLowerCase()) {
           text += ' ${asset.nameFa.toLowerCase()}';
+        }
+        // Add English name if different (defensive, may already equal asset.name)
+        if (asset.nameEn.isNotEmpty &&
+            asset.nameEn.toLowerCase() != asset.name.toLowerCase()) {
+          text += ' ${asset.nameEn.toLowerCase()}';
         }
       } else if (asset is models.StockAsset) {
         if (asset.l30.isNotEmpty &&

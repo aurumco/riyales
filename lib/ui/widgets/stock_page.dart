@@ -20,7 +20,7 @@ import '../../utils/color_utils.dart';
 import 'asset_list_page.dart';
 import '../../services/analytics_service.dart';
 import './search/shimmering_search_field.dart';
-import '../../utils/browser_utils.dart';
+// browser_utils removed
 
 /// Stock Page with sub-tabs for different stock categories
 class StockPage extends StatefulWidget {
@@ -414,12 +414,10 @@ class StockPageState extends State<StockPage>
       children: [
         SizedBox(height: widget.topPadding),
         ClipRect(
-          child: (kIsWeb && isFirefox())
-              ? _buildStockTabBar(appConfig, isDark, isMobile)
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: _buildStockTabBar(appConfig, isDark, isMobile),
-                ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: _buildStockTabBar(appConfig, isDark, isMobile),
+          ),
         ),
         _buildSearchBar(),
         Expanded(

@@ -453,9 +453,9 @@ class AssetCard extends StatelessWidget {
       numericPrice = priceToConvert.toDouble();
       displayUnit = (asset is models.StockAsset)
           ? l10n.currencyUnitToman // Stocks default to Toman if rates missing
-          : (asset is models.CryptoAsset && originalUnitSymbol == "USD"
-              ? "USD" // Crypto defaults to USD if rates missing
-              : (asset as dynamic).unit ?? '');
+          : (asset is models.CryptoAsset)
+              ? originalUnitSymbol // Use USD or تومان that we set earlier
+              : (asset as dynamic).unit ?? '';
     }
 
     Widget iconWidget;

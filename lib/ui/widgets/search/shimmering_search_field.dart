@@ -5,13 +5,11 @@ import 'package:flutter/material.dart';
 // Third-party packages
 import 'package:provider/provider.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Local project imports
 import '../../../providers/search_provider.dart';
 import '../../../localization/l10n_utils.dart';
 import '../../../utils/helpers.dart';
-import '../../../utils/browser_utils.dart';
 
 /// A shimmering search field widget that displays a placeholder effect when no text is entered.
 class ShimmeringSearchField extends StatefulWidget {
@@ -60,9 +58,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
     final isRTL = Localizations.localeOf(context).languageCode == 'fa' ||
         containsPersian(searchText);
 
-    final bool isFirefoxBrowser = kIsWeb && isFirefox();
-
-    bool shouldShimmer = searchText.isEmpty && !isFirefoxBrowser;
+    bool shouldShimmer = searchText.isEmpty;
 
     if (shouldShimmer && !_isShimmering) {
       _shimmerController.repeat();
@@ -111,7 +107,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (searchText.isEmpty && _isShimmering && !isFirefoxBrowser)
+            if (searchText.isEmpty && _isShimmering)
               Align(
                 alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
                 child: Padding(
@@ -145,7 +141,7 @@ class ShimmeringSearchFieldState extends State<ShimmeringSearchField>
                   ),
                 ),
               ),
-            if (searchText.isEmpty && (!_isShimmering || isFirefoxBrowser))
+            if (searchText.isEmpty && !_isShimmering)
               Align(
                 alignment: isRTL ? Alignment.centerRight : Alignment.centerLeft,
                 child: Padding(

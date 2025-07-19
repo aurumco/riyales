@@ -33,7 +33,6 @@ import 'onboarding_screen.dart';
 import '../../localization/l10n_utils.dart';
 import '../../utils/color_utils.dart';
 import '../../services/analytics_service.dart';
-import '../../utils/browser_utils.dart';
 import '../../services/connection_service.dart';
 
 /// The main application screen with asset tabs, search, and settings.
@@ -355,22 +354,14 @@ class HomeScreenState extends State<HomeScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: ClipRect(
-          child: (kIsWeb && isFirefox())
-              ? Container(
-                  color: isDarkMode
-                      ? const Color(0xFF090909)
-                      : Theme.of(context).scaffoldBackgroundColor,
-                )
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 21, sigmaY: 21),
-                  child: Container(
-                    color: isDarkMode
-                        ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
-                        : Theme.of(context)
-                            .scaffoldBackgroundColor
-                            .withAlpha(160),
-                  ),
-                ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 21, sigmaY: 21),
+            child: Container(
+              color: isDarkMode
+                  ? const Color.fromARGB(255, 9, 9, 9).withAlpha(210)
+                  : Theme.of(context).scaffoldBackgroundColor.withAlpha(160),
+            ),
+          ),
         ),
         title: GestureDetector(
           onTap: _onTitleTapped,
@@ -760,32 +751,19 @@ class HomeScreenState extends State<HomeScreen>
                   smoothness: themeConfig.cardCornerSmoothness,
                 ),
               ),
-              child: (kIsWeb && isFirefox())
-                  ? Container(
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color.fromARGB(255, 90, 90, 90)
-                                .withAlpha(38)
-                            : const Color.fromARGB(255, 255, 255, 255)
-                                .withAlpha(252),
-                        borderRadius: BorderRadius.circular(21.0),
-                      ),
-                      child: tabContent,
-                    )
-                  : BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDarkMode
-                              ? const Color.fromARGB(255, 90, 90, 90)
-                                  .withAlpha(38)
-                              : const Color.fromARGB(255, 255, 255, 255)
-                                  .withAlpha(252),
-                          borderRadius: BorderRadius.circular(21.0),
-                        ),
-                        child: tabContent,
-                      ),
-                    ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color.fromARGB(255, 90, 90, 90).withAlpha(38)
+                        : const Color.fromARGB(255, 255, 255, 255)
+                            .withAlpha(252),
+                    borderRadius: BorderRadius.circular(21.0),
+                  ),
+                  child: tabContent,
+                ),
+              ),
             ),
           );
 

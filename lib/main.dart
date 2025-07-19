@@ -56,17 +56,14 @@ Locale getInitialLocale() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set transparent status bar
+  // Make system status & navigation bars fully transparent at app launch
+  // so that our UI can draw edge-to-edge immediately.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark, // Default for light theme
-    statusBarBrightness: Brightness.light, // For iOS
+    systemNavigationBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarIconBrightness: Brightness.dark,
   ));
-
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
 
   runApp(
     MultiProvider(
@@ -291,7 +288,10 @@ class RiyalesApp extends StatelessWidget {
             final isDark = Theme.of(context).brightness == Brightness.dark;
             SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.transparent,
               statusBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
+              systemNavigationBarIconBrightness:
                   isDark ? Brightness.light : Brightness.dark,
               statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
             ));
