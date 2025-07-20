@@ -19,11 +19,11 @@ android {
     }
 
     signingConfigs {
-        release {
-            keyAlias System.getenv("KEY_ALIAS") ?: project.property("keyAlias")
-            keyPassword System.getenv("KEY_PASSWORD") ?: project.property("keyPassword")
-            storeFile file(System.getenv("STORE_FILE") ?: project.property("storeFile"))
-            storePassword System.getenv("STORE_PASSWORD") ?: project.property("storePassword")
+        create("release") {
+            keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("keyAlias") as String?
+            keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("keyPassword") as String?
+            storeFile = file(System.getenv("STORE_FILE") ?: project.findProperty("storeFile") as String?)
+            storePassword = System.getenv("STORE_PASSWORD") ?: project.findProperty("storePassword") as String?
         }
     }
 
@@ -37,7 +37,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
