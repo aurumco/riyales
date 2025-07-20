@@ -109,7 +109,7 @@ jobs:
             "platforms;android-33" \
             "build-tools;33.0.2" \
             "cmake;3.22.1" \
-            "ndk;23.1.7779620"
+            "ndk;27.0.12077973"
 
       - name: Install dependencies
         run: flutter pub get
@@ -123,6 +123,16 @@ jobs:
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
           echo "Extracted version: $VERSION"
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/riyales.jks
+
+      - name: Setup Keystore
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=android/riyales.jks" >> android/key.properties
 
       - name: Build APK (Universal)
         run: flutter build apk --release --android-skip-build-dependency-validation
