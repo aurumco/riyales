@@ -125,14 +125,23 @@ jobs:
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/riyales.jks
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/my-release-key.jks
 
       - name: Setup Keystore
         run: |
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=android/riyales.jks" >> android/key.properties
+          echo "storeFile=android/my-release-key.jks" >> android/key.properties
+
+      - name: Debug Keystore Setup
+        run: |
+          echo "Checking key.properties..."
+          cat android/key.properties
+          if [ ! -f "android/my-release-key.jks" ]; then
+            echo "Keystore file not found!"
+            exit 1
+          fi
 
       - name: Build APK (Universal)
         run: flutter build apk --release --android-skip-build-dependency-validation
