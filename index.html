@@ -5,18 +5,39 @@
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!-- <link rel="manifest" href="manifest.json"> -->
-  <!-- Theme colors for browser and PWA status bars -->
-  <meta name="theme-color" content="#090909">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <!-- Dynamic theme colors for light/dark mode -->
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#090909">
+  <!-- Apple status bar style will be set dynamically via JS for better browser support -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" id="apple-status-bar-style">
+  <script>
+    (function() {
+      const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const updateAppleBar = (isDark) => {
+        const meta = document.getElementById('apple-status-bar-style');
+        if (meta) {
+          meta.setAttribute('content', isDark ? 'black' : 'default');
+        }
+      };
+      updateAppleBar(darkQuery.matches);
+      darkQuery.addEventListener('change', (e) => updateAppleBar(e.matches));
+    })();
+  </script>
   <meta name="msapplication-navbutton-color" content="#090909">
-  <meta name="keywords" content="Riyales, currency, gold, crypto, stock, market, tracker, dollar, euro, riyal, دلار, یورو, ریال, پوند, لیر, روبل, قیمت, نرخ, طلا, بهار آزادی, سکه, سکه امامی, کریپتو, ارز دیجیتال, بیتکوین, اتریوم, تتر, ترون, 24 عیار, 18 عیار, عیار, بانک مرکزی, نرخ دلار, قیمت دلار, قیمت سکه, قیمت لحظه‌ای, نرخ بروز, بورس, سهام, شاخص بورس, شاخص فرابورس, تسهیلات مسکن, اوراق بدهی, ارز, درهم, دینار, ریالس, فرابورس, بورس اوراق بهادار, بورس اوراق بهادار تهران, قیمت دلار, نیمایی, بانکی, فیات, دلار چند, طلا چند, سکه چند, دلار آمریکا, تومان, قیمت هر دلار, سکه یک گرمی, نفت, نفت برنت, نفت اپک, گاز, قیمت نفت, قیمت گاز, فلزات, فلزات گرانبها, نقره, لیر ترکیه, روبل روسیه, دلار کانادا, پوند انگلیس, آخرین قیمت"
+  <meta name="keywords" content="قیمت لحظه‌ای دلار امروز, نرخ آنلاین یورو, قیمت طلا ۱۸ عیار, نرخ سکه امامی, قیمت بیت‌کوین لحظه‌ای, تبدیل ارز رایگان, نمودار قیمت دلار, دانلود اپلیکیشن قیمت طلا, ردیاب قیمت ارز دیجیتال, خرید و فروش دلار, Riyales, gold price Iran today, stock market Iran, نرخ ارز ملی, بازار طلا و سکه, تحلیل قیمت بیتکوین, دلار چند, قیمت ارز نیمایی, قیمت سکه یک گرمی, نفت برنت, قیمت نقره, فلزات گرانبها, آخرین قیمت بازار, نرخ لحظه‌ای دلار, قیمت سکه امامی, نرخ دلار بانکی, قیمت بیت‌کوین, اتریوم قیمت زنده, نرخ یورو به تومان, قیمت طلا 18 عیار, شاخص بورس تهران, نرخ دلار نیمایی, قیمت سکه بهار آزادی, قیمت لحظه‌ای کریپتو, نرخ ارز بانکی, سهام فرابورس, قیمت نقره, اپلیکیشن ریالس, اپلیکیشن نرخ ارز, اپلیکیشن قیمت دلار">">
   <meta name="robots" content="index, follow">
   <meta name="author" content="Aurum">
 
-  <meta name="description" content="مرجع قیمت لحظه‌ای ارز، طلا، کریپتو و سهام">
-  <!-- <meta name="description" content="Riyales – Currency, Gold, Crypto & Stock Prices"> -->
+  <meta name="description" content="قیمت لحظه‌ای دلار، یورو، پوند، طلا، سکه، بیت‌کوین و سهام بورس؛ نمودار‎، هشدار قیمت و تبدیل ارز در ریالس.">
+
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-NFZJ24FB');</script>
+  <!-- End Google Tag Manager -->
 
   <!-- PWA & status bar styles -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -27,7 +48,7 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Riyales</title>
+  <title>ریالس | قیمت لحظه‌ای دلار، یورو، طلا و ارز دیجیتال</title>
   <!-- Open Graph for social sharing -->
   <meta property="og:title" content="Riyales">
   <meta property="og:description" content="Real-time currency, gold, crypto & stock price tracker.">
@@ -61,9 +82,6 @@
     }
   }
   </script>
-
-  <!-- Force HTML renderer to avoid GPU memory issues with CanvasKit -->
-  <meta name="flutter-renderer" content="html" />
 
   <style>
     :root {
@@ -102,6 +120,11 @@
 <body style="background-color: #090909;">
 
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NFZJ24FB"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
   
 </body>
 </html>
