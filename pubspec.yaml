@@ -55,6 +55,7 @@ dependencies:
   fixnum: ^1.1.1
   seo: ^0.0.10
   url_strategy: ^0.3.0
+  share_plus: ^11.0.0
 
 dev_dependencies:
   flutter_test:
@@ -94,4 +95,3 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/riyales.png"
-
