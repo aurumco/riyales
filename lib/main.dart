@@ -54,7 +54,9 @@ Locale getInitialLocale() {
     if (isBot) return const Locale('fa');
     // For normal web users, respect browser language
     final lang = html.window.navigator.language;
-    return lang.startsWith('fa') ? const Locale('fa') : const Locale('en');
+    return lang.startsWith('fa') == true
+        ? const Locale('fa')
+        : const Locale('en');
   }
 
   final platform = defaultTargetPlatform;

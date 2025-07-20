@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,6 +13,7 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:seo/seo.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../models/crypto_icon_info.dart';
@@ -31,6 +33,10 @@ import '../../services/analytics_service.dart';
 import 'package:equatable/equatable.dart';
 // Import the new widget
 // Removed: import '../widgets/asset_list_page.dart';
+
+// Only import dart:html if on web
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 // Create a dedicated cache manager with smaller capacity for crypto icons
 class CryptoIconCacheManager extends CacheManager {
@@ -320,16 +326,77 @@ const Map<String, CryptoIconInfo> cryptoIconMap = {
 };
 
 class AssetCard extends StatelessWidget {
-  // Changed to StatelessWidget
   final models.Asset asset;
   final AssetType assetType;
   // final double? height;
 
-  const AssetCard({
+  AssetCard({
     super.key,
     required this.asset,
     required this.assetType /*this.height*/,
   });
+
+  final GlobalKey _cardKey = GlobalKey();
+
+  Future<void> _shareCardImage(BuildContext context) async {
+    try {
+      RenderRepaintBoundary boundary =
+          _cardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 2.0);
+      ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData != null) {
+        final pngBytes = byteData.buffer.asUint8List();
+        String fileName = '';
+        if (asset is models.CurrencyAsset) {
+          fileName = (asset as models.CurrencyAsset).symbol.toLowerCase();
+        } else if (asset is models.GoldAsset) {
+          fileName = (asset as models.GoldAsset).symbol.toLowerCase();
+        } else if (asset is models.CryptoAsset) {
+          fileName = (asset as models.CryptoAsset)
+              .name
+              .toLowerCase()
+              .replaceAll(' ', '_');
+        } else {
+          fileName = asset.name.toLowerCase().replaceAll(' ', '_');
+        }
+        fileName = fileName.isNotEmpty ? fileName : 'asset_card';
+        fileName += '.png';
+        if (kIsWeb) {
+          final blob = html.Blob([pngBytes], 'image/png');
+          final url = html.Url.createObjectUrlFromBlob(blob);
+          final anchor = html.AnchorElement(href: url)
+            ..download = fileName
+            ..style.display = 'none';
+          html.document.body!.append(anchor);
+          anchor.click();
+          html.document.body!.children.remove(anchor);
+          html.Url.revokeObjectUrl(url);
+        } else {
+          final box = context.findRenderObject() as RenderBox?;
+          final params = ShareParams(
+            files: [
+              XFile.fromData(
+                pngBytes,
+                mimeType: 'image/png',
+                name: fileName,
+              )
+            ],
+            sharePositionOrigin:
+                box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+          );
+          await SharePlus.instance.share(params);
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(kIsWeb
+                ? 'Failed to download card image.'
+                : 'Failed to share card image.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -702,7 +769,7 @@ class AssetCard extends StatelessWidget {
         });
         HapticFeedback.lightImpact();
       },
-      onLongPress: () {
+      onDoubleTap: () {
         AnalyticsService.instance.logEvent('pin_asset', {
           'asset_type': assetType.toString().split('.').last,
           'asset_id': asset.id,
@@ -710,206 +777,213 @@ class AssetCard extends StatelessWidget {
         Provider.of<FavoritesNotifier>(context, listen: false)
             .toggleFavorite(asset.id);
       },
-      child: SmoothCard(
-        smoothness: cornerSettings.smoothness,
-        borderRadius: BorderRadius.circular(cornerSettings.radius),
-        elevation: 0,
-        color: isDarkMode
-            ? const Color(0xFF161616)
-            : hexToColor(themeConfig.cardColor),
-        child: SmoothClipRRect(
-          borderRadius: BorderRadius.circular(cornerSettings.radius),
+      onLongPress: () => _shareCardImage(context),
+      child: RepaintBoundary(
+        key: _cardKey,
+        child: SmoothCard(
           smoothness: cornerSettings.smoothness,
-          child: Container(
-            decoration: BoxDecoration(
-              // Cannot be const if theme changes
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.center,
-                colors: [
-                  theme.colorScheme.primary.withAlpha((255 * 0.1).round()),
-                  Colors.transparent,
-                ],
+          borderRadius: BorderRadius.circular(cornerSettings.radius),
+          elevation: 0,
+          color: isDarkMode
+              ? const Color(0xFF161616)
+              : hexToColor(themeConfig.cardColor),
+          child: SmoothClipRRect(
+            borderRadius: BorderRadius.circular(cornerSettings.radius),
+            smoothness: cornerSettings.smoothness,
+            child: Container(
+              decoration: BoxDecoration(
+                // Cannot be const if theme changes
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.center,
+                  colors: [
+                    theme.colorScheme.primary.withAlpha((255 * 0.1).round()),
+                    Colors.transparent,
+                  ],
+                ),
               ),
-            ),
-            padding: const EdgeInsets.all(12.0),
-            child: Stack(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      textDirection: ui.TextDirection.ltr,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        iconWidget,
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Seo.text(
-                            text: assetName,
-                            style: TextTagStyle.h2,
-                            child: AutoSizeText(
-                              assetName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontFamily: nameFontFamily,
+              padding: const EdgeInsets.all(12.0),
+              child: Stack(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        textDirection: ui.TextDirection.ltr,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          iconWidget,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Seo.text(
+                              text: assetName,
+                              style: TextTagStyle.h2,
+                              child: AutoSizeText(
+                                assetName,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: nameFontFamily,
+                                ),
+                                maxLines: 1,
+                                minFontSize: 14,
+                                maxFontSize: 17,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
                               ),
-                              maxLines: 1,
-                              minFontSize: 14,
-                              maxFontSize: 17,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
                             ),
                           ),
+                        ],
+                      ),
+                      AssetCardBadges(
+                          isFavorite: isFavorite,
+                          tealGreen: tealGreen,
+                          isDarkMode: isDarkMode,
+                          assetType: assetType,
+                          assetSymbol: asset.symbol),
+                      const Spacer(),
+                      if (asset.changePercent != null)
+                        AnimatedAlign(
+                          alignment: currentLocale.languageCode == 'en'
+                              ? Alignment.centerLeft
+                              : Alignment.centerRight,
+                          duration: const Duration(milliseconds: 400),
+                          curve: const Cubic(0.77, 0, 0.175, 1),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment:
+                                currentLocale.languageCode == 'en'
+                                    ? MainAxisAlignment.start
+                                    : MainAxisAlignment.end,
+                            children: currentLocale.languageCode == 'en'
+                                ? [
+                                    Text(
+                                      // Dynamic
+                                      '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        // Dynamic
+                                        color: asset.changePercent! > 0
+                                            ? accentColorGreen
+                                            : asset.changePercent! < 0
+                                                ? accentColorRed
+                                                : Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      // Dynamic
+                                      asset.changePercent! > 0
+                                          ? CupertinoIcons.arrow_up_right
+                                          : asset.changePercent! < 0
+                                              ? CupertinoIcons.arrow_down_right
+                                              : CupertinoIcons.minus,
+                                      color: asset.changePercent! > 0
+                                          ? accentColorGreen
+                                          : asset.changePercent! < 0
+                                              ? accentColorRed
+                                              : Colors.grey,
+                                      size: 12,
+                                    ),
+                                  ]
+                                : [
+                                    Icon(
+                                      // Dynamic
+                                      asset.changePercent! > 0
+                                          ? CupertinoIcons.arrow_up_right
+                                          : asset.changePercent! < 0
+                                              ? CupertinoIcons.arrow_down_right
+                                              : CupertinoIcons.minus,
+                                      color: asset.changePercent! > 0
+                                          ? accentColorGreen
+                                          : asset.changePercent! < 0
+                                              ? accentColorRed
+                                              : Colors.grey,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      // Dynamic
+                                      '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        // Dynamic
+                                        color: asset.changePercent! > 0
+                                            ? accentColorGreen
+                                            : asset.changePercent! < 0
+                                                ? accentColorRed
+                                                : Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                          ),
                         ),
-                      ],
-                    ),
-                    AssetCardBadges(
-                        isFavorite: isFavorite,
-                        tealGreen: tealGreen,
-                        isDarkMode: isDarkMode,
-                        assetType: assetType,
-                        assetSymbol: asset.symbol),
-                    const Spacer(),
-                    if (asset.changePercent != null)
+                      const SizedBox(height: 4),
                       AnimatedAlign(
                         alignment: currentLocale.languageCode == 'en'
                             ? Alignment.centerLeft
                             : Alignment.centerRight,
                         duration: const Duration(milliseconds: 400),
                         curve: const Cubic(0.77, 0, 0.175, 1),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: currentLocale.languageCode == 'en'
-                              ? MainAxisAlignment.start
-                              : MainAxisAlignment.end,
-                          children: currentLocale.languageCode == 'en'
-                              ? [
-                                  Text(
-                                    // Dynamic
-                                    '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      // Dynamic
-                                      color: asset.changePercent! > 0
-                                          ? accentColorGreen
-                                          : asset.changePercent! < 0
-                                              ? accentColorRed
-                                              : Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    // Dynamic
-                                    asset.changePercent! > 0
-                                        ? CupertinoIcons.arrow_up_right
-                                        : asset.changePercent! < 0
-                                            ? CupertinoIcons.arrow_down_right
-                                            : CupertinoIcons.minus,
-                                    color: asset.changePercent! > 0
-                                        ? accentColorGreen
-                                        : asset.changePercent! < 0
-                                            ? accentColorRed
-                                            : Colors.grey,
-                                    size: 12,
-                                  ),
-                                ]
-                              : [
-                                  Icon(
-                                    // Dynamic
-                                    asset.changePercent! > 0
-                                        ? CupertinoIcons.arrow_up_right
-                                        : asset.changePercent! < 0
-                                            ? CupertinoIcons.arrow_down_right
-                                            : CupertinoIcons.minus,
-                                    color: asset.changePercent! > 0
-                                        ? accentColorGreen
-                                        : asset.changePercent! < 0
-                                            ? accentColorRed
-                                            : Colors.grey,
-                                    size: 12,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    // Dynamic
-                                    '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      // Dynamic
-                                      color: asset.changePercent! > 0
-                                          ? accentColorGreen
-                                          : asset.changePercent! < 0
-                                              ? accentColorRed
-                                              : Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    AnimatedAlign(
-                      alignment: currentLocale.languageCode == 'en'
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
-                      duration: const Duration(milliseconds: 400),
-                      curve: const Cubic(0.77, 0, 0.175, 1),
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0.0, end: numericPrice),
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeInOutQuart,
-                        builder: (context, value, child) {
-                          final priceText =
-                              formatPrice(value, currentLocale.languageCode);
-                          return Seo.text(
-                            text: priceText,
-                            style: TextTagStyle.p,
-                            child: AutoSizeText(
-                              priceText,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontFamily: containsPersian(priceText)
-                                    ? 'Vazirmatn'
-                                    : 'SF-Pro',
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 0.0, end: numericPrice),
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeInOutQuart,
+                          builder: (context, value, child) {
+                            final priceText =
+                                formatPrice(value, currentLocale.languageCode);
+                            return Seo.text(
+                              text: priceText,
+                              style: TextTagStyle.p,
+                              child: AutoSizeText(
+                                priceText,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: containsPersian(priceText)
+                                      ? 'Vazirmatn'
+                                      : 'SF-Pro',
+                                ),
+                                maxLines: 1,
+                                minFontSize: 18,
+                                maxFontSize: 28,
+                                stepGranularity: 0.1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: currentLocale.languageCode == 'en'
+                                    ? TextAlign.left
+                                    : TextAlign.right,
                               ),
-                              maxLines: 1,
-                              minFontSize: 18,
-                              maxFontSize: 28,
-                              stepGranularity: 0.1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: currentLocale.languageCode == 'en'
-                                  ? TextAlign.left
-                                  : TextAlign.right,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    AnimatedAlign(
-                      alignment: currentLocale.languageCode == 'en'
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
-                      duration: const Duration(milliseconds: 400),
-                      curve: const Cubic(0.77, 0, 0.175, 1),
-                      child: Text(
-                        // Dynamic
-                        displayUnit,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          // Dynamic
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontFamily: containsPersian(displayUnit)
-                              ? 'Vazirmatn'
-                              : 'SF-Pro', // Dynamic
+                            );
+                          },
                         ),
-                        textAlign: currentLocale.languageCode == 'en'
-                            ? TextAlign.left
-                            : TextAlign.right,
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      AnimatedAlign(
+                        alignment: currentLocale.languageCode == 'en'
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        duration: const Duration(milliseconds: 400),
+                        curve: const Cubic(0.77, 0, 0.175, 1),
+                        child: Text(
+                          // Dynamic
+                          displayUnit,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            // Dynamic
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontFamily: containsPersian(displayUnit)
+                                ? 'Vazirmatn'
+                                : 'SF-Pro', // Dynamic
+                          ),
+                          textAlign: currentLocale.languageCode == 'en'
+                              ? TextAlign.left
+                              : TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

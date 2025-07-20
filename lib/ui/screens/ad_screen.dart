@@ -31,6 +31,10 @@ class _AdScreenState extends State<AdScreen>
 
   File? _tempVideoFile;
 
+  // Add GlobalKey to measure media width
+  final GlobalKey _mediaKey = GlobalKey();
+  double? _actualMediaWidth;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +47,9 @@ class _AdScreenState extends State<AdScreen>
   Future<void> _initializeMedia() async {
     final url = widget.entry.url;
     _isVideo = widget.entry.isVideo;
+
+    // Reset measured width for new media
+    _actualMediaWidth = null;
 
     try {
       if (_isVideo) {
@@ -166,6 +173,19 @@ class _AdScreenState extends State<AdScreen>
     _videoController?.play();
   }
 
+  void _measureMediaWidth() {
+    if (_mediaKey.currentContext != null && _mediaReady) {
+      final RenderBox renderBox =
+          _mediaKey.currentContext!.findRenderObject() as RenderBox;
+      final width = renderBox.size.width;
+      if (width > 0 && _actualMediaWidth != width) {
+        setState(() {
+          _actualMediaWidth = width;
+        });
+      }
+    }
+  }
+
   Future<void> _openLink() async {
     final link = widget.entry.link;
     if (link.isEmpty) {
@@ -180,6 +200,13 @@ class _AdScreenState extends State<AdScreen>
   @override
   Widget build(BuildContext context) {
     final bgColor = Colors.black;
+
+    // Measure media width after frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_showFramed && _mediaReady) {
+        _measureMediaWidth();
+      }
+    });
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -206,11 +233,20 @@ class _AdScreenState extends State<AdScreen>
               bottom: MediaQuery.of(context).padding.bottom + 16,
               left: 12,
               right: 12,
-              child: _StoryProgressBar(
-                  progress: _isVideo
-                      ? _videoProgress.clamp(0.0, 1.0)
-                      : (_progressController?.value ?? 0.0),
-                  width: _showFramed ? _framedWidth : null),
+              child: _showFramed
+                  ? Center(
+                      child: _StoryProgressBar(
+                        progress: _isVideo
+                            ? _videoProgress.clamp(0.0, 1.0)
+                            : (_progressController?.value ?? 0.0),
+                        width: _actualMediaWidth ?? _framedWidth,
+                      ),
+                    )
+                  : _StoryProgressBar(
+                      progress: _isVideo
+                          ? _videoProgress.clamp(0.0, 1.0)
+                          : (_progressController?.value ?? 0.0),
+                    ),
             ),
           ],
         ),
@@ -231,6 +267,7 @@ class _AdScreenState extends State<AdScreen>
       if (_showFramed) {
         return Center(
           child: Container(
+            key: _mediaKey,
             margin: const EdgeInsets.only(top: 10.0, bottom: 29.0),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15.0),
@@ -260,6 +297,7 @@ class _AdScreenState extends State<AdScreen>
       if (_showFramed) {
         return Center(
           child: Container(
+            key: _mediaKey,
             margin: const EdgeInsets.only(top: 9.0, bottom: 28.0),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15.0),
@@ -306,8 +344,29 @@ class _AdScreenState extends State<AdScreen>
 
   double get _framedWidth {
     final mq = MediaQuery.of(context);
-    // Choose 60% of width or 450 max for better look
-    return (mq.size.width * 0.6).clamp(320.0, 450.0);
+    final screenWidth = mq.size.width;
+    final screenHeight = mq.size.height;
+
+    // Account for margins: top + bottom margins
+    final totalMargins =
+        _isVideo ? 39.0 : 37.0; // 10+29 for video, 9+28 for image
+    final availableHeight = screenHeight - totalMargins;
+
+    // Calculate max width based on aspect ratio and available height
+    double maxWidth;
+    if (_isVideo &&
+        _videoController != null &&
+        _videoController!.value.isInitialized) {
+      final aspectRatio = _videoController!.value.aspectRatio;
+      maxWidth = availableHeight * aspectRatio;
+    } else {
+      // For images, assume a reasonable aspect ratio (most ads are 9:16 or similar)
+      maxWidth = availableHeight * (9 / 16); // 9:16 aspect ratio
+    }
+
+    // Limit to 60% of screen width or 450px max, but don't exceed available width
+    final limitedWidth = (screenWidth * 0.6).clamp(320.0, 450.0);
+    return maxWidth.clamp(320.0, limitedWidth);
   }
 }
 

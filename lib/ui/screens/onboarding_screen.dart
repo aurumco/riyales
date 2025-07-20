@@ -97,9 +97,15 @@ class OnboardingScreen extends StatelessWidget {
         ? [
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.pin, color: tealGreen),
-              title: buildText('پین سریع'),
+              title: buildText(' پین سریع'),
               description: buildText(
-                  'فقط کافیست انگشت خود را روی یک دارایی نگه دارید تا پین شود.'),
+                  'فقط کافیست دو بار روی یک دارایی ضربه بزنید تا پین شود.'),
+            ),
+            WhatsNewFeature(
+              icon: Icon(CupertinoIcons.share, color: tealGreen),
+              title: buildText('اشتراک گذاری'),
+              description: buildText(
+                  'با نگه داشتن انگشت خود بر روی یک دارایی، آن را به دوستانتان ارسال کنید.'),
             ),
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
@@ -124,8 +130,14 @@ class OnboardingScreen extends StatelessWidget {
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.pin, color: tealGreen),
               title: buildText('Quick Pin'),
-              description: buildText(
-                  'Long-press any asset card and it will be pinned on top.'),
+              description:
+                  buildText('Double-tap any asset card to pin or unpin it.'),
+            ),
+            WhatsNewFeature(
+              icon: Icon(CupertinoIcons.share, color: tealGreen),
+              title: buildText('Share Card'),
+              description:
+                  buildText('Long-press any asset card to share its image.'),
             ),
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
