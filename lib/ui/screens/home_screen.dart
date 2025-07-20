@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart'
 // Dart imports
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
+import 'package:seo/seo.dart';
 import 'dart:math';
 
 // Third-party packages
@@ -410,9 +411,13 @@ class HomeScreenState extends State<HomeScreen>
         ),
         title: GestureDetector(
           onTap: _onTitleTapped,
-          child: Text(
-            l10n.riyalesAppTitle,
-            style: Theme.of(context).appBarTheme.titleTextStyle,
+          child: Seo.text(
+            text: l10n.riyalesAppTitle,
+            style: TextTagStyle.h1,
+            child: Text(
+              l10n.riyalesAppTitle,
+              style: Theme.of(context).appBarTheme.titleTextStyle,
+            ),
           ),
         ),
         actions: _buildAppBarActions(isDarkMode, localeNotifier),
@@ -1070,7 +1075,11 @@ class HomeScreenState extends State<HomeScreen>
   Widget _buildOfflineScaffold(AppLocalizations l10n, ConnectionStatus status) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.riyalesAppTitle),
+        title: Seo.text(
+          text: l10n.riyalesAppTitle,
+          style: TextTagStyle.h1,
+          child: Text(l10n.riyalesAppTitle),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),

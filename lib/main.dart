@@ -15,6 +15,10 @@ import './ui/theme/smooth_scroll_behavior.dart';
 
 // UI screens
 import './ui/screens/splash_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:seo/seo.dart';
+import 'package:url_strategy/url_strategy.dart';
+import 'package:universal_html/html.dart' as html;
 
 // Providers
 import './providers/theme_provider.dart';
@@ -42,12 +46,22 @@ import './localization/l10n_utils.dart';
 
 /// Determines the initial locale based on platform conventions.
 Locale getInitialLocale() {
+  if (kIsWeb) {
+    final ua = html.window.navigator.userAgent.toLowerCase();
+    final bool isBot = RegExp(
+            r'bot|crawler|spider|crawling|google|bing|yandex|duckduck|baidu|brave|chatgpt|grok|perplexity')
+        .hasMatch(ua);
+    if (isBot) return const Locale('fa');
+    // For normal web users, respect browser language
+    final lang = html.window.navigator.language;
+    return lang.startsWith('fa') ? const Locale('fa') : const Locale('en');
+  }
+
   final platform = defaultTargetPlatform;
   if (platform == TargetPlatform.android ||
       platform == TargetPlatform.windows) {
     return const Locale('fa');
   }
-  // This covers iOS, macOS, Linux, Fuchsia and web on those platforms.
   return const Locale('en');
 }
 
@@ -55,6 +69,11 @@ Locale getInitialLocale() {
 /// Initializes bindings and runs the app with required providers.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Use path URL strategy for clean URLs (better SEO on web)
+  if (kIsWeb) {
+    setPathUrlStrategy();
+  }
 
   // Make system status & navigation bars fully transparent at app launch
   // so that our UI can draw edge-to-edge immediately.
@@ -272,7 +291,10 @@ class RiyalesApp extends StatelessWidget {
     );
 
     return Theme(
-        data: themeData,
+      data: themeData,
+      child: SeoController(
+        enabled: kIsWeb,
+        tree: WidgetTree(context: context),
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           title: appConfig.appName,
@@ -306,6 +328,8 @@ class RiyalesApp extends StatelessWidget {
               ),
             );
           },
-        ));
+        ),
+      ),
+    );
   }
 }

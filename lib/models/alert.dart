@@ -119,8 +119,9 @@ class AdInfo {
   List<AdEntry> entriesForDevice(bool isMobileDevice) {
     return entries.where((e) {
       String target = e.device.isEmpty ? 'all' : e.device;
-      if (target == 'all')
+      if (target == 'all') {
         target = device; // inherit global device if entry not specified
+      }
       switch (target) {
         case 'mobile':
           return isMobileDevice;

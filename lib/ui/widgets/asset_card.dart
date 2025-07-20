@@ -11,6 +11,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:seo/seo.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../models/crypto_icon_info.dart';
@@ -682,6 +683,9 @@ class AssetCard extends StatelessWidget {
       assetName = (asset as models.GoldAsset).nameEn;
     }
 
+    // Now wrap icon with semantics for alt text
+    iconWidget = Semantics(label: assetName, child: iconWidget);
+
     bool hasPersianChars = containsPersian(assetName);
     String nameFontFamily = hasPersianChars ? 'Vazirmatn' : 'SF-Pro';
 
@@ -743,18 +747,21 @@ class AssetCard extends StatelessWidget {
                         iconWidget,
                         const SizedBox(width: 8),
                         Expanded(
-                          child: AutoSizeText(
-                            assetName, // Dynamic
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              // Dynamic
-                              fontWeight: FontWeight.bold,
-                              fontFamily: nameFontFamily, // Dynamic
+                          child: Seo.text(
+                            text: assetName,
+                            style: TextTagStyle.h2,
+                            child: AutoSizeText(
+                              assetName,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: nameFontFamily,
+                              ),
+                              maxLines: 1,
+                              minFontSize: 14,
+                              maxFontSize: 17,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
                             ),
-                            maxLines: 1,
-                            minFontSize: 14,
-                            maxFontSize: 17,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.right,
                           ),
                         ),
                       ],
@@ -855,23 +862,26 @@ class AssetCard extends StatelessWidget {
                         builder: (context, value, child) {
                           final priceText =
                               formatPrice(value, currentLocale.languageCode);
-                          return AutoSizeText(
-                            priceText, // Dynamic
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              // Dynamic
-                              fontWeight: FontWeight.bold,
-                              fontFamily: containsPersian(priceText)
-                                  ? 'Vazirmatn'
-                                  : 'SF-Pro', // Dynamic
+                          return Seo.text(
+                            text: priceText,
+                            style: TextTagStyle.p,
+                            child: AutoSizeText(
+                              priceText,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: containsPersian(priceText)
+                                    ? 'Vazirmatn'
+                                    : 'SF-Pro',
+                              ),
+                              maxLines: 1,
+                              minFontSize: 18,
+                              maxFontSize: 28,
+                              stepGranularity: 0.1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: currentLocale.languageCode == 'en'
+                                  ? TextAlign.left
+                                  : TextAlign.right,
                             ),
-                            maxLines: 1,
-                            minFontSize: 18,
-                            maxFontSize: 28,
-                            stepGranularity: 0.1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: currentLocale.languageCode == 'en'
-                                ? TextAlign.left
-                                : TextAlign.right,
                           );
                         },
                       ),
