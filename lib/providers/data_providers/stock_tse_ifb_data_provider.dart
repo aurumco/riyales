@@ -21,6 +21,8 @@ class StockTseIfbDataNotifier extends ChangeNotifier {
   DateTime? lastFetchTime;
   bool _isLoadingMore = false;
 
+  bool _disposed = false;
+
   List<StockAsset> get fullDataList => _fullDataList;
   List<StockAsset> get items => stockAssets;
 
@@ -29,6 +31,19 @@ class StockTseIfbDataNotifier extends ChangeNotifier {
       {required this.apiService,
       required this.appConfig,
       required this.connectionService});
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
 
   Future<void> fetchInitialData(
       {bool isRefresh = false, bool isLoadMore = false}) async {
@@ -53,14 +68,14 @@ class StockTseIfbDataNotifier extends ChangeNotifier {
       }
 
       _isLoadingMore = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
       return;
     }
 
     if (!isRefresh && !isSpecialFetch && hasDataBeenFetchedOnce) {
       if (isLoading) {
         isLoading = false;
-        notifyListeners();
+        if (!_disposed) notifyListeners();
       }
       return;
     }
@@ -69,7 +84,7 @@ class StockTseIfbDataNotifier extends ChangeNotifier {
     if (isRefresh || isSpecialFetch) {
       error = null;
     }
-    notifyListeners();
+    if (!_disposed) notifyListeners();
 
     try {
       final String apiUrl = appConfig.apiEndpoints.stockTseIfbSymbolsUrl;
@@ -133,7 +148,7 @@ class StockTseIfbDataNotifier extends ChangeNotifier {
     } finally {
       isLoading = false;
       _isLoadingMore = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 

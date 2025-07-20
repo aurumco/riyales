@@ -6,7 +6,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart'; // Added Provider
+import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -17,10 +17,10 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../models/asset_models.dart' as models;
 import '../../models/crypto_icon_info.dart';
-import '../../config/app_config.dart'; // For AppConfig type
-import '../widgets/asset_list_page.dart'; // Re-added import for AssetType
+import '../../config/app_config.dart';
+import '../widgets/asset_list_page.dart';
 import '../../providers/locale_provider.dart';
-import '../../providers/currency_unit_provider.dart'; // For CurrencyUnit enum and Notifier
+import '../../providers/currency_unit_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/data_providers/currency_data_provider.dart';
 import '../../providers/card_corner_settings_provider.dart';
@@ -31,12 +31,9 @@ import './common/dynamic_glow.dart';
 import './common/asset_card_badges.dart';
 import '../../services/analytics_service.dart';
 import 'package:equatable/equatable.dart';
-// Import the new widget
-// Removed: import '../widgets/asset_list_page.dart';
-
-// Only import dart:html if on web
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import '../../generated/app_localizations.dart';
+import '../../utils/flag_colors.dart';
+import '../../utils/crypto_icon_map.dart';
 
 // Create a dedicated cache manager with smaller capacity for crypto icons
 class CryptoIconCacheManager extends CacheManager {
@@ -49,7 +46,7 @@ class CryptoIconCacheManager extends CacheManager {
       : super(Config(
           key,
           stalePeriod: const Duration(days: 7),
-          maxNrOfCacheObjects: 100, // Limit cache size
+          maxNrOfCacheObjects: 100,
           repo: JsonCacheInfoRepository(databaseName: key),
         ));
 }
@@ -60,270 +57,76 @@ const bool _isCanvasKit =
     bool.fromEnvironment('FLUTTER_WEB_USE_SKIA', defaultValue: false);
 bool get _supportsColorFilter => !kIsWeb || _isCanvasKit;
 
-// Define manual crypto icon mapping constant at top level before AssetCard
-// Manually map cryptos to their asset icons by name
-const Map<String, CryptoIconInfo> cryptoIconMap = {
-  'bitcoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/btc.svg',
-    color: Color(0xFFF7931A), // Orange/gold for Bitcoin
-  ),
-  'ethereum': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Ethereum.svg',
-    color: Color(0xFF627EEA), // Blue/purple for Ethereum
-  ),
-  'tether': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Tether.svg',
-    color: Color(0xFF50AF95), // Teal for Tether
-  ),
-  'xrp': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/ripple.svg',
-    color: Color(0xFF00AEEF), // Blue for Ripple
-  ),
-  'binance coin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Binance Coin (BNB).svg',
-    color: Color(0xFFF0B90B), // Gold/yellow for Binance Coin
-  ),
-  'usd coin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/usd.svg',
-    color: Color(0xFF82BC67), // Green for USD Coin
-  ),
-  'dogecoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Dogecoin (DOGE).svg',
-    color: Color(0xFFCB9800), // Gold for Dogecoin
-  ),
-  'cardano': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Cardano.svg',
-    color: Color(0xFF00AD99), // Teal for Cardano
-  ),
-  'litecoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/lite.svg',
-    color: Color(0xFF029404), // Green for Litecoin
-  ),
-  'monero': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Monero.svg',
-    color: Color(0xFFFF6600), // Orange for Monero
-  ),
-  'ethereum classic': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Ethereum Classic (ETH).svg',
-    color: Color(0xFF39B339), // Green for Ethereum Classic
-  ),
-  'stellar': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Stellar.svg',
-    color: Color(0xFF00ADEF), // Blue for Stellar
-  ),
-  'bitcoin cash': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Bitcoin Cash.svg',
-    color: Color(0xFF8DC351), // Green for Bitcoin Cash
-  ),
-  'litecoin cash': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Litecoin Cash (LCC).svg',
-    color: Color(0xFF19191A), // Silver like Litecoin
-  ),
-  'nem': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/NEM (XEM).svg',
-    color: Color(0xFF4FC8AE), // Teal for NEM
-  ),
-  'nano': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/nano (NANO).svg',
-    color: Color(0xFF4A90E2), // Blue for Nano
-  ),
-  'tezos': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Tezos (XTZ).svg',
-    color: Color(0xFF3286E2), // Blue for Tezos
-  ),
-  'eos': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/EOS.svg',
-    color: Color(0xFF19191A), // Black/dark gray for EOS
-  ),
-  'decred': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Decred (DCR).svg',
-    color: Color(0xFF4772D6), // Blue/purple for Decred
-  ),
-  'vechain': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/VeChain (VET).svg',
-    color: Color(0xFF896BC7), // Purple for VeChain
-  ),
-  'ontology': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Ontology (ONT).svg',
-    color: Color(0xFF36A9AE), // Teal for Ontology
-  ),
-  'syscoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Syscoin (SYS).svg',
-    color: Color(0xFF0089BC), // Blue for Syscoin
-  ),
-  'digibyte': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/DigiByte (DGB).svg',
-    color: Color(0xFF0074B4), // Blue for DigiByte
-  ),
-  'verge': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Verge (XVG).svg',
-    color: Color(0xFF40CCEA), // Cyan for Verge
-  ),
-  'siacoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Siacoin (SC).svg',
-    color: Color(0xFF00CBA1), // Teal for Siacoin
-  ),
-  'namecoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Namecoin (NMC).svg',
-    color: Color(0xFF4FC8AE), // Teal for Namecoin
-  ),
-  'horizen': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Horizen (ZEN).svg',
-    color: Color(0xFF2C84DF), // Blue for Horizen
-  ),
-  'waves': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Waves (WAVES).svg',
-    color: Color(0xFF2F82DE), // Blue for Waves
-  ),
-  'nuls': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Nuls (NULS).svg',
-    color: Color(0xFF65A034), // Green for NULS
-  ),
-  'dash': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/dash.svg',
-    color: Color(0xFF008CE7), // Blue for Dash
-  ),
-  'wanchain': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Wanchain.svg',
-    color: Color(0xFF266187), // Dark blue for Wanchain
-  ),
-  'zilliqa': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Zilliqa (ZIL).svg',
-    color: Color(0xFF48C9B9), // Teal for Zilliqa
-  ),
-  'qtum': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Qtum (QTUM).svg',
-    color: Color(0xFF00B8DC), // Blue for Qtum
-  ),
-  'basic attention token': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Basic Attention Token.svg',
-    color: Color(0xFFFF5200), // Orange for BAT
-  ),
-  'neo': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/NEO.svg',
-    color: Color(0xFF58B700), // Green for Neo
-  ),
-  'particl': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Particl (PART).svg',
-    color: Color(0xFF50AF95), // Green for Particl
-  ),
-  'whitecoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/WhiteCoin (XWC).svg',
-    color: Color(0xFF8d51ea), // Purple for WhiteCoin
-  ),
-  'smartcash': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/SmartCash (SMART).svg',
-    color: Color(0xFFf4b711), // Yellow for SmartCash
-  ),
-  'steem': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Steem (STEEM).svg',
-    color: Color(0xFF4682B4), // Blue for Steem
-  ),
-  'steem dollars': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Steem Dollars (SBD).svg',
-    color: Color(0xFF4682B4), // Blue for Steem Dollars (same as Steem)
-  ),
-  'primecoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Primecoin (XPM).svg',
-    color: Color(0xFFF99D1C), // Orange for Primecoin
-  ),
-  'lbry credits': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/LBRY Credits (LBC).svg',
-    color: Color(0xFF19191A), // Orange for LBRY
-  ),
-  'callisto network': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Callisto Network (CLO).svg',
-    color: Color(0xFF51B06F), // Green for Callisto Network
-  ),
-  'cloakcoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/CloakCoin (CLOAK).svg',
-    color: Color(0xFFea3b21), // Red for CloakCoin
-  ),
-  'colossusxt': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/ColossusXT (COLX).svg',
-    color: Color(0xFF53a278), // Green for ColossusXT
-  ),
-  'counterparty': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Counterparty (XCP).svg',
-    color: Color(0xFFeb154e), // Pink for Counterparty
-  ),
-  'crown': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Crown (CRW).svg',
-    color: Color(0xFF126343), // Dark green for Crown
-  ),
-  'dero': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Dero (DERO).svg',
-    color: Color(0xFF00223B), // Dark blue for Dero
-  ),
-  'dent': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Dent (DENT).svg',
-    color: Color(0xFF19191A), // Green for Dent
-  ),
-  'electroneum': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Electroneum (ETN).svg',
-    color: Color(0xFF2180FF), // Blue for Electroneum
-  ),
-  'gamecredits': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/GameCredits (GAME).svg',
-    color: Color(0xFF19191A), // Orange for GameCredits
-  ),
-  'nimiq': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Nimiq (NIM).svg',
-    color: Color(0xFFf6ae2d), // Yellow for Nimiq
-  ),
-  'omisego': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/OmiseGO (OMG).svg',
-    color: Color(0xFF1A53F0), // Blue for OmiseGO
-  ),
-  'pascal coin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Pascal Coin (PASC).svg',
-    color: Color(0xFFF09033), // Orange for Pascal Coin
-  ),
-  'peercoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Peercoin (PPC).svg',
-    color: Color(0xFF3EB049), // Green for Peercoin
-  ),
-  'pivx': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/PIVX (PIVX).svg',
-    color: Color(0xFF4C2757), // Purple for PIVX
-  ),
-  'power ledger': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Power Ledger (POWR).svg',
-    color: Color(0xFF29af92), // Green for Power Ledger
-  ),
-  'prizm': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/PRIZM (PZM).svg',
-    color: Color(0xFF700366), // Cyan for PRIZM
-  ),
-  'trueusd': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/TrueUSD (TUSD).svg',
-    color: Color(0xFF6cb0fd), // Blue for TrueUSD
-  ),
-  'vertcoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Vertcoin (VTC).svg',
-    color: Color(0xFF046B2D), // Green for Vertcoin
-  ),
-  'xtrabytes': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/XTRABYTES (XBY).svg',
-    color: Color(0xFF00B0FF), // Blue for XTRABYTES
-  ),
-  'zclassic': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/ZClassic (ZCL).svg',
-    color: Color(0xFF423C32), // Dark brown for ZClassic
-  ),
-  'aelf': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Baelf (ELF).svg',
-    color: Color(0xFF305B9C), // Blue for aelf
-  ),
-  'bytecoin': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/Bytecoin (BCN).svg',
-    color: Color(0xFF402660), // Purple for Bytecoin
-  ),
-  'zcash': CryptoIconInfo(
-    iconPath: 'assets/icons/crypto/zec.svg',
-    color: Color(0xFFF3BA2F), // Yellow/gold for Zcash
-  ),
-};
+void showCustomErrorSnackBar(BuildContext context) {
+  final overlay = Overlay.of(context);
+  final controller = AnimationController(
+    vsync: Navigator.of(context),
+    duration: const Duration(milliseconds: 180),
+  );
+  final curved = CurvedAnimation(
+    parent: controller,
+    curve: Curves.easeInOut,
+  );
+  AppLocalizations.of(context);
+  final locale = Localizations.localeOf(context);
+  final isRTL = locale.languageCode == 'fa';
+  final message = isRTL
+      ? 'خطا در تولید یا اشتراک‌گذاری تصویر کارت'
+      : 'Failed to generate or share card image';
+
+  late OverlayEntry entry;
+  entry = OverlayEntry(builder: (context) {
+    return Positioned(
+      bottom: 10,
+      left: 10,
+      right: 10,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(curved),
+        child: Material(
+          elevation: 0,
+          color: const Color(0xFFD32F2F), // Red
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Row(
+              textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+              children: [
+                const Icon(CupertinoIcons.exclamationmark_circle_fill,
+                    color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+                      color: Colors.white,
+                    ),
+                    textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  });
+
+  overlay.insert(entry);
+  controller.forward();
+
+  Future.delayed(const Duration(seconds: 4), () async {
+    await controller.reverse();
+    entry.remove();
+    controller.dispose();
+  });
+}
 
 class AssetCard extends StatelessWidget {
   final models.Asset asset;
@@ -339,62 +142,47 @@ class AssetCard extends StatelessWidget {
   final GlobalKey _cardKey = GlobalKey();
 
   Future<void> _shareCardImage(BuildContext context) async {
-    try {
-      RenderRepaintBoundary boundary =
-          _cardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      ui.Image image = await boundary.toImage(pixelRatio: 2.0);
-      ByteData? byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData != null) {
-        final pngBytes = byteData.buffer.asUint8List();
-        String fileName = '';
-        if (asset is models.CurrencyAsset) {
-          fileName = (asset as models.CurrencyAsset).symbol.toLowerCase();
-        } else if (asset is models.GoldAsset) {
-          fileName = (asset as models.GoldAsset).symbol.toLowerCase();
-        } else if (asset is models.CryptoAsset) {
-          fileName = (asset as models.CryptoAsset)
-              .name
-              .toLowerCase()
-              .replaceAll(' ', '_');
-        } else {
-          fileName = asset.name.toLowerCase().replaceAll(' ', '_');
-        }
-        fileName = fileName.isNotEmpty ? fileName : 'asset_card';
-        fileName += '.png';
-        if (kIsWeb) {
-          final blob = html.Blob([pngBytes], 'image/png');
-          final url = html.Url.createObjectUrlFromBlob(blob);
-          final anchor = html.AnchorElement(href: url)
-            ..download = fileName
-            ..style.display = 'none';
-          html.document.body!.append(anchor);
-          anchor.click();
-          html.document.body!.children.remove(anchor);
-          html.Url.revokeObjectUrl(url);
-        } else {
-          final box = context.findRenderObject() as RenderBox?;
-          final params = ShareParams(
-            files: [
-              XFile.fromData(
-                pngBytes,
-                mimeType: 'image/png',
-                name: fileName,
-              )
-            ],
-            sharePositionOrigin:
-                box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-          );
-          await SharePlus.instance.share(params);
+    RenderRepaintBoundary boundary =
+        _cardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+    final image = await boundary.toImage(pixelRatio: 2.0);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData != null) {
+      final pngBytes = byteData.buffer.asUint8List();
+      String fileName = '';
+      if (asset is models.CurrencyAsset) {
+        fileName = (asset as models.CurrencyAsset).symbol.toLowerCase();
+      } else if (asset is models.GoldAsset) {
+        fileName = (asset as models.GoldAsset).symbol.toLowerCase();
+      } else if (asset is models.CryptoAsset) {
+        fileName = (asset as models.CryptoAsset)
+            .name
+            .toLowerCase()
+            .replaceAll(' ', '_');
+      } else {
+        fileName = asset.name.toLowerCase().replaceAll(' ', '_');
+      }
+      fileName = fileName.isNotEmpty ? fileName : 'asset_card';
+      fileName += '.png';
+      final xFile = XFile.fromData(
+        pngBytes,
+        mimeType: 'image/png',
+      );
+      final params = ShareParams(
+        files: [xFile],
+        fileNameOverrides: [fileName],
+        downloadFallbackEnabled: true,
+      );
+      try {
+        await SharePlus.instance.share(params);
+      } catch (e) {
+        if (context.mounted) {
+          showCustomErrorSnackBar(context);
         }
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(kIsWeb
-                ? 'Failed to download card image.'
-                : 'Failed to share card image.')),
-      );
+    } else {
+      if (context.mounted) {
+        showCustomErrorSnackBar(context);
+      }
     }
   }
 
@@ -602,36 +390,6 @@ class AssetCard extends StatelessWidget {
       String countryCode = getCurrencyCountryCode(currencyCode);
       String flagPath = 'assets/icons/flags/$countryCode.svg';
 
-      // flagColors map remains as it's static data
-      final Map<String, Color> flagColors = {
-        'us': const Color(0xFFB7082A),
-        'eu': const Color(0xFF0153B4),
-        'ae': const Color(0xFF6DA445),
-        'gb': const Color(0xFFD80027),
-        'jp': const Color(0xFFD80027),
-        'kw': const Color(0xFF6DA445),
-        'au': const Color(0xFF0654B5),
-        'ca': const Color(0xFFD80027),
-        'cn': const Color(0xFFD80127),
-        'tr': const Color(0xFFD80027),
-        'sa': const Color(0xFF527538),
-        'ch': const Color(0xFFD9042B),
-        'in': const Color(0xFFFE9B17),
-        'pk': const Color(0xFF486F2D),
-        'iq': const Color(0xFFA30221),
-        'sy': const Color(0xFF486F2D),
-        'se': const Color(0xFF0D59AE),
-        'qa': const Color(0xFF741B46),
-        'om': const Color(0xFF709C42),
-        'bh': const Color(0xFFD80027),
-        'af': const Color(0xFF486F2D),
-        'my': const Color(0xFF105BAD),
-        'th': const Color(0xFF0153B4),
-        'ru': const Color(0xFFD80027),
-        'az': const Color(0xFF6DA445),
-        'am': const Color(0xFFFF9811),
-        'ge': const Color(0xFFD9082C),
-      };
       final flagColor = flagColors[countryCode] ?? tealGreen;
 
       Widget flagImage = SvgPicture.asset(

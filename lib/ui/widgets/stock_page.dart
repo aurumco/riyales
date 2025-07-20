@@ -87,7 +87,11 @@ class StockPageState extends State<StockPage>
     super.didChangeDependencies();
     _initializeTabs();
     _stockTabController = TabController(length: _stockTabs.length, vsync: this);
-    _fetchDataForStockSubTab(_stockTabController.index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchDataForStockSubTab(_stockTabController.index);
+      }
+    });
     _stockTabController.addListener(_handleStockSubTabSelection);
     _updateStockScrollControllers();
   }

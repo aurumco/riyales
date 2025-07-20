@@ -21,6 +21,8 @@ class GoldDataNotifier extends ChangeNotifier {
   DateTime? lastFetchTime;
   bool _isLoadingMore = false;
 
+  bool _disposed = false;
+
   List<GoldAsset> get fullDataList => _fullDataList;
   List<GoldAsset> get items => goldAssets;
 
@@ -29,6 +31,19 @@ class GoldDataNotifier extends ChangeNotifier {
       {required this.apiService,
       required this.appConfig,
       required this.connectionService});
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
 
   Future<void> fetchInitialData(
       {bool isRefresh = false, bool isLoadMore = false}) async {
@@ -211,7 +226,7 @@ class GoldDataNotifier extends ChangeNotifier {
     } finally {
       isLoading = false;
       _isLoadingMore = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 

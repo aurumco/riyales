@@ -5,7 +5,7 @@ import '../../../models/asset_models.dart';
 import '../../../config/app_config.dart';
 import '../../../services/api_service.dart';
 import '../../../services/connection_service.dart';
-import '../../../ui/widgets/asset_card.dart';
+import '../../utils/crypto_icon_map.dart';
 
 /// Provides cryptocurrency data with pagination and basic caching.
 /// Data is fetched from [ApiService], prioritized using
@@ -25,6 +25,8 @@ class CryptoDataNotifier extends ChangeNotifier {
   DateTime? lastFetchTime;
   bool _isLoadingMore = false;
 
+  bool _disposed = false;
+
   List<CryptoAsset> get fullDataList => _fullDataList;
   List<CryptoAsset> get items => cryptoAssets;
 
@@ -32,6 +34,19 @@ class CryptoDataNotifier extends ChangeNotifier {
       {required this.apiService,
       required this.appConfig,
       required this.connectionService});
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
 
   /// Fetches cryptocurrency data.
   ///
@@ -152,7 +167,7 @@ class CryptoDataNotifier extends ChangeNotifier {
     } finally {
       isLoading = false;
       _isLoadingMore = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 

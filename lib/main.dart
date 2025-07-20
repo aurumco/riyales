@@ -18,7 +18,6 @@ import './ui/screens/splash_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:seo/seo.dart';
 import 'package:url_strategy/url_strategy.dart';
-import 'package:universal_html/html.dart' as html;
 
 // Providers
 import './providers/theme_provider.dart';
@@ -46,25 +45,11 @@ import './localization/l10n_utils.dart';
 
 /// Determines the initial locale based on platform conventions.
 Locale getInitialLocale() {
-  if (kIsWeb) {
-    final ua = html.window.navigator.userAgent.toLowerCase();
-    final bool isBot = RegExp(
-            r'bot|crawler|spider|crawling|google|bing|yandex|duckduck|baidu|brave|chatgpt|grok|perplexity')
-        .hasMatch(ua);
-    if (isBot) return const Locale('fa');
-    // For normal web users, respect browser language
-    final lang = html.window.navigator.language;
-    return lang.startsWith('fa') == true
-        ? const Locale('fa')
-        : const Locale('en');
-  }
-
   final platform = defaultTargetPlatform;
-  if (platform == TargetPlatform.android ||
-      platform == TargetPlatform.windows) {
-    return const Locale('fa');
+  if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+    return const Locale('en');
   }
-  return const Locale('en');
+  return const Locale('fa');
 }
 
 /// Application entry point.

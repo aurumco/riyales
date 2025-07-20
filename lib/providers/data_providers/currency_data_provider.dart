@@ -20,6 +20,8 @@ class CurrencyDataNotifier extends ChangeNotifier {
   DateTime? lastFetchTime;
   bool _isLoadingMore = false;
 
+  bool _disposed = false;
+
   List<CurrencyAsset> get fullDataList => _fullDataList;
   List<CurrencyAsset> get items => currencyAssets;
 
@@ -27,6 +29,19 @@ class CurrencyDataNotifier extends ChangeNotifier {
       {required this.apiService,
       required this.appConfig,
       required this.connectionService});
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
 
   Future<void> fetchInitialData(
       {bool isRefresh = false, bool isLoadMore = false}) async {
@@ -50,14 +65,14 @@ class CurrencyDataNotifier extends ChangeNotifier {
       }
 
       _isLoadingMore = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
       return;
     }
 
     if (!isRefresh && !isSpecialFetch && hasDataBeenFetchedOnce) {
       if (isLoading) {
         isLoading = false;
-        notifyListeners();
+        if (!_disposed) notifyListeners();
       }
       return;
     }
@@ -66,7 +81,7 @@ class CurrencyDataNotifier extends ChangeNotifier {
     if (isRefresh) {
       error = null;
     }
-    notifyListeners();
+    if (!_disposed) notifyListeners();
 
     try {
       final bool isOnline = await connectionService
@@ -129,7 +144,7 @@ class CurrencyDataNotifier extends ChangeNotifier {
     } finally {
       isLoading = false;
       _isLoadingMore = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
