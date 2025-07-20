@@ -45,5 +45,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Allow arbitrary loads for all domains (media, web content) -->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<!-- Specifically allow HTTP media loads -->
+		<key>NSAllowsArbitraryLoadsForMedia</key>
+		<true/>
+		<!-- Allow HTTP in web views/content -->
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
