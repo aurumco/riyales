@@ -132,7 +132,7 @@ jobs:
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=android/riyales.jks" >> android/key.properties
+          echo "storeFile=riyales.jks" >> android/key.properties
 
       - name: Debug Keystore Setup
         run: |
