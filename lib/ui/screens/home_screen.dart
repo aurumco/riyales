@@ -1,11 +1,13 @@
 // Flutter imports
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 // Dart imports
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
+import 'dart:math';
 
 // Third-party packages
 import 'package:provider/provider.dart';
@@ -34,6 +36,8 @@ import '../../localization/l10n_utils.dart';
 import '../../utils/color_utils.dart';
 import '../../services/analytics_service.dart';
 import '../../services/connection_service.dart';
+import '../../providers/alert_provider.dart';
+import 'ad_screen.dart';
 
 /// The main application screen with asset tabs, search, and settings.
 class HomeScreen extends StatefulWidget {
@@ -69,6 +73,9 @@ class HomeScreenState extends State<HomeScreen>
 
   /// Whether the app is running as desktop web.
   bool _isDesktopWeb = false;
+  // Whether the full-screen advertisement has been displayed in this session.
+  bool _adShown = false;
+  AlertProvider? _alertProvider;
 
   /// Tap count for Easter egg activation.
   int _titleTapCount = 0;
@@ -112,6 +119,14 @@ class HomeScreenState extends State<HomeScreen>
     _checkDeviceType();
     _startAutoRefreshTimer();
     _scheduleOnboarding();
+
+    // Listen for alert updates to trigger ad display.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _alertProvider = Provider.of<AlertProvider>(context, listen: false);
+      _alertProvider!.addListener(_attemptShowAd);
+      _attemptShowAd();
+    });
   }
 
   /// Detects if the app is running on desktop web.
@@ -229,6 +244,35 @@ class HomeScreenState extends State<HomeScreen>
     });
   }
 
+  /// Attempts to show the full-screen advertisement if it should be visible.
+  void _attemptShowAd() {
+    if (_adShown || !mounted) return;
+
+    final adInfo = _alertProvider?.alert?.ad;
+    if (adInfo == null || !adInfo.enabled) return;
+    // Determine native mobile vs desktop (exclude web)
+    final isMobileNative = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    final entries = adInfo.entriesForDevice(isMobileNative);
+    if (entries.isEmpty) return;
+    final entry = entries[Random().nextInt(entries.length)];
+
+    _adShown = true;
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: true,
+        barrierDismissible: false,
+        pageBuilder: (_, __, ___) =>
+            AdScreen(entry: entry, imageDurationMs: adInfo.timeMs),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 200),
+      ),
+    );
+  }
+
   /// Sets up the tab controller and tab items.
   void _setupTabs() {
     if (!mounted) return;
@@ -299,6 +343,7 @@ class HomeScreenState extends State<HomeScreen>
     _showSearchBarNotifier.dispose();
     _isSearchActiveNotifier.dispose();
     _autoRefreshTimer?.cancel();
+    _alertProvider?.removeListener(_attemptShowAd);
     AnalyticsService.instance.saveEvents();
     super.dispose();
   }

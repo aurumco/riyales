@@ -180,7 +180,7 @@ class _AlertCardState extends State<AlertCard>
                         isRTL ? ui.TextDirection.rtl : ui.TextDirection.ltr,
                     child: Container(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                          horizontal: 12, vertical: 8),
                       decoration: ShapeDecoration(
                         color: style['bgColor'],
                         shape: SmoothRectangleBorder(

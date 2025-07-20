@@ -2,7 +2,6 @@
 library;
 
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riyales/config/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,9 +51,6 @@ class AnalyticsService {
       final String uuid = const Uuid().v4();
       apiKey = 'RYLS-$uuid';
       await prefs.setString(_apiKeyKey, apiKey);
-      if (kDebugMode) {
-        print('[AnalyticsService] Generated and saved new API Key: $apiKey');
-      }
     }
     return apiKey;
   }
@@ -131,11 +127,6 @@ class AnalyticsService {
           .map((json) => _AggregatedEvent.fromJson(jsonDecode(json)))
           .toList();
 
-      if (kDebugMode) {
-        print(
-            '[AnalyticsService] Sending ${events.length} stored events from previous session.');
-      }
-
       // Format events for API
       final List<Map<String, dynamic>> eventList =
           events.map((e) => e.toJson()).toList();
@@ -161,11 +152,6 @@ class AnalyticsService {
         await prefs.remove(_storedEventsKey);
         await prefs.setString(
             _lastSendTimeKey, DateTime.now().toIso8601String());
-
-        if (kDebugMode) {
-          print(
-              '[AnalyticsService] Successfully sent stored events from previous session.');
-        }
       } else {
         // Dispatch failed; events will be retried later.
       }
