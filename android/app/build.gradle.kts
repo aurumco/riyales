@@ -20,10 +20,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("keyAlias") as String?
-            keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("keyPassword") as String?
-            storeFile = file(System.getenv("STORE_FILE") ?: project.findProperty("storeFile") as String?)
-            storePassword = System.getenv("STORE_PASSWORD") ?: project.findProperty("storePassword") as String?
+            keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("keyAlias") as String? ?: "Riyales"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("keyPassword") as String? ?: ""
+            storeFile = file(System.getenv("STORE_FILE") ?: project.findProperty("storeFile") as String? ?: "android/riyales.jks")
+            storePassword = System.getenv("STORE_PASSWORD") ?: project.findProperty("storePassword") as String? ?: ""
         }
     }
 
