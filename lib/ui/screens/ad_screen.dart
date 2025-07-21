@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:riyales/models/alert.dart';
+import 'package:riyales/providers/alert_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
@@ -28,6 +30,7 @@ class _AdScreenState extends State<AdScreen>
   bool _isMuted = false;
   bool _isPaused = false;
   bool _hasCompleted = false;
+  bool _adViewRecorded = false;
 
   File? _tempVideoFile;
 
@@ -42,6 +45,40 @@ class _AdScreenState extends State<AdScreen>
     WidgetsBinding.instance.addObserver(this);
 
     _initializeMedia();
+    _recordAdView();
+  }
+
+  /// Records that this ad has been viewed
+  Future<void> _recordAdView() async {
+    if (_adViewRecorded) return;
+
+    try {
+      final alertProvider = Provider.of<AlertProvider>(context, listen: false);
+      await alertProvider.recordAdView(widget.entry.id);
+      _adViewRecorded = true;
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
+  /// Starts the timer for image ads after the image is fully loaded
+  void _startImageTimer() {
+    if (_progressController != null) return; // Already started
+
+    _progressController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: widget.imageDurationMs),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed && !_hasCompleted) {
+          _hasCompleted = true;
+          if (mounted) Navigator.of(context).pop();
+        }
+      });
+    _progressController!
+      ..addListener(() {
+        if (mounted) setState(() {});
+      })
+      ..forward();
   }
 
   Future<void> _initializeMedia() async {
@@ -114,24 +151,11 @@ class _AdScreenState extends State<AdScreen>
 
         if (mounted) setState(() => _mediaReady = true);
       } else {
+        // For images, we'll set mediaReady to true after the image is actually loaded
+        // The timer will be started in the image loading callback
         if (mounted) setState(() => _mediaReady = true);
-        _progressController = AnimationController(
-          vsync: this,
-          duration: Duration(milliseconds: widget.imageDurationMs),
-        )..addStatusListener((status) {
-            if (status == AnimationStatus.completed && !_hasCompleted) {
-              _hasCompleted = true;
-              if (mounted) Navigator.of(context).pop();
-            }
-          });
-        _progressController!
-          ..addListener(() {
-            if (mounted) setState(() {});
-          })
-          ..forward();
       }
     } catch (e) {
-      debugPrint('Failed to load ad media: $e');
       if (mounted && !_hasCompleted) {
         _hasCompleted = true;
         Navigator.of(context).pop();
@@ -306,7 +330,15 @@ class _AdScreenState extends State<AdScreen>
                 widget.entry.url,
                 fit: fit,
                 loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
+                  if (progress == null) {
+                    // Image is fully loaded, start the timer
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted && _progressController == null) {
+                        _startImageTimer();
+                      }
+                    });
+                    return child;
+                  }
                   return const Center(child: CupertinoActivityIndicator());
                 },
                 errorBuilder: (_, __, ___) => const Center(
@@ -322,7 +354,15 @@ class _AdScreenState extends State<AdScreen>
         widget.entry.url,
         fit: fit,
         loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
+          if (progress == null) {
+            // Image is fully loaded, start the timer
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _progressController == null) {
+                _startImageTimer();
+              }
+            });
+            return child;
+          }
           return const Center(child: CupertinoActivityIndicator());
         },
         errorBuilder: (_, __, ___) =>

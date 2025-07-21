@@ -35,7 +35,6 @@ import '../../generated/app_localizations.dart';
 import '../../utils/flag_colors.dart';
 import '../../utils/crypto_icon_map.dart';
 
-// Create a dedicated cache manager with smaller capacity for crypto icons
 class CryptoIconCacheManager extends CacheManager {
   static const key = 'cryptoIconCache';
 
@@ -51,8 +50,6 @@ class CryptoIconCacheManager extends CacheManager {
         ));
 }
 
-// Helper to detect if the web build is using CanvasKit or HTML renderer.
-// Flutter defines the compile-time env var FLUTTER_WEB_USE_SKIA=true for CanvasKit builds.
 const bool _isCanvasKit =
     bool.fromEnvironment('FLUTTER_WEB_USE_SKIA', defaultValue: false);
 bool get _supportsColorFilter => !kIsWeb || _isCanvasKit;
@@ -87,7 +84,7 @@ void showCustomErrorSnackBar(BuildContext context) {
         ).animate(curved),
         child: Material(
           elevation: 0,
-          color: const Color(0xFFD32F2F), // Red
+          color: const Color(0xFFD32F2F),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.0),
           ),
@@ -131,23 +128,65 @@ void showCustomErrorSnackBar(BuildContext context) {
 class AssetCard extends StatelessWidget {
   final models.Asset asset;
   final AssetType assetType;
-  // final double? height;
 
   AssetCard({
     super.key,
     required this.asset,
-    required this.assetType /*this.height*/,
+    required this.assetType,
   });
 
   final GlobalKey _cardKey = GlobalKey();
 
+  Future<ui.Image> _loadUiImageFromAsset(String assetPath,
+      {double? targetHeight}) async {
+    final byteData = await rootBundle.load(assetPath);
+    final codec = await ui.instantiateImageCodec(
+      byteData.buffer.asUint8List(),
+      targetHeight: targetHeight?.round(),
+    );
+    final frame = await codec.getNextFrame();
+    return frame.image;
+  }
+
   Future<void> _shareCardImage(BuildContext context) async {
-    RenderRepaintBoundary boundary =
-        _cardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 2.0);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    if (byteData != null) {
-      final pngBytes = byteData.buffer.asUint8List();
+    try {
+      final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+      final pixelRatio = math.max(3.0, devicePixelRatio * 1.5);
+      RenderRepaintBoundary boundary =
+          _cardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final cardImage = await boundary.toImage(pixelRatio: pixelRatio);
+      final cardByteData =
+          await cardImage.toByteData(format: ui.ImageByteFormat.png);
+      if (cardByteData == null) {
+        if (context.mounted) showCustomErrorSnackBar(context);
+        return;
+      }
+      // Load brand image and fit to card height
+      final brandImage = await _loadUiImageFromAsset('assets/images/brand.png',
+          targetHeight: cardImage.height.toDouble());
+      // Compose both images side by side
+      final combinedWidth = cardImage.width + brandImage.width;
+      final combinedHeight = cardImage.height;
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(
+          recorder,
+          ui.Rect.fromLTWH(
+              0, 0, combinedWidth.toDouble(), combinedHeight.toDouble()));
+      // Draw card
+      canvas.drawImage(cardImage, ui.Offset.zero, ui.Paint());
+      // Draw brand at right, top-aligned, no gap
+      canvas.drawImage(
+          brandImage, ui.Offset(cardImage.width.toDouble(), 0), ui.Paint());
+      final finalImage =
+          await recorder.endRecording().toImage(combinedWidth, combinedHeight);
+      final finalByteData =
+          await finalImage.toByteData(format: ui.ImageByteFormat.png);
+      if (finalByteData == null) {
+        if (context.mounted) showCustomErrorSnackBar(context);
+        return;
+      }
+      final pngBytes = finalByteData.buffer.asUint8List();
+      // Generate filename based on asset type
       String fileName = '';
       if (asset is models.CurrencyAsset) {
         fileName = (asset as models.CurrencyAsset).symbol.toLowerCase();
@@ -172,14 +211,8 @@ class AssetCard extends StatelessWidget {
         fileNameOverrides: [fileName],
         downloadFallbackEnabled: true,
       );
-      try {
-        await SharePlus.instance.share(params);
-      } catch (e) {
-        if (context.mounted) {
-          showCustomErrorSnackBar(context);
-        }
-      }
-    } else {
+      await SharePlus.instance.share(params);
+    } catch (e) {
       if (context.mounted) {
         showCustomErrorSnackBar(context);
       }
@@ -218,11 +251,9 @@ class AssetCard extends StatelessWidget {
         context.select<CardCornerSettingsNotifier, CardCornerSettings>(
             (notifier) => notifier.settings);
 
-    // Data for price conversion
     final priceConversionData =
         context.select<CurrencyDataNotifier, _PriceConversionRates>((notifier) {
       if (notifier.items.isEmpty) {
-        // Use the new const constructor
         return const _PriceConversionRates.defaultValues();
       }
       num usdRate = 0;
@@ -231,8 +262,6 @@ class AssetCard extends StatelessWidget {
         usdRate = notifier.items.firstWhere((c) => c.symbol == 'USD').price;
         eurRate = notifier.items.firstWhere((c) => c.symbol == 'EUR').price;
       } catch (e) {
-        // Handle case where USD/EUR might not be in the list, though unlikely for core function
-        // Use the new const constructor
         return const _PriceConversionRates.defaultValues();
       }
       return _PriceConversionRates(
@@ -249,20 +278,17 @@ class AssetCard extends StatelessWidget {
     } else if (asset is models.GoldAsset) {
       originalUnitSymbol = (asset as models.GoldAsset).unit;
     } else if (asset is models.CryptoAsset) {
-      originalUnitSymbol = "USD"; // Base currency for crypto prices from API
+      originalUnitSymbol = "USD";
       if (currencyUnit == CurrencyUnit.toman) {
-        // If target is Toman, and API provides priceToman, use it directly
         priceToConvert = num.tryParse(
               (asset as models.CryptoAsset).priceToman.replaceAll(',', ''),
             ) ??
-            asset.price; // Fallback to USD price if toman price parsing fails
-        originalUnitSymbol = "تومان"; // Now effectively dealing with Toman
+            asset.price;
+        originalUnitSymbol = "تومان";
       }
     } else if (asset is models.StockAsset) {
-      originalUnitSymbol = "ریال"; // Stocks are in Rial
-      priceToConvert = asset.price /
-          10; // Convert Rial to Toman for internal consistency if needed
-      // If currencyUnit is Toman, this is fine. If USD/EUR, further conversion happens below.
+      originalUnitSymbol = "ریال";
+      priceToConvert = asset.price / 10;
     }
 
     if (priceConversionData.ratesAvailable) {
@@ -474,7 +500,6 @@ class AssetCard extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
-            // This list cannot be const if stockColor is not const
             BoxShadow(
                 color: stockColor.withAlpha((255 * 0.5).round()),
                 blurRadius: 60,
@@ -485,7 +510,6 @@ class AssetCard extends StatelessWidget {
           radius: 15,
           backgroundColor: theme.colorScheme.surfaceContainerLow,
           child: Text(
-            // This Text cannot be const
             asset.symbol.substring(0, math.min(asset.symbol.length, 1)),
             style:
                 theme.textTheme.labelMedium?.copyWith(fontFamily: 'Vazirmatn'),
@@ -508,7 +532,6 @@ class AssetCard extends StatelessWidget {
       assetName = (asset as models.GoldAsset).nameEn;
     }
 
-    // Now wrap icon with semantics for alt text
     iconWidget = Semantics(label: assetName, child: iconWidget);
 
     bool hasPersianChars = containsPersian(assetName);
@@ -617,11 +640,9 @@ class AssetCard extends StatelessWidget {
                             children: currentLocale.languageCode == 'en'
                                 ? [
                                     Text(
-                                      // Dynamic
                                       '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
                                       style:
                                           theme.textTheme.bodySmall?.copyWith(
-                                        // Dynamic
                                         color: asset.changePercent! > 0
                                             ? accentColorGreen
                                             : asset.changePercent! < 0
@@ -632,7 +653,6 @@ class AssetCard extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Icon(
-                                      // Dynamic
                                       asset.changePercent! > 0
                                           ? CupertinoIcons.arrow_up_right
                                           : asset.changePercent! < 0
@@ -648,7 +668,6 @@ class AssetCard extends StatelessWidget {
                                   ]
                                 : [
                                     Icon(
-                                      // Dynamic
                                       asset.changePercent! > 0
                                           ? CupertinoIcons.arrow_up_right
                                           : asset.changePercent! < 0
@@ -663,11 +682,9 @@ class AssetCard extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      // Dynamic
                                       '${formatPercentage(asset.changePercent!, currentLocale.languageCode)}%',
                                       style:
                                           theme.textTheme.bodySmall?.copyWith(
-                                        // Dynamic
                                         color: asset.changePercent! > 0
                                             ? accentColorGreen
                                             : asset.changePercent! < 0
@@ -724,14 +741,12 @@ class AssetCard extends StatelessWidget {
                         duration: const Duration(milliseconds: 400),
                         curve: const Cubic(0.77, 0, 0.175, 1),
                         child: Text(
-                          // Dynamic
                           displayUnit,
                           style: theme.textTheme.labelMedium?.copyWith(
-                            // Dynamic
                             color: theme.colorScheme.onSurfaceVariant,
                             fontFamily: containsPersian(displayUnit)
                                 ? 'Vazirmatn'
-                                : 'SF-Pro', // Dynamic
+                                : 'SF-Pro',
                           ),
                           textAlign: currentLocale.languageCode == 'en'
                               ? TextAlign.left
@@ -824,7 +839,6 @@ class _PriceConversionRates extends Equatable {
   @override
   List<Object?> get props => [usdToToman, eurToToman, ratesAvailable];
 
-  // Added const constructor for potential optimization if an instance with default values is frequently used.
   const _PriceConversionRates.defaultValues()
       : usdToToman = 0,
         eurToToman = 0,

@@ -74,8 +74,6 @@ class HomeScreenState extends State<HomeScreen>
 
   /// Whether the app is running as desktop web.
   bool _isDesktopWeb = false;
-  // Whether the full-screen advertisement has been displayed in this session.
-  bool _adShown = false;
   AlertProvider? _alertProvider;
 
   /// Tap count for Easter egg activation.
@@ -125,7 +123,7 @@ class HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _alertProvider = Provider.of<AlertProvider>(context, listen: false);
-      _alertProvider!.addListener(_attemptShowAd);
+      _alertProvider!.addListener(() => _attemptShowAd());
       _attemptShowAd();
     });
   }
@@ -246,20 +244,22 @@ class HomeScreenState extends State<HomeScreen>
   }
 
   /// Attempts to show the full-screen advertisement if it should be visible.
-  void _attemptShowAd() {
-    if (_adShown || !mounted) return;
+  Future<void> _attemptShowAd() async {
+    if (!mounted) return;
 
     final adInfo = _alertProvider?.alert?.ad;
     if (adInfo == null || !adInfo.enabled) return;
+
     // Determine native mobile vs desktop (exclude web)
     final isMobileNative = !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
-    final entries = adInfo.entriesForDevice(isMobileNative);
-    if (entries.isEmpty) return;
-    final entry = entries[Random().nextInt(entries.length)];
 
-    _adShown = true;
+    // Get available ads that respect repeat limits
+    final availableAds = await _alertProvider!.getAvailableAds(isMobileNative);
+    if (!mounted || availableAds.isEmpty) return;
+
+    final entry = availableAds[Random().nextInt(availableAds.length)];
 
     Navigator.of(context).push(
       PageRouteBuilder(

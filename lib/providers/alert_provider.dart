@@ -16,6 +16,9 @@ class AlertProvider extends ChangeNotifier {
   static const String _dismissedAlertIdentifierKey =
       'dismissed_alert_identifier';
 
+  /// Key for storing ad view counts by idAd
+  static const String _adViewCountsKey = 'ad_view_counts';
+
   /// Generates a unique identifier string for the given alert.
   String _getAlertIdentifier(Alert alert) {
     return '${alert.color}::${alert.en.title}::${alert.en.description}::${alert.fa.title}::${alert.fa.description}';
@@ -46,7 +49,6 @@ class AlertProvider extends ChangeNotifier {
       }
     } catch (e) {
       // Silently fail as this feature is non-critical.
-      debugPrint('Failed to fetch alert: $e');
     }
   }
 
@@ -60,5 +62,75 @@ class AlertProvider extends ChangeNotifier {
 
     _isVisible = false;
     notifyListeners();
+  }
+
+  /// Records that an ad with the given idAd has been viewed.
+  Future<void> recordAdView(String idAd) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final viewCountsJson = prefs.getString(_adViewCountsKey) ?? '{}';
+      final Map<String, dynamic> viewCounts = json.decode(viewCountsJson);
+
+      final currentCount = viewCounts[idAd] ?? 0;
+      viewCounts[idAd] = currentCount + 1;
+
+      await prefs.setString(_adViewCountsKey, json.encode(viewCounts));
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
+  /// Gets the current view count for an ad with the given idAd.
+  Future<int> getAdViewCount(String idAd) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final viewCountsJson = prefs.getString(_adViewCountsKey) ?? '{}';
+      final Map<String, dynamic> viewCounts = json.decode(viewCountsJson);
+      return viewCounts[idAd] ?? 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /// Checks if an ad can be shown based on its repeat limit.
+  Future<bool> canShowAd(AdEntry adEntry) async {
+    // If repeatCount is null, it means infinite (no limit)
+    if (adEntry.repeatCount == null) {
+      return true;
+    }
+
+    // If repeatCount is 0, never show
+    if (adEntry.repeatCount == 0) {
+      return false;
+    }
+
+    final currentViews = await getAdViewCount(adEntry.id);
+    return currentViews < adEntry.repeatCount!;
+  }
+
+  /// Gets available ads that can be shown based on repeat limits.
+  Future<List<AdEntry>> getAvailableAds(bool isMobileDevice) async {
+    if (_alert?.ad == null || !_alert!.ad!.enabled) {
+      return [];
+    }
+
+    final availableAds = <AdEntry>[];
+    for (final adEntry in _alert!.ad!.entriesForDevice(isMobileDevice)) {
+      if (await canShowAd(adEntry)) {
+        availableAds.add(adEntry);
+      }
+    }
+
+    return availableAds;
+  }
+
+  /// Clears all ad view counts (useful for testing or reset).
+  Future<void> clearAdViewCounts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_adViewCountsKey);
+    } catch (e) {
+      // Silent fail
+    }
   }
 }
