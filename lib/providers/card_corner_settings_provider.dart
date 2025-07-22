@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../config/app_config.dart'; // To get initial default values
+import '../../config/app_config.dart';
 
 /// Defines radius and smoothness for card corners.
 class CardCornerSettings {

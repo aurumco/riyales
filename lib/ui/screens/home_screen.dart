@@ -39,6 +39,7 @@ import '../../services/analytics_service.dart';
 import '../../services/connection_service.dart';
 import '../../providers/alert_provider.dart';
 import 'ad_screen.dart';
+import '../../utils/version_utils.dart';
 
 /// The main application screen with asset tabs, search, and settings.
 class HomeScreen extends StatefulWidget {
@@ -80,6 +81,9 @@ class HomeScreenState extends State<HomeScreen>
   int _titleTapCount = 0;
   DateTime? _firstTitleTapTime;
 
+  /// Whether an update is available.
+  bool _updateAvailable = false;
+
   /// Sets up a scroll listener for the specified tab index.
   void _setupScrollListener(int tabIndex) {
     if (_tabScrollListeners.containsKey(tabIndex)) {
@@ -118,6 +122,7 @@ class HomeScreenState extends State<HomeScreen>
     _checkDeviceType();
     _startAutoRefreshTimer();
     _scheduleOnboarding();
+    _checkForUpdates();
 
     // Listen for alert updates to trigger ad display.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -625,19 +630,35 @@ class HomeScreenState extends State<HomeScreen>
             builder: (context, isSearchActive, child) {
               return GestureDetector(
                 onTap: () => _handleSettingsButtonPressed(isSearchActive),
-                child: child,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Icon(
+                        CupertinoIcons.person_crop_circle,
+                        size: 26,
+                        color: iconColor,
+                        weight: iconWeight,
+                      ),
+                    ),
+                    if (_updateAvailable)
+                      Positioned(
+                        top: 3,
+                        right: 3,
+                        child: Container(
+                          width: 11,
+                          height: 11,
+                          decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 228, 25, 42),
+                              shape: BoxShape.circle),
+                        ),
+                      ),
+                  ],
+                ),
               );
             },
-            child: SizedBox(
-              width: 40,
-              height: 40,
-              child: Icon(
-                CupertinoIcons.person_crop_circle,
-                size: 26,
-                color: iconColor,
-                weight: iconWeight,
-              ),
-            ),
           ),
         ),
       ),
@@ -1356,6 +1377,18 @@ class HomeScreenState extends State<HomeScreen>
       if (!show) {
         context.read<SearchQueryNotifier>().query = '';
       }
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    final appConfig = Provider.of<AppConfig>(context, listen: false);
+    final remoteVersion = appConfig.updateInfo.latestVersion;
+    final isUpdateAvailable =
+        await VersionUtils().isUpdateAvailable(remoteVersion);
+    if (mounted && isUpdateAvailable) {
+      setState(() {
+        _updateAvailable = true;
+      });
     }
   }
 }

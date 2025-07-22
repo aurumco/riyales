@@ -539,6 +539,8 @@ class UpdateInfoConfig extends Equatable {
   final String updateMode;
   final String updatePackage;
   final String updateLink;
+  final bool updateForce;
+  final String updateForceVersion;
 
   const UpdateInfoConfig({
     required this.latestVersion,
@@ -548,6 +550,8 @@ class UpdateInfoConfig extends Equatable {
     required this.updateMode,
     required this.updatePackage,
     required this.updateLink,
+    required this.updateForce,
+    required this.updateForceVersion,
   });
 
   factory UpdateInfoConfig.fromJson(Map<String, dynamic> json) {
@@ -560,6 +564,9 @@ class UpdateInfoConfig extends Equatable {
       updateMode: json['update_mode'] as String? ?? 'url',
       updatePackage: json['update_package'] as String? ?? 'ir.ryls',
       updateLink: json['update_link'] as String? ?? 'https://dl.ryls.ir/',
+      updateForce:
+          json['update_force'] == true || json['update_force'] == 'true',
+      updateForceVersion: json['update_force_version'] as String? ?? '',
     );
   }
 
@@ -572,6 +579,8 @@ class UpdateInfoConfig extends Equatable {
       updateMode: 'url',
       updatePackage: 'ir.ryls',
       updateLink: 'https://dl.ryls.ir/',
+      updateForce: false,
+      updateForceVersion: '',
     );
   }
 
@@ -584,5 +593,7 @@ class UpdateInfoConfig extends Equatable {
         updateMode,
         updatePackage,
         updateLink,
+        updateForce,
+        updateForceVersion,
       ];
 }

@@ -414,14 +414,29 @@ class _SettingsSheetState extends State<SettingsSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            updateButtonText,
-            style: TextStyle(
-              fontFamily: locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
-              fontSize: 17,
-              fontWeight: FontWeight.normal,
-              color: isDarkMode ? Colors.white : Colors.black,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                updateButtonText,
+                style: TextStyle(
+                  fontFamily:
+                      locale.languageCode == 'fa' ? 'Vazirmatn' : 'SF-Pro',
+                  fontSize: 17,
+                  fontWeight: FontWeight.normal,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 250, 44, 61),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
           ),
           Icon(
             locale.languageCode == 'fa'

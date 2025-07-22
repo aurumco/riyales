@@ -42,6 +42,8 @@ import './services/connection_service.dart';
 
 // Localization
 import './localization/l10n_utils.dart';
+import 'ui/widgets/common/force_update_blocker.dart';
+import 'utils/version_utils.dart';
 
 /// Determines the initial locale based on platform conventions.
 Locale getInitialLocale() {
@@ -294,7 +296,32 @@ class RiyalesApp extends StatelessWidget {
           locale: localeNotifier.locale,
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: SplashScreen(config: appConfig.splashScreen),
+          home: Builder(
+            builder: (context) {
+              // Block app if force update is required
+              final updateInfo = appConfig.updateInfo;
+              final force = updateInfo.updateForce;
+              final forceVersion = updateInfo.updateForceVersion;
+              return FutureBuilder<String>(
+                future: VersionUtils().getCurrentVersion(),
+                builder: (context, snapshot) {
+                  if (force && forceVersion.isNotEmpty && snapshot.hasData) {
+                    final cmp = VersionUtils()
+                        .compareVersions(forceVersion, snapshot.data!);
+                    if (cmp > 0) {
+                      // forceVersion > currentVersion
+                      return Scaffold(
+                        appBar: AppBar(),
+                        body: const ForceUpdateBlocker(),
+                      );
+                    }
+                  }
+                  // Normal app flow
+                  return SplashScreen(config: appConfig.splashScreen);
+                },
+              );
+            },
+          ),
           builder: (context, child) {
             // Update status bar style based on current theme
             final isDark = Theme.of(context).brightness == Brightness.dark;
