@@ -151,8 +151,6 @@ class _AdScreenState extends State<AdScreen>
 
         if (mounted) setState(() => _mediaReady = true);
       } else {
-        // For images, we'll set mediaReady to true after the image is actually loaded
-        // The timer will be started in the image loading callback
         if (mounted) setState(() => _mediaReady = true);
       }
     } catch (e) {
@@ -387,9 +385,7 @@ class _AdScreenState extends State<AdScreen>
     final screenWidth = mq.size.width;
     final screenHeight = mq.size.height;
 
-    // Account for margins: top + bottom margins
-    final totalMargins =
-        _isVideo ? 39.0 : 37.0; // 10+29 for video, 9+28 for image
+    final totalMargins = _isVideo ? 39.0 : 37.0;
     final availableHeight = screenHeight - totalMargins;
 
     // Calculate max width based on aspect ratio and available height
@@ -400,11 +396,9 @@ class _AdScreenState extends State<AdScreen>
       final aspectRatio = _videoController!.value.aspectRatio;
       maxWidth = availableHeight * aspectRatio;
     } else {
-      // For images, assume a reasonable aspect ratio (most ads are 9:16 or similar)
-      maxWidth = availableHeight * (9 / 16); // 9:16 aspect ratio
+      maxWidth = availableHeight * (9 / 16);
     }
 
-    // Limit to 60% of screen width or 450px max, but don't exceed available width
     final limitedWidth = (screenWidth * 0.6).clamp(320.0, 450.0);
     return maxWidth.clamp(320.0, limitedWidth);
   }

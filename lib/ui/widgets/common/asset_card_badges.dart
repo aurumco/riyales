@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 // Local imports
 import 'package:riyales/ui/widgets/asset_list_page.dart';
@@ -49,6 +51,15 @@ class AssetCardBadges extends StatelessWidget {
 
     // Build symbol badge
     Widget? symbolBadgeInnerWidget;
+    final isDesktop = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600 && screenWidth < 900;
+    final isWideScreen = screenWidth >= 900;
+    final bool useSmallDesktopText =
+        isDesktop && (isTablet || isWideScreen) || isTablet;
     if (assetType == AssetType.currency || assetType == AssetType.gold) {
       symbolBadgeInnerWidget = Container(
         height: 16,
@@ -65,7 +76,7 @@ class AssetCardBadges extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'CourierPrime',
             fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontWeight: useSmallDesktopText ? FontWeight.w500 : FontWeight.w600,
             color: isDarkMode
                 ? tealGreen.withAlpha(230)
                 : theme.colorScheme.onSecondaryContainer,

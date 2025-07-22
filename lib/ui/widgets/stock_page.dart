@@ -458,15 +458,27 @@ class StockPageState extends State<StockPage>
                 ? hexToColor(themeConfig.accentColorGreen).withAlpha(230)
                 : Theme.of(context).colorScheme.onSecondaryContainer;
 
+            final isDesktop = kIsWeb ||
+                defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.windows ||
+                defaultTargetPlatform == TargetPlatform.linux;
+            final screenWidth = MediaQuery.of(context).size.width;
+            final isTablet = screenWidth >= 600 && screenWidth < 900;
+            final isWideScreen = screenWidth >= 900;
+            final bool useSmallDesktopText =
+                isDesktop && (isTablet || isWideScreen) || isTablet;
+
             final selectedTextStyle = TextStyle(
               color: segmentActiveTextColor,
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight:
+                  useSmallDesktopText ? FontWeight.w500 : FontWeight.w600,
             );
             final unselectedTextStyle = TextStyle(
               color: Theme.of(context).textTheme.bodyLarge?.color,
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight:
+                  useSmallDesktopText ? FontWeight.w500 : FontWeight.w600,
             );
 
             return Row(

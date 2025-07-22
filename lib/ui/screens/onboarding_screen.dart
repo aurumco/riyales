@@ -113,12 +113,12 @@ class OnboardingScreen extends StatelessWidget {
               description: buildText(
                   'با یک ضربه روی تَب فعلی، لیست به ابتدای صفحه اسکرول می‌شود.'),
             ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.sort_down, color: tealGreen),
-              title: buildText('مرتب‌سازی هوشمند'),
-              description: buildText(
-                  'برای مرتب کردن بر اساس قیمت، انگشت خود را روی تَب فعلی نگه دارید.'),
-            ),
+            // WhatsNewFeature(
+            //   icon: Icon(CupertinoIcons.sort_down, color: tealGreen),
+            //   title: buildText('مرتب‌سازی هوشمند'),
+            //   description: buildText(
+            //       'برای مرتب کردن بر اساس قیمت، انگشت خود را روی تَب فعلی نگه دارید.'),
+            // ),
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.person_circle, color: tealGreen),
               title: buildText('تنظیمات سریع'),
@@ -145,12 +145,12 @@ class OnboardingScreen extends StatelessWidget {
               description: buildText(
                   'Tap the active tab again to instantly scroll back to top.'),
             ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.sort_down, color: tealGreen),
-              title: buildText('Smart Sorting'),
-              description: buildText(
-                  'Long-press the active tab to sort prices high-to-low or low-to-high.'),
-            ),
+            // WhatsNewFeature(
+            //   icon: Icon(CupertinoIcons.sort_down, color: tealGreen),
+            //   title: buildText('Smart Sorting'),
+            //   description: buildText(
+            //       'Long-press the active tab to sort prices high-to-low or low-to-high.'),
+            // ),
             WhatsNewFeature(
               icon: Icon(CupertinoIcons.person_circle, color: tealGreen),
               title: buildText('Quick Settings'),

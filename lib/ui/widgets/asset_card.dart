@@ -11,7 +11,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import 'package:seo/seo.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -68,8 +71,8 @@ void showCustomErrorSnackBar(BuildContext context) {
   final locale = Localizations.localeOf(context);
   final isRTL = locale.languageCode == 'fa';
   final message = isRTL
-      ? 'خطا در تولید یا اشتراک‌گذاری تصویر کارت'
-      : 'Failed to generate or share card image';
+      ? 'خطا در تولید یا اشتراک‌گذاری تصویر کارت.'
+      : 'Failed to generate or share card image.';
 
   late OverlayEntry entry;
   entry = OverlayEntry(builder: (context) {
@@ -84,7 +87,7 @@ void showCustomErrorSnackBar(BuildContext context) {
         ).animate(curved),
         child: Material(
           elevation: 0,
-          color: const Color(0xFFD32F2F),
+          color: const ui.Color.fromARGB(255, 247, 37, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.0),
           ),
@@ -164,19 +167,21 @@ class AssetCard extends StatelessWidget {
       // Load brand image and fit to card height
       final brandImage = await _loadUiImageFromAsset('assets/images/brand.png',
           targetHeight: cardImage.height.toDouble());
-      // Compose both images side by side
-      final combinedWidth = cardImage.width + brandImage.width;
-      final combinedHeight = cardImage.height;
+      // Add padding
+      const int padding = 30;
+      final combinedWidth = cardImage.width + brandImage.width + 2 * padding;
+      final combinedHeight = cardImage.height + 2 * padding;
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(
           recorder,
           ui.Rect.fromLTWH(
               0, 0, combinedWidth.toDouble(), combinedHeight.toDouble()));
-      // Draw card
-      canvas.drawImage(cardImage, ui.Offset.zero, ui.Paint());
-      // Draw brand at right, top-aligned, no gap
+      canvas.drawImage(cardImage,
+          ui.Offset(padding.toDouble(), padding.toDouble()), ui.Paint());
       canvas.drawImage(
-          brandImage, ui.Offset(cardImage.width.toDouble(), 0), ui.Paint());
+          brandImage,
+          ui.Offset((padding + cardImage.width).toDouble(), padding.toDouble()),
+          ui.Paint());
       final finalImage =
           await recorder.endRecording().toImage(combinedWidth, combinedHeight);
       final finalByteData =
@@ -202,21 +207,111 @@ class AssetCard extends StatelessWidget {
       }
       fileName = fileName.isNotEmpty ? fileName : 'asset_card';
       fileName += '.png';
-      final xFile = XFile.fromData(
-        pngBytes,
-        mimeType: 'image/png',
-      );
-      final params = ShareParams(
-        files: [xFile],
-        fileNameOverrides: [fileName],
-        downloadFallbackEnabled: true,
-      );
-      await SharePlus.instance.share(params);
+
+      // Platform-specific sharing/saving
+      if (kIsWeb ||
+          defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS) {
+        final xFile = XFile.fromData(
+          pngBytes,
+          mimeType: 'image/png',
+        );
+        final params = ShareParams(
+          files: [xFile],
+          fileNameOverrides: [fileName],
+          downloadFallbackEnabled: true,
+        );
+        await SharePlus.instance.share(params);
+      } else if (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        // Save to Downloads folder
+        try {
+          final downloadsDir = await getDownloadsDirectory();
+          if (downloadsDir == null) {
+            throw Exception('Downloads directory not found');
+          }
+          final file = File('${downloadsDir.path}/$fileName');
+          await file.writeAsBytes(pngBytes);
+          if (context.mounted) {
+            _showCustomSuccessSnackBar(context, fileName);
+          }
+        } catch (e) {
+          if (context.mounted) showCustomErrorSnackBar(context);
+        }
+      }
     } catch (e) {
       if (context.mounted) {
         showCustomErrorSnackBar(context);
       }
     }
+  }
+
+  void _showCustomSuccessSnackBar(BuildContext context, String fileName) {
+    final overlay = Overlay.of(context);
+    final controller = AnimationController(
+      vsync: Navigator.of(context),
+      duration: const Duration(milliseconds: 180),
+    );
+    final curved = CurvedAnimation(
+      parent: controller,
+      curve: Curves.easeInOut,
+    );
+    final locale = Localizations.localeOf(context);
+    final isRTL = locale.languageCode == 'fa';
+    final message = isRTL
+        ? 'تصویر کارت با موفقیت در پوشه Downloads ذخیره شد.'
+        : 'Card image saved to Downloads folder.';
+    late OverlayEntry entry;
+    entry = OverlayEntry(builder: (context) {
+      return Positioned(
+        bottom: 10,
+        left: 10,
+        right: 10,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(curved),
+          child: Material(
+            elevation: 0,
+            color: const ui.Color.fromARGB(255, 39, 197, 73),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+                children: [
+                  const Icon(CupertinoIcons.checkmark_alt_circle_fill,
+                      color: Colors.white, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+                        color: Colors.white,
+                      ),
+                      textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+    overlay.insert(entry);
+    controller.forward();
+    Future.delayed(const Duration(seconds: 4), () async {
+      await controller.reverse();
+      entry.remove();
+      controller.dispose();
+    });
   }
 
   @override
@@ -542,6 +637,16 @@ class AssetCard extends StatelessWidget {
         ? hexToColor(themeConfig.accentColorRed)
         : hexToColor(themeConfig.accentColorRed);
 
+    final isDesktop = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600 && screenWidth < 900;
+    final isWideScreen = screenWidth >= 900;
+    final bool useSmallDesktopText =
+        isDesktop && (isTablet || isWideScreen) || isTablet;
+
     return GestureDetector(
       onTap: () {
         AnalyticsService.instance.logEvent('card_tap', {
@@ -604,12 +709,15 @@ class AssetCard extends StatelessWidget {
                               child: AutoSizeText(
                                 assetName,
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: useSmallDesktopText
+                                      ? FontWeight.w600
+                                      : FontWeight.bold,
+                                  fontSize: useSmallDesktopText ? 13 : 16,
                                   fontFamily: nameFontFamily,
                                 ),
                                 maxLines: 1,
-                                minFontSize: 14,
-                                maxFontSize: 17,
+                                minFontSize: useSmallDesktopText ? 11 : 14,
+                                maxFontSize: useSmallDesktopText ? 14 : 17,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.right,
                               ),
@@ -648,7 +756,10 @@ class AssetCard extends StatelessWidget {
                                             : asset.changePercent! < 0
                                                 ? accentColorRed
                                                 : Colors.grey,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: useSmallDesktopText
+                                            ? FontWeight.w400
+                                            : FontWeight.bold,
+                                        fontSize: useSmallDesktopText ? 11 : 12,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -690,7 +801,10 @@ class AssetCard extends StatelessWidget {
                                             : asset.changePercent! < 0
                                                 ? accentColorRed
                                                 : Colors.grey,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: useSmallDesktopText
+                                            ? FontWeight.w400
+                                            : FontWeight.bold,
+                                        fontSize: useSmallDesktopText ? 11 : 12,
                                       ),
                                     ),
                                   ],
@@ -716,14 +830,17 @@ class AssetCard extends StatelessWidget {
                               child: AutoSizeText(
                                 priceText,
                                 style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: useSmallDesktopText
+                                      ? FontWeight.w600
+                                      : FontWeight.bold,
+                                  fontSize: useSmallDesktopText ? 17 : 24,
                                   fontFamily: containsPersian(priceText)
                                       ? 'Vazirmatn'
                                       : 'SF-Pro',
                                 ),
                                 maxLines: 1,
-                                minFontSize: 18,
-                                maxFontSize: 28,
+                                minFontSize: useSmallDesktopText ? 13 : 18,
+                                maxFontSize: useSmallDesktopText ? 18 : 28,
                                 stepGranularity: 0.1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: currentLocale.languageCode == 'en'
@@ -744,6 +861,10 @@ class AssetCard extends StatelessWidget {
                           displayUnit,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: useSmallDesktopText
+                                ? FontWeight.w400
+                                : FontWeight.w500,
+                            fontSize: useSmallDesktopText ? 11 : 12,
                             fontFamily: containsPersian(displayUnit)
                                 ? 'Vazirmatn'
                                 : 'SF-Pro',

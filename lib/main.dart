@@ -46,10 +46,11 @@ import './localization/l10n_utils.dart';
 /// Determines the initial locale based on platform conventions.
 Locale getInitialLocale() {
   final platform = defaultTargetPlatform;
-  if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
-    return const Locale('en');
+  if (platform == TargetPlatform.android ||
+      platform == TargetPlatform.windows) {
+    return const Locale('fa');
   }
-  return const Locale('fa');
+  return const Locale('en');
 }
 
 /// Application entry point.
@@ -266,6 +267,7 @@ class RiyalesApp extends StatelessWidget {
           : appConfig.fonts.englishFontFamily,
       localeNotifier.locale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest',
       false,
+      context: context,
     );
 
     final darkTheme = ui_theme_pkg.AppTheme.getThemeData(
@@ -275,6 +277,7 @@ class RiyalesApp extends StatelessWidget {
           : appConfig.fonts.englishFontFamily,
       localeNotifier.locale.languageCode == 'fa' ? 'Vazirmatn' : 'Onest',
       true,
+      context: context,
     );
 
     return Theme(

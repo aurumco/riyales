@@ -86,9 +86,16 @@ class AppTheme {
     );
   }
 
+  // Add a helper function to determine if device is tablet/desktop
+  static bool isTabletOrDesktop(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return width >= 600;
+  }
+
   /// Returns [ThemeData] configured from [themeConfig], using [fontFamily] for text and [isDarkMode].
   static ThemeData getThemeData(ThemeConfig themeConfig, String fontFamily,
-      String defaultFontFamilyForThemeTitle, bool isDarkMode) {
+      String defaultFontFamilyForThemeTitle, bool isDarkMode,
+      {BuildContext? context}) {
     final primaryColor = hexToColor(themeConfig.primaryColor);
     final scaffoldBackgroundColor =
         hexToColor(themeConfig.scaffoldBackgroundColor);
@@ -107,6 +114,12 @@ class AppTheme {
 
     final textTheme = _createTextTheme(fontFamily, textColor);
 
+    // Determine app bar title fontWeight based on context (mobile vs tablet/desktop)
+    FontWeight appBarTitleWeight = FontWeight.w500;
+    if (context != null && !isTabletOrDesktop(context)) {
+      appBarTitleWeight = FontWeight.w600;
+    }
+
     return ThemeData(
       brightness: isDarkMode ? Brightness.dark : Brightness.light,
       primaryColor: primaryColor,
@@ -118,7 +131,7 @@ class AppTheme {
         titleTextStyle: TextStyle(
           fontFamily: defaultFontFamilyForThemeTitle,
           fontSize: 22,
-          fontWeight: FontWeight.w600,
+          fontWeight: appBarTitleWeight,
           color: textColor,
         ),
         systemOverlayStyle: SystemUiOverlayStyle(

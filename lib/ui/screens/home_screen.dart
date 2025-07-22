@@ -381,16 +381,23 @@ class HomeScreenState extends State<HomeScreen>
         ? tealGreen.withAlpha((255 * 0.9).round())
         : Theme.of(context).colorScheme.onSecondaryContainer;
     final screenWidth = MediaQuery.of(context).size.width;
-    final tabFontSize = screenWidth < 360 ? 12.0 : 14.0;
+    final isDesktop = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+    final isWideScreen = MediaQuery.of(context).size.width >= 900;
+    final bool useSmallDesktopText = isDesktop && isWideScreen;
+    final tabFontSize =
+        screenWidth < 360 ? 12.0 : (useSmallDesktopText ? 13.0 : 14.0);
 
     final selectedTextStyle = TextStyle(
         color: segmentActiveTextColor,
         fontSize: tabFontSize,
-        fontWeight: FontWeight.w600);
+        fontWeight: useSmallDesktopText ? FontWeight.w500 : FontWeight.w600);
     final unselectedTextStyle = TextStyle(
         color: Theme.of(context).textTheme.bodyLarge?.color,
         fontSize: tabFontSize,
-        fontWeight: FontWeight.w600);
+        fontWeight: useSmallDesktopText ? FontWeight.w400 : FontWeight.w600);
 
     final mainTabViews = _buildTabViews(topPadding);
 
@@ -556,6 +563,19 @@ class HomeScreenState extends State<HomeScreen>
   /// Builds the app bar actions (search and settings buttons).
   List<Widget> _buildAppBarActions(
       bool isDarkMode, LocaleNotifier localeNotifier) {
+    final isDesktop = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600 && screenWidth < 900;
+    final isWideScreen = screenWidth >= 900;
+    final bool useSmallDesktopText =
+        isDesktop && (isTablet || isWideScreen) || isTablet;
+    final iconWeight = useSmallDesktopText ? 1.0 : 1.5;
+    final iconColor = _showSearchBarNotifier.value
+        ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
+        : (isDarkMode ? Colors.white : Colors.black);
     return [
       AnimatedAlign(
         alignment: localeNotifier.locale.languageCode == 'fa'
@@ -569,10 +589,9 @@ class HomeScreenState extends State<HomeScreen>
             final icon = Icon(
               isSearchActive ? CupertinoIcons.clear : CupertinoIcons.search,
               key: ValueKey<bool>(isSearchActive),
-              color: _showSearchBarNotifier.value
-                  ? (isDarkMode ? Colors.grey[400] : Colors.grey[600])
-                  : (isDarkMode ? Colors.white : Colors.black),
-              size: 28,
+              color: iconColor,
+              size: 26,
+              weight: iconWeight,
             );
 
             return IconButton(
@@ -609,10 +628,15 @@ class HomeScreenState extends State<HomeScreen>
                 child: child,
               );
             },
-            child: const SizedBox(
+            child: SizedBox(
               width: 40,
               height: 40,
-              child: Icon(CupertinoIcons.person_crop_circle, size: 28),
+              child: Icon(
+                CupertinoIcons.person_crop_circle,
+                size: 26,
+                color: iconColor,
+                weight: iconWeight,
+              ),
             ),
           ),
         ),
@@ -923,6 +947,12 @@ class HomeScreenState extends State<HomeScreen>
   /// Builds the navigation rail for desktop layout.
   NavigationRail _buildNavigationRail(
       AppLocalizations l10n, bool isDarkMode, Color tealGreen, bool isRTL) {
+    final isDesktop = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux;
+    final isWideScreen = MediaQuery.of(context).size.width >= 900;
+    final bool useSmallDesktopText = isDesktop && isWideScreen;
     return NavigationRail(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       indicatorColor: isDarkMode
@@ -939,8 +969,9 @@ class HomeScreenState extends State<HomeScreen>
       ),
       selectedLabelTextStyle: TextStyle(
         color: isDarkMode ? tealGreen.withAlpha(230) : tealGreen.withAlpha(430),
-        fontWeight: FontWeight.w500,
+        fontWeight: useSmallDesktopText ? FontWeight.w400 : FontWeight.w500,
         fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+        fontSize: useSmallDesktopText ? 13 : null,
       ),
       unselectedIconTheme: IconThemeData(
         color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
@@ -948,8 +979,9 @@ class HomeScreenState extends State<HomeScreen>
       ),
       unselectedLabelTextStyle: TextStyle(
         color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
-        fontWeight: FontWeight.w500,
+        fontWeight: useSmallDesktopText ? FontWeight.w400 : FontWeight.w500,
         fontFamily: isRTL ? 'Vazirmatn' : 'SF-Pro',
+        fontSize: useSmallDesktopText ? 13 : null,
       ),
       selectedIndex: _tabController.index,
       onDestinationSelected: (index) =>
