@@ -203,7 +203,7 @@ abstract class AppLocalizations {
   /// Label for theme settings
   ///
   /// In en, this message translates to:
-  /// **'App Theme'**
+  /// **'Dark Theme'**
   String get settingsTheme;
 
   /// Label for light theme option
@@ -319,6 +319,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update Available'**
   String get settingsUpdateAvailable;
+
+  /// Message shown when the app is using the fallback configuration (e.g., failed to load remote config).
+  ///
+  /// In en, this message translates to:
+  /// **'App configuration is using fallback.'**
+  String get fallbackAppConfigMessage;
+
+  /// Error message shown when card image generation or sharing fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate or share card image.'**
+  String get error_image_generation_or_sharing;
+
+  /// Message shown when a card image is successfully saved to the Downloads folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Card image saved to Downloads folder.'**
+  String get card_image_saved_to_downloads;
+
+  /// Title for the sort options dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort By'**
+  String get sortBy;
+
+  /// Label for the default sort option.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get sortDefault;
+
+  /// Label for the highest price sort option.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest Price'**
+  String get sortHighestPrice;
+
+  /// Label for the lowest price sort option.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest Price'**
+  String get sortLowestPrice;
+
+  /// Label for the cancel button in the sort dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get sortCancel;
+
+  /// Easter egg message shown in English when the app title is tapped multiple times.
+  ///
+  /// In en, this message translates to:
+  /// **'By order of Aurum Co.'**
+  String get easterEggMessageEn;
+
+  /// Easter egg message shown in Farsi when the app title is tapped multiple times.
+  ///
+  /// In en, this message translates to:
+  /// **'به دستور شرکت ارتباطات و راهکارهای مانا.'**
+  String get easterEggMessageFa;
+
+  /// Onboarding: Title for what's new section.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s New'**
+  String get onboardingWhatsNew;
+
+  /// Onboarding: 'in' for 'What's New in Riyales'.
+  ///
+  /// In en, this message translates to:
+  /// **'in'**
+  String get onboardingIn;
+
+  /// Onboarding: App name for title.
+  ///
+  /// In en, this message translates to:
+  /// **'Riyales'**
+  String get onboardingAppName;
+
+  /// Onboarding: Quick Pin feature title.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Pin'**
+  String get onboardingQuickPin;
+
+  /// Onboarding: Quick Pin feature description.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap any asset card to pin or unpin it.'**
+  String get onboardingQuickPinDesc;
+
+  /// Onboarding: Share Card feature title.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Card'**
+  String get onboardingShareCard;
+
+  /// Onboarding: Share Card feature description.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press any asset card to share its image.'**
+  String get onboardingShareCardDesc;
+
+  /// Onboarding: Scroll to Top feature title.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to Top'**
+  String get onboardingScrollToTop;
+
+  /// Onboarding: Scroll to Top feature description.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the active tab again to instantly scroll back to top.'**
+  String get onboardingScrollToTopDesc;
+
+  /// Onboarding: Quick Settings feature title.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Settings'**
+  String get onboardingQuickSettings;
+
+  /// Onboarding: Quick Settings feature description.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the profile icon to adjust language, theme, and more.'**
+  String get onboardingQuickSettingsDesc;
+
+  /// Onboarding: Terms acceptance text.
+  ///
+  /// In en, this message translates to:
+  /// **'By using the app you accept the Terms of Service'**
+  String get onboardingTermsAccept;
+
+  /// Onboarding: Continue button label.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get onboardingContinue;
+
+  /// Terms screen: Error message when loading fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading data.'**
+  String get termsErrorLoading;
+
+  /// Terms screen: Last updated label. {date} is the date string.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated: {date}'**
+  String termsLastUpdated(String date);
+
+  /// Subject for support email in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Support Request'**
+  String get supportEmailSubject;
+
+  /// Body for support email in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello,\n\nPlease assist me with...'**
+  String get supportEmailBody;
+
+  /// Subject for support email in Farsi.
+  ///
+  /// In en, this message translates to:
+  /// **'درخواست پشتیبانی'**
+  String get supportEmailSubjectFa;
+
+  /// Body for support email in Farsi.
+  ///
+  /// In en, this message translates to:
+  /// **'سلام،\n\nلطفاً به من در مورد...'**
+  String get supportEmailBodyFa;
+
+  /// Title for the force update screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Mandatory Update'**
+  String get forceUpdateTitle;
+
+  /// Message for the force update screen.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of the app is required.\nThis version is no longer supported.'**
+  String get forceUpdateMessage;
+
+  /// Button label for updating from market.
+  ///
+  /// In en, this message translates to:
+  /// **'Update from Market'**
+  String get forceUpdateMarketBtn;
+
+  /// Button label for updating from website.
+  ///
+  /// In en, this message translates to:
+  /// **'Update from Website'**
+  String get forceUpdateSiteBtn;
 }
 
 class _AppLocalizationsDelegate

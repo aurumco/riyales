@@ -40,6 +40,8 @@ import '../../services/connection_service.dart';
 import '../../providers/alert_provider.dart';
 import 'ad_screen.dart';
 import '../../utils/version_utils.dart';
+import '../../constants/strings.dart';
+import '../../constants/urls.dart';
 
 /// The main application screen with asset tabs, search, and settings.
 class HomeScreen extends StatefulWidget {
@@ -155,11 +157,10 @@ class HomeScreenState extends State<HomeScreen>
 
   /// Opens the app download URL for web users.
   Future<void> _launchDownloadUrl() async {
-    const url = 'https://dl.ryls.ir';
     try {
-      if (!await launchUrl(Uri.parse(url),
+      if (!await launchUrl(Uri.parse(AppUrls.appDownloadUrl),
           mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch $url');
+        throw Exception('Could not launch ${AppUrls.appDownloadUrl}');
       }
     } catch (_) {}
   }
@@ -367,9 +368,9 @@ class HomeScreenState extends State<HomeScreen>
         (isLargeScreen ? 8.0 : 0.0) +
         (isLargeScreen ? 0 : (56.0 + 2.0));
 
-    if (appConfig.appName == "Riyales Default Fallback") {
-      return const Scaffold(
-          body: Center(child: Text("App configuration is using fallback.")));
+    if (appConfig.appName == AppStrings.fallbackAppName) {
+      final l10n = AppLocalizations.of(context);
+      return Scaffold(body: Center(child: Text(l10n.fallbackAppConfigMessage)));
     }
 
     final localeNotifier = context.watch<LocaleNotifier>();
@@ -1210,9 +1211,8 @@ class HomeScreenState extends State<HomeScreen>
       _titleTapCount = 0;
       _firstTitleTapTime = null;
       final isRTL = Localizations.localeOf(context).languageCode == 'fa';
-      final message = isRTL
-          ? 'به دستور شرکت ارتباطات و راهکارهای مانا.'
-          : 'By order of Aurum Co.';
+      final l10n = AppLocalizations.of(context);
+      final message = isRTL ? l10n.easterEggMessageFa : l10n.easterEggMessageEn;
       _showCustomSnackBar(message, isRTL);
     }
   }
@@ -1286,6 +1286,7 @@ class HomeScreenState extends State<HomeScreen>
   void _showSortSheet(int index) {
     if (!kIsWeb) Vibration.vibrate(duration: 30);
 
+    final l10n = AppLocalizations.of(context);
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final sortOptions = [
       SortMode.defaultOrder,
@@ -1293,9 +1294,9 @@ class HomeScreenState extends State<HomeScreen>
       SortMode.lowestPrice,
     ];
     final optionLabels = [
-      isFa ? 'پیشفرض' : 'Default',
-      isFa ? 'بیشترین قیمت' : 'Highest Price',
-      isFa ? 'کمترین قیمت' : 'Lowest Price',
+      l10n.sortDefault,
+      l10n.sortHighestPrice,
+      l10n.sortLowestPrice,
     ];
 
     final appConfig = context.read<AppConfig>();
@@ -1315,7 +1316,7 @@ class HomeScreenState extends State<HomeScreen>
         ),
         child: CupertinoActionSheet(
           title: Text(
-            isFa ? 'مرتب‌سازی' : 'Sort By',
+            l10n.sortBy,
             style: TextStyle(
               fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
               fontSize: 17,
@@ -1354,7 +1355,7 @@ class HomeScreenState extends State<HomeScreen>
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              isFa ? 'انصراف' : 'Cancel',
+              l10n.sortCancel,
               style: TextStyle(
                 fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
                 fontSize: 17,

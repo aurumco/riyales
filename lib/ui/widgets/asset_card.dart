@@ -67,12 +67,10 @@ void showCustomErrorSnackBar(BuildContext context) {
     parent: controller,
     curve: Curves.easeInOut,
   );
-  AppLocalizations.of(context);
   final locale = Localizations.localeOf(context);
   final isRTL = locale.languageCode == 'fa';
-  final message = isRTL
-      ? 'خطا در تولید یا اشتراک‌گذاری تصویر کارت.'
-      : 'Failed to generate or share card image.';
+  final l10n = AppLocalizations.of(context);
+  final message = l10n.error_image_generation_or_sharing;
 
   late OverlayEntry entry;
   entry = OverlayEntry(builder: (context) {
@@ -259,9 +257,8 @@ class AssetCard extends StatelessWidget {
     );
     final locale = Localizations.localeOf(context);
     final isRTL = locale.languageCode == 'fa';
-    final message = isRTL
-        ? 'تصویر کارت با موفقیت در پوشه Downloads ذخیره شد.'
-        : 'Card image saved to Downloads folder.';
+    final l10n = AppLocalizations.of(context);
+    final message = l10n.card_image_saved_to_downloads;
     late OverlayEntry entry;
     entry = OverlayEntry(builder: (context) {
       return Positioned(

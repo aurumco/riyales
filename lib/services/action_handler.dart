@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:riyales/ui/screens/terms_screen.dart';
 import 'package:riyales/ui/widgets/settings_sheet.dart';
 import 'package:riyales/providers/search_provider.dart';
+import '../../generated/app_localizations.dart';
 
 /// Handles user-triggered actions and executes navigation or UI commands.
 class ActionHandler {
@@ -56,13 +57,14 @@ class ActionHandler {
         case 'open_contact':
           // Get the current locale to determine the language for the email
           final locale = Localizations.localeOf(context);
+          final l10n = AppLocalizations.of(context);
           // Build mailto URL manually to avoid '+' encoding for spaces
           final subject = locale.languageCode == 'fa'
-              ? Uri.encodeComponent('درخواست پشتیبانی')
-              : Uri.encodeComponent('Support Request');
+              ? Uri.encodeComponent(l10n.supportEmailSubjectFa)
+              : Uri.encodeComponent(l10n.supportEmailSubject);
           final body = locale.languageCode == 'fa'
-              ? Uri.encodeComponent('سلام،\n\nلطفاً به من در مورد...')
-              : Uri.encodeComponent('Hello,\n\nPlease assist me with...');
+              ? Uri.encodeComponent(l10n.supportEmailBodyFa)
+              : Uri.encodeComponent(l10n.supportEmailBody);
           final emailUrl = 'mailto:info@ryls.ir?subject=$subject&body=$body';
           launchUrl(Uri.parse(emailUrl));
           break;

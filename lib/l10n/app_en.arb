@@ -68,7 +68,7 @@
   "@settingsTitle": {
     "description": "Title for settings screen"
   },
-  "settingsTheme": "App Theme",
+  "settingsTheme": "Dark Theme",
   "@settingsTheme": {
     "description": "Label for theme settings"
   },
@@ -147,5 +147,94 @@
   "settingsUpdateAvailable": "Update Available",
   "@settingsUpdateAvailable": {
     "description": "Message shown when an update is available"
-  }
+  },
+  "fallbackAppConfigMessage": "App configuration is using fallback.",
+  "@fallbackAppConfigMessage": {
+    "description": "Message shown when the app is using the fallback configuration (e.g., failed to load remote config)."
+  },
+  "error_image_generation_or_sharing": "Failed to generate or share card image.",
+  "@error_image_generation_or_sharing": {
+    "description": "Error message shown when card image generation or sharing fails."
+  },
+  "card_image_saved_to_downloads": "Card image saved to Downloads folder.",
+  "@card_image_saved_to_downloads": {
+    "description": "Message shown when a card image is successfully saved to the Downloads folder."
+  },
+  "sortBy": "Sort By",
+  "@sortBy": {
+    "description": "Title for the sort options dialog."
+  },
+  "sortDefault": "Default",
+  "@sortDefault": {
+    "description": "Label for the default sort option."
+  },
+  "sortHighestPrice": "Highest Price",
+  "@sortHighestPrice": {
+    "description": "Label for the highest price sort option."
+  },
+  "sortLowestPrice": "Lowest Price",
+  "@sortLowestPrice": {
+    "description": "Label for the lowest price sort option."
+  },
+  "sortCancel": "Cancel",
+  "@sortCancel": {
+    "description": "Label for the cancel button in the sort dialog."
+  },
+  "easterEggMessageEn": "By order of Aurum Co.",
+  "@easterEggMessageEn": {
+    "description": "Easter egg message shown in English when the app title is tapped multiple times."
+  },
+  "easterEggMessageFa": "به دستور شرکت ارتباطات و راهکارهای مانا.",
+  "@easterEggMessageFa": {
+    "description": "Easter egg message shown in Farsi when the app title is tapped multiple times."
+  },
+  "onboardingWhatsNew": "What's New",
+  "@onboardingWhatsNew": {"description": "Onboarding: Title for what's new section."},
+  "onboardingIn": "in",
+  "@onboardingIn": {"description": "Onboarding: 'in' for 'What's New in Riyales'."},
+  "onboardingAppName": "Riyales",
+  "@onboardingAppName": {"description": "Onboarding: App name for title."},
+  "onboardingQuickPin": "Quick Pin",
+  "@onboardingQuickPin": {"description": "Onboarding: Quick Pin feature title."},
+  "onboardingQuickPinDesc": "Double-tap any asset card to pin or unpin it.",
+  "@onboardingQuickPinDesc": {"description": "Onboarding: Quick Pin feature description."},
+  "onboardingShareCard": "Share Card",
+  "@onboardingShareCard": {"description": "Onboarding: Share Card feature title."},
+  "onboardingShareCardDesc": "Long-press any asset card to share its image.",
+  "@onboardingShareCardDesc": {"description": "Onboarding: Share Card feature description."},
+  "onboardingScrollToTop": "Scroll to Top",
+  "@onboardingScrollToTop": {"description": "Onboarding: Scroll to Top feature title."},
+  "onboardingScrollToTopDesc": "Tap the active tab again to instantly scroll back to top.",
+  "@onboardingScrollToTopDesc": {"description": "Onboarding: Scroll to Top feature description."},
+  "onboardingQuickSettings": "Quick Settings",
+  "@onboardingQuickSettings": {"description": "Onboarding: Quick Settings feature title."},
+  "onboardingQuickSettingsDesc": "Tap the profile icon to adjust language, theme, and more.",
+  "@onboardingQuickSettingsDesc": {"description": "Onboarding: Quick Settings feature description."},
+  "onboardingTermsAccept": "By using the app you accept the Terms of Service",
+  "@onboardingTermsAccept": {"description": "Onboarding: Terms acceptance text."},
+  "onboardingContinue": "Continue",
+  "@onboardingContinue": {"description": "Onboarding: Continue button label."},
+  "termsErrorLoading": "Error loading data.",
+  "@termsErrorLoading": {"description": "Terms screen: Error message when loading fails."},
+  "termsLastUpdated": "Last updated: {date}",
+  "@termsLastUpdated": {
+    "description": "Terms screen: Last updated label. {date} is the date string.",
+    "placeholders": {"date": {"type": "String", "example": "2025-01-01"}}
+  },
+  "supportEmailSubject": "Support Request",
+  "@supportEmailSubject": {"description": "Subject for support email in English."},
+  "supportEmailBody": "Hello,\n\nPlease assist me with...",
+  "@supportEmailBody": {"description": "Body for support email in English."},
+  "supportEmailSubjectFa": "درخواست پشتیبانی",
+  "@supportEmailSubjectFa": {"description": "Subject for support email in Farsi."},
+  "supportEmailBodyFa": "سلام،\n\nلطفاً به من در مورد...",
+  "@supportEmailBodyFa": {"description": "Body for support email in Farsi."},
+  "forceUpdateTitle": "Mandatory Update",
+  "@forceUpdateTitle": {"description": "Title for the force update screen."},
+  "forceUpdateMessage": "A new version of the app is required.\nThis version is no longer supported.",
+  "@forceUpdateMessage": {"description": "Message for the force update screen."},
+  "forceUpdateMarketBtn": "Update from Market",
+  "@forceUpdateMarketBtn": {"description": "Button label for updating from market."},
+  "forceUpdateSiteBtn": "Update from Website",
+  "@forceUpdateSiteBtn": {"description": "Button label for updating from website."}
 } 

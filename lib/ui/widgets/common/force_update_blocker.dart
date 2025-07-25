@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../config/app_config.dart';
 import '../../../providers/locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../generated/app_localizations.dart';
 
 class ForceUpdateBlocker extends StatelessWidget {
   const ForceUpdateBlocker({super.key});
@@ -20,13 +21,11 @@ class ForceUpdateBlocker extends StatelessWidget {
         : Color.fromARGB(255, 0, 192, 92);
     final updateInfo = appConfig.updateInfo;
 
-    final String title = isRTL ? 'بروزرسانی ضروری' : 'Mandatory Update';
-    final String message = isRTL
-        ? 'برای استفاده از ریالِس باید نسخه جدید را نصب کنید.\nاین نسخه دیگر پشتیبانی نمی‌شود.'
-        : 'A new version of the app is required.\nThis version is no longer supported.';
-    final String marketBtn =
-        isRTL ? 'بروزرسانی از مارکت' : 'Update from Market';
-    final String siteBtn = isRTL ? 'بروزرسانی از سایت' : 'Update from Website';
+    final l10n = AppLocalizations.of(context);
+    final String title = l10n.forceUpdateTitle;
+    final String message = l10n.forceUpdateMessage;
+    final String marketBtn = l10n.forceUpdateMarketBtn;
+    final String siteBtn = l10n.forceUpdateSiteBtn;
     final String marketPackage = updateInfo.updatePackage;
     final String siteUrl = updateInfo.updateLink;
 

@@ -17,7 +17,7 @@
   "retryButton": "تلاش مجدد",
   "cardTapped": "کارت لمس شد",
   "settingsTitle": "تنظیمات",
-  "settingsTheme": "پوسته برنامه",
+  "settingsTheme": "پوسته تاریک",
   "themeLight": "روشن",
   "themeDark": "تاریک",
   "settingsLanguage": "زبان برنامه",
@@ -36,5 +36,94 @@
   "youreBackOnline": "اتصال به اینترنت برقرار شد.",
   "settingsTerms": "قوانین و مقررات",
   "settingsAppVersion": "نسخه برنامه",
-  "settingsUpdateAvailable": "بروزرسانی موجود است"
+  "settingsUpdateAvailable": "بروزرسانی موجود است",
+  "fallbackAppConfigMessage": "پیکربندی برنامه در حالت پیش‌فرض است.",
+  "@fallbackAppConfigMessage": {
+    "description": "پیامی که هنگام استفاده برنامه از پیکربندی پیش‌فرض (مثلاً عدم بارگذاری موفق پیکربندی از راه دور) نمایش داده می‌شود."
+  },
+  "error_image_generation_or_sharing": "خطا در تولید یا اشتراک‌گذاری تصویر کارت.",
+  "@error_image_generation_or_sharing": {
+    "description": "پیام خطا هنگام شکست در تولید یا اشتراک‌گذاری تصویر کارت."
+  },
+  "card_image_saved_to_downloads": "تصویر کارت با موفقیت در پوشه Downloads ذخیره شد.",
+  "@card_image_saved_to_downloads": {
+    "description": "پیامی که هنگام ذخیره موفقیت‌آمیز تصویر کارت در پوشه Downloads نمایش داده می‌شود."
+  },
+  "sortBy": "مرتب‌سازی",
+  "@sortBy": {
+    "description": "عنوان دیالوگ گزینه‌های مرتب‌سازی."
+  },
+  "sortDefault": "پیشفرض",
+  "@sortDefault": {
+    "description": "برچسب گزینه مرتب‌سازی پیش‌فرض."
+  },
+  "sortHighestPrice": "بیشترین قیمت",
+  "@sortHighestPrice": {
+    "description": "برچسب گزینه مرتب‌سازی بر اساس بیشترین قیمت."
+  },
+  "sortLowestPrice": "کمترین قیمت",
+  "@sortLowestPrice": {
+    "description": "برچسب گزینه مرتب‌سازی بر اساس کمترین قیمت."
+  },
+  "sortCancel": "انصراف",
+  "@sortCancel": {
+    "description": "برچسب دکمه انصراف در دیالوگ مرتب‌سازی."
+  },
+  "easterEggMessageEn": "By order of Aurum Co.",
+  "@easterEggMessageEn": {
+    "description": "پیام ایستر اگ انگلیسی که هنگام چند بار لمس عنوان برنامه نمایش داده می‌شود."
+  },
+  "easterEggMessageFa": "به دستور شرکت ارتباطات و راهکارهای مانا.",
+  "@easterEggMessageFa": {
+    "description": "پیام ایستر اگ فارسی که هنگام چند بار لمس عنوان برنامه نمایش داده می‌شود."
+  },
+  "onboardingWhatsNew": "چه خبر",
+  "@onboardingWhatsNew": {"description": "آن‌بوردینگ: عنوان بخش چه خبر."},
+  "onboardingIn": "در",
+  "@onboardingIn": {"description": "آن‌بوردینگ: 'در' برای 'چه خبر در ریالس'."},
+  "onboardingAppName": "ریالس",
+  "@onboardingAppName": {"description": "آن‌بوردینگ: نام برنامه برای عنوان."},
+  "onboardingQuickPin": "پین سریع",
+  "@onboardingQuickPin": {"description": "آن‌بوردینگ: عنوان قابلیت پین سریع."},
+  "onboardingQuickPinDesc": "فقط کافیست دو بار روی یک دارایی ضربه بزنید تا پین شود.",
+  "@onboardingQuickPinDesc": {"description": "آن‌بوردینگ: توضیح قابلیت پین سریع."},
+  "onboardingShareCard": "اشتراک گذاری",
+  "@onboardingShareCard": {"description": "آن‌بوردینگ: عنوان قابلیت اشتراک گذاری کارت."},
+  "onboardingShareCardDesc": "با نگه داشتن انگشت خود بر روی یک دارایی، آن را به دوستانتان ارسال کنید.",
+  "@onboardingShareCardDesc": {"description": "آن‌بوردینگ: توضیح قابلیت اشتراک گذاری کارت."},
+  "onboardingScrollToTop": "بازگشت به بالا",
+  "@onboardingScrollToTop": {"description": "آن‌بوردینگ: عنوان قابلیت بازگشت به بالا."},
+  "onboardingScrollToTopDesc": "با یک ضربه روی تَب فعلی، لیست به ابتدای صفحه اسکرول می‌شود.",
+  "@onboardingScrollToTopDesc": {"description": "آن‌بوردینگ: توضیح قابلیت بازگشت به بالا."},
+  "onboardingQuickSettings": "تنظیمات سریع",
+  "@onboardingQuickSettings": {"description": "آن‌بوردینگ: عنوان قابلیت تنظیمات سریع."},
+  "onboardingQuickSettingsDesc": "برای تغییر زبان، تم و سایر گزینه‌ها روی آیکون پروفایل بزنید.",
+  "@onboardingQuickSettingsDesc": {"description": "آن‌بوردینگ: توضیح قابلیت تنظیمات سریع."},
+  "onboardingTermsAccept": "استفاده از اپلیکیشن به منزلهٔ پذیرش قوانین است",
+  "@onboardingTermsAccept": {"description": "آن‌بوردینگ: متن پذیرش قوانین."},
+  "onboardingContinue": "ادامه",
+  "@onboardingContinue": {"description": "آن‌بوردینگ: برچسب دکمه ادامه."},
+  "termsErrorLoading": "خطا در بارگیری اطلاعات.",
+  "@termsErrorLoading": {"description": "صفحه قوانین: پیام خطا هنگام بارگذاری."},
+  "termsLastUpdated": "آخرین بروزرسانی: {date}",
+  "@termsLastUpdated": {
+    "description": "صفحه قوانین: برچسب آخرین بروزرسانی. {date} رشته تاریخ است.",
+    "placeholders": {"date": {"type": "String", "example": "202501-01"}}
+  },
+  "supportEmailSubject": "Support Request",
+  "@supportEmailSubject": {"description": "موضوع ایمیل پشتیبانی به انگلیسی."},
+  "supportEmailBody": "Hello,\n\nPlease assist me with...",
+  "@supportEmailBody": {"description": "متن ایمیل پشتیبانی به انگلیسی."},
+  "supportEmailSubjectFa": "درخواست پشتیبانی",
+  "@supportEmailSubjectFa": {"description": "موضوع ایمیل پشتیبانی به فارسی."},
+  "supportEmailBodyFa": "سلام،\n\nلطفاً به من در مورد...",
+  "@supportEmailBodyFa": {"description": "متن ایمیل پشتیبانی به فارسی."},
+  "forceUpdateTitle": "بروزرسانی ضروری",
+  "@forceUpdateTitle": {"description": "عنوان صفحه بروزرسانی اجباری."},
+  "forceUpdateMessage": "برای استفاده از ریالِس باید نسخه جدید را نصب کنید.\nاین نسخه دیگر پشتیبانی نمی‌شود.",
+  "@forceUpdateMessage": {"description": "پیام صفحه بروزرسانی اجباری."},
+  "forceUpdateMarketBtn": "بروزرسانی از مارکت",
+  "@forceUpdateMarketBtn": {"description": "برچسب دکمه بروزرسانی از مارکت."},
+  "forceUpdateSiteBtn": "بروزرسانی از سایت",
+  "@forceUpdateSiteBtn": {"description": "برچسب دکمه بروزرسانی از سایت."}
 } 

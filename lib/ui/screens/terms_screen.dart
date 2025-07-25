@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 // Local project imports
 import '../../providers/locale_provider.dart';
 import '../../providers/terms_provider.dart';
+import '../../generated/app_localizations.dart';
 
 /// Shows the Terms and Conditions content fetched by TermsNotifier.
 class TermsAndConditionsScreen extends StatelessWidget {
@@ -40,9 +41,10 @@ class TermsAndConditionsScreen extends StatelessWidget {
             }
             if (termsNotifier.error != null ||
                 termsNotifier.termsData == null) {
+              final l10n = AppLocalizations.of(context);
               return Center(
                 child: Text(
-                  isFa ? 'خطا در بارگیری اطلاعات.' : 'Error loading data.',
+                  l10n.termsErrorLoading,
                   style: TextStyle(
                     fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
                     color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -130,9 +132,8 @@ class TermsAndConditionsScreen extends StatelessWidget {
                                     const EdgeInsets.only(top: 24, bottom: 16),
                                 child: Center(
                                   child: Text(
-                                    isFa
-                                        ? 'آخرین بروزرسانی: ${terms.lastUpdated}'
-                                        : 'Last updated: ${terms.lastUpdated}',
+                                    AppLocalizations.of(context)
+                                        .termsLastUpdated(terms.lastUpdated),
                                     style: TextStyle(
                                       fontFamily: isFa ? 'Vazirmatn' : 'SF-Pro',
                                       fontSize: 12,

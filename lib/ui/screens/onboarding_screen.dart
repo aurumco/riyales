@@ -13,6 +13,7 @@ import '../../providers/locale_provider.dart';
 import '../../utils/color_utils.dart';
 import 'terms_screen.dart';
 import 'home_screen.dart';
+import '../../generated/app_localizations.dart';
 
 /// Shows onboarding screens with feature highlights and navigates to HomeScreen.
 class OnboardingScreen extends StatelessWidget {
@@ -58,114 +59,55 @@ class OnboardingScreen extends StatelessWidget {
 
     // title two-line with colored app name
     Widget titleWidget() {
-      if (isPersian) {
-        return RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            style: TextStyle(
-                fontFamily: 'Vazirmatn',
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: isDark ? CupertinoColors.white : CupertinoColors.black),
-            children: [
-              const TextSpan(text: 'چه خبر\n'),
-              const TextSpan(text: 'در '),
-              TextSpan(text: 'ریالس', style: TextStyle(color: tealGreen)),
-            ],
-          ),
-        );
-      } else {
-        return RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            style: TextStyle(
-                fontFamily: 'SF-Pro',
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: isDark ? CupertinoColors.white : CupertinoColors.black),
-            children: [
-              const TextSpan(text: "What's New\n"),
-              const TextSpan(text: 'in '),
-              TextSpan(text: 'Riyales', style: TextStyle(color: tealGreen)),
-            ],
-          ),
-        );
-      }
+      final l10n = AppLocalizations.of(context);
+      return RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          style: TextStyle(
+              fontFamily: isPersian ? 'Vazirmatn' : 'SF-Pro',
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: isDark ? CupertinoColors.white : CupertinoColors.black),
+          children: [
+            TextSpan(text: "${l10n.onboardingWhatsNew}\n"),
+            TextSpan(text: "${l10n.onboardingIn} "),
+            TextSpan(
+                text: l10n.onboardingAppName,
+                style: TextStyle(color: tealGreen)),
+          ],
+        ),
+      );
     }
 
-    List<WhatsNewFeature> feats = isPersian
-        ? [
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.pin, color: tealGreen),
-              title: buildText(' پین سریع'),
-              description: buildText(
-                  'فقط کافیست دو بار روی یک دارایی ضربه بزنید تا پین شود.'),
-            ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.share, color: tealGreen),
-              title: buildText('اشتراک گذاری'),
-              description: buildText(
-                  'با نگه داشتن انگشت خود بر روی یک دارایی، آن را به دوستانتان ارسال کنید.'),
-            ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
-              title: buildText('بازگشت به بالا'),
-              description: buildText(
-                  'با یک ضربه روی تَب فعلی، لیست به ابتدای صفحه اسکرول می‌شود.'),
-            ),
-            // WhatsNewFeature(
-            //   icon: Icon(CupertinoIcons.sort_down, color: tealGreen),
-            //   title: buildText('مرتب‌سازی هوشمند'),
-            //   description: buildText(
-            //       'برای مرتب کردن بر اساس قیمت، انگشت خود را روی تَب فعلی نگه دارید.'),
-            // ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.person_circle, color: tealGreen),
-              title: buildText('تنظیمات سریع'),
-              description: buildText(
-                  'برای تغییر زبان، تم و سایر گزینه‌ها روی آیکون پروفایل بزنید.'),
-            ),
-          ]
-        : [
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.pin, color: tealGreen),
-              title: buildText('Quick Pin'),
-              description:
-                  buildText('Double-tap any asset card to pin or unpin it.'),
-            ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.share, color: tealGreen),
-              title: buildText('Share Card'),
-              description:
-                  buildText('Long-press any asset card to share its image.'),
-            ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
-              title: buildText('Scroll to Top'),
-              description: buildText(
-                  'Tap the active tab again to instantly scroll back to top.'),
-            ),
-            // WhatsNewFeature(
-            //   icon: Icon(CupertinoIcons.sort_down, color: tealGreen),
-            //   title: buildText('Smart Sorting'),
-            //   description: buildText(
-            //       'Long-press the active tab to sort prices high-to-low or low-to-high.'),
-            // ),
-            WhatsNewFeature(
-              icon: Icon(CupertinoIcons.person_circle, color: tealGreen),
-              title: buildText('Quick Settings'),
-              description: buildText(
-                  'Tap the profile icon to adjust language, theme, and more.'),
-            ),
-          ];
+    final l10n = AppLocalizations.of(context);
+    List<WhatsNewFeature> feats = [
+      WhatsNewFeature(
+        icon: Icon(CupertinoIcons.pin, color: tealGreen),
+        title: buildText(l10n.onboardingQuickPin),
+        description: buildText(l10n.onboardingQuickPinDesc),
+      ),
+      WhatsNewFeature(
+        icon: Icon(CupertinoIcons.share, color: tealGreen),
+        title: buildText(l10n.onboardingShareCard),
+        description: buildText(l10n.onboardingShareCardDesc),
+      ),
+      WhatsNewFeature(
+        icon: Icon(CupertinoIcons.arrow_up_circle, color: tealGreen),
+        title: buildText(l10n.onboardingScrollToTop),
+        description: buildText(l10n.onboardingScrollToTopDesc),
+      ),
+      WhatsNewFeature(
+        icon: Icon(CupertinoIcons.person_circle, color: tealGreen),
+        title: buildText(l10n.onboardingQuickSettings),
+        description: buildText(l10n.onboardingQuickSettingsDesc),
+      ),
+    ];
 
     // Link to Terms & Conditions displayed above the Continue button
     final termsLink = CupertinoButton(
       padding: EdgeInsets.zero,
       child: Text(
-        isPersian
-            ? 'استفاده از اپلیکیشن به منزلهٔ پذیرش قوانین است'
-            : 'By using the app you accept the Terms of Service',
+        l10n.onboardingTermsAccept,
         style: TextStyle(
           fontFamily: isPersian ? 'Vazirmatn' : 'SF-Pro',
           fontSize: 15,
@@ -186,11 +128,8 @@ class OnboardingScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 22),
         child: GestureDetector(
           onTap: () async {
-            // Save that onboarding was shown and dismissed by user
             final prefs = await SharedPreferences.getInstance();
             await prefs.setBool('onboarding_shown_v1', true);
-
-            // Navigate back to HomeScreen with slide animation
             if (context.mounted) {
               Navigator.of(context).pushReplacement(
                 PageRouteBuilder(
@@ -201,11 +140,9 @@ class OnboardingScreen extends StatelessWidget {
                     const begin = Offset(1.0, 0.0);
                     const end = Offset.zero;
                     const curve = Curves.easeInOutQuart;
-
                     var tween = Tween(begin: begin, end: end)
                         .chain(CurveTween(curve: curve));
                     var offsetAnimation = animation.drive(tween);
-
                     return SlideTransition(
                       position: offsetAnimation,
                       child: child,
@@ -224,7 +161,7 @@ class OnboardingScreen extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                isPersian ? 'ادامه' : 'Continue',
+                l10n.onboardingContinue,
                 style: TextStyle(
                   color: CupertinoColors.white,
                   fontFamily: isPersian ? 'Vazirmatn' : 'SF-Pro',
