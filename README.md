@@ -27,7 +27,7 @@
 
 Before getting started, ensure you have the following installed:
 - [Flutter](https://flutter.dev/docs/get-started/install) (v3.27.x or higher)
-- [Python](https://www.python.org/downloads/) (v3.11.x or higher)
+- [Python](https://www.python.org/downloads/) (v3.13.x or higher)
 
 ## 📲 Getting Started
 
